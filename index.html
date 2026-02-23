@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v16.1</title>
+    <title>EcoFinance Pro v17.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -26,18 +26,18 @@
 
         /* DASHBOARD */
         .card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 22px; border-radius: 20px; text-align: center; }
-        .grid-resumo { display: flex; gap: 10px; margin: 20px 0; }
-        .mini-card { background: white; flex: 1; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        /* Alteração: Grelha 2x2 para acomodar o Dinheiro Guardado */
+        .grid-resumo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .mini-card { background: white; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .mini-card small { font-size: 11px; color: #888; }
         .mini-card p { margin: 5px 0 0; font-weight: bold; font-size: 14px; }
 
-        /* CONFIGURAÇÕES - ACCORDION */
+        /* ACCORDION (Configurações) */
         .accordion-item { background: white; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; overflow: hidden; }
         .accordion-header { padding: 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff; font-weight: bold; color: var(--texto); }
         .accordion-content { display: none; padding: 15px; border-top: 1px solid #f0f0f0; background: #fafafa; }
         .accordion-content.active { display: block; }
 
-        /* CARD GESTÃO DENTRO DO DROPDOWN */
         .card-gestao { padding: 15px; background: #fff; border-radius: 12px; margin-bottom:15px; border-left: 8px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .info-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; margin-top: 10px; }
         .info-col { display: flex; flex-direction: column; color: #777; }
@@ -50,7 +50,12 @@
         /* INPUTS */
         .grid-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
-        .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; }
+        label { font-size: 11px; color: #999; margin-bottom: 4px; display: block; }
+        .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer;}
+        .btn-del { color: var(--perigo); background: none; border: none; cursor: pointer; padding: 5px; }
+
+        /* LISTA ASSINATURAS */
+        .item-assinatura { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 13px; }
 
         /* MENU INFERIOR */
         .menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #eee; z-index: 2000; height: 65px; }
@@ -90,12 +95,16 @@
                             <p id="dash-receitas" style="color: var(--sucesso);">R$ 0,00</p>
                         </div>
                         <div class="mini-card">
-                            <small>Faturas</small>
+                            <small>Faturas Abertas</small>
                             <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
                         </div>
                         <div class="mini-card">
-                            <small>Saldo</small>
-                            <p id="dash-saldo" style="color: var(--mercadopago);">R$ 0,00</p>
+                            <small>Saldo Livre</small>
+                            <p id="dash-saldo" style="color: var(--texto);">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <small>Guardado / Investido</small>
+                            <p id="dash-guardado" style="color: var(--mercadopago);">R$ 0,00</p>
                         </div>
                     </div>
 
@@ -115,7 +124,7 @@
                             </select>
                             <select id="lanc-forma"></select>
                         </div>
-                        <input type="text" id="lanc-desc" placeholder="Descrição">
+                        <input type="text" id="lanc-desc" placeholder="Descrição (ex: Uber)">
                         <div class="grid-inputs" style="margin-top:10px;">
                             <input type="number" id="lanc-valor" placeholder="Valor R$">
                             <select id="lanc-cat">
@@ -142,16 +151,58 @@
             <section id="aba-contas" class="secao-app">
                 <div class="container">
                     <div class="card">
-                        <h3><i class="fas fa-wallet"></i> Saldo em Contas</h3>
-                        <label>Nubank (Conta)</label><input type="number" id="s-nu" onchange="saveS()">
-                        <div style="margin-top:10px;"></div>
-                        <label>M. Pago (Conta)</label><input type="number" id="s-mp" onchange="saveS()">
+                        <h3><i class="fas fa-wallet"></i> Saldo à Ordem (Livre)</h3>
+                        <div class="grid-inputs">
+                            <div><label>Nubank</label><input type="number" id="s-nu" onchange="saveS()"></div>
+                            <div><label>M. Pago</label><input type="number" id="s-mp" onchange="saveS()"></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-piggy-bank"></i> Caixinhas / Investimentos</h3>
+                        <p style="font-size:11px; color:#888;">Este valor compõe o teu património, mas não afeta o saldo livre.</p>
+                        <div class="grid-inputs">
+                            <div><label>Nubank (Guardado)</label><input type="number" id="inv-nu" onchange="saveS()"></div>
+                            <div><label>M. Pago (Guardado)</label><input type="number" id="inv-mp" onchange="saveS()"></div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             <section id="aba-config" class="secao-app">
                 <div class="container">
+                    
+                    <div class="accordion-item">
+                        <div class="accordion-header" onclick="toggleAccordion('content-assinaturas')">
+                            <span><i class="fas fa-sync-alt"></i> Assinaturas & Fixas</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div id="content-assinaturas" class="accordion-content">
+                            <p style="font-size:11px; color:#888; margin-bottom:10px;">Adiciona a Netflix, Spotify, etc. O sistema lança na fatura automaticamente no dia programado.</p>
+                            <div class="grid-inputs">
+                                <input type="text" id="ass-nome" placeholder="Nome (Ex: Netflix)">
+                                <input type="number" id="ass-valor" placeholder="Valor R$">
+                            </div>
+                            <div class="grid-inputs">
+                                <div>
+                                    <label>Lança em que dia?</label>
+                                    <input type="number" id="ass-dia" placeholder="Dia (1 a 31)" min="1" max="31">
+                                </div>
+                                <div>
+                                    <label>Qual Cartão?</label>
+                                    <select id="ass-cartao">
+                                        <option value="nu">Nubank</option>
+                                        <option value="mp">Mercado Pago</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn-main" onclick="adicionarAssinatura()" style="background:var(--mercadopago);">PROGRAMAR DESPESA</button>
+                            
+                            <div id="lista-assinaturas" style="margin-top: 20px;">
+                                </div>
+                        </div>
+                    </div>
+
                     <div class="accordion-item">
                         <div class="accordion-header" onclick="toggleAccordion('content-cartoes')">
                             <span><i class="fas fa-credit-card"></i> Ajuste de Cartão</span>
@@ -160,7 +211,7 @@
                         <div id="content-cartoes" class="accordion-content">
                             <div id="card-nu-box" class="card-gestao" style="border-left-color: var(--nubank);">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <strong id="label-nu" style="font-size:18px;">Nubank</strong>
+                                    <strong id="label-nu" style="font-size:16px;">Nubank</strong>
                                     <button class="btn-lapis" onclick="toggleEdit('nu')"><i class="fas fa-pencil-alt"></i></button>
                                 </div>
                                 <div class="info-corpo">
@@ -179,14 +230,14 @@
                                         <div><label>Dia Fechamento</label><input type="number" id="e-fecha-nu"></div>
                                         <div><label>Dia Vencimento</label><input type="number" id="e-venc-nu"></div>
                                     </div>
-                                    <label>Cor da Identidade</label>
-                                    <input type="color" id="e-cor-nu" style="height:44px; padding:0; border-radius:8px; border:none;">
+                                    <label>Cor</label>
+                                    <input type="color" id="e-cor-nu" style="height:44px; padding:0; border:none; border-radius:8px;">
                                     <button class="btn-main" onclick="salvarCard('nu')" style="background:var(--sucesso);">APLICAR</button>
                                 </div>
                             </div>
                             <div id="card-mp-box" class="card-gestao" style="border-left-color: var(--mercadopago);">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <strong id="label-mp" style="font-size:18px;">Mercado Pago</strong>
+                                    <strong id="label-mp" style="font-size:16px;">Mercado Pago</strong>
                                     <button class="btn-lapis" onclick="toggleEdit('mp')"><i class="fas fa-pencil-alt"></i></button>
                                 </div>
                                 <div class="info-corpo">
@@ -205,8 +256,8 @@
                                         <div><label>Dia Fechamento</label><input type="number" id="e-fecha-mp"></div>
                                         <div><label>Dia Vencimento</label><input type="number" id="e-venc-mp"></div>
                                     </div>
-                                    <label>Cor da Identidade</label>
-                                    <input type="color" id="e-cor-mp" style="height:44px; padding:0; border-radius:8px; border:none;">
+                                    <label>Cor</label>
+                                    <input type="color" id="e-cor-mp" style="height:44px; padding:0; border:none; border-radius:8px;">
                                     <button class="btn-main" onclick="salvarCard('mp')" style="background:var(--sucesso);">APLICAR</button>
                                 </div>
                             </div>
@@ -214,7 +265,7 @@
                     </div>
 
                     <div class="card" style="margin-top:20px;">
-                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo);">RESETAR TODOS OS DADOS</button>
+                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo);">APAGAR TODOS OS DADOS</button>
                     </div>
                 </div>
             </section>
@@ -230,10 +281,14 @@
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('ecoDB_v16')) || {
-            nu: { nome: "Nubank", meta: 1100, limite: 5000, fecha: 13, venc: 20, cor: '#8a05be', gastos: [] },
-            mp: { nome: "Mercado Pago", meta: 800, limite: 2000, fecha: 10, venc: 17, cor: '#009ee3', gastos: [] },
-            sNu: 0, sMp: 0, receitas: []
+        // Mapeamento Inteligente e Migração de versões antigas
+        let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v16')) || {};
+        let db = JSON.parse(localStorage.getItem('ecoDB_v17')) || {
+            nu: dbAntigo.nu || { nome: "Nubank", meta: 1100, limite: 5000, fecha: 13, venc: 20, cor: '#8a05be', gastos: [] },
+            mp: dbAntigo.mp || { nome: "Mercado Pago", meta: 800, limite: 2000, fecha: 10, venc: 17, cor: '#009ee3', gastos: [] },
+            sNu: dbAntigo.sNu || 0, sMp: dbAntigo.sMp || 0, receitas: dbAntigo.receitas || [],
+            invNu: 0, invMp: 0, // Novos campos de investimentos
+            assinaturas: [], historicoAssinaturas: [] // Novos campos de automação
         };
 
         function navegar(id, el) {
@@ -261,18 +316,78 @@
                 `<option value="Salário">💵 Salário</option><option value="Pix">📱 Pix</option>`;
         }
 
+        // --- SISTEMA DE ASSINATURAS (NOVIDADE) ---
+        function adicionarAssinatura() {
+            const nome = document.getElementById('ass-nome').value;
+            const valor = parseFloat(document.getElementById('ass-valor').value);
+            const dia = parseInt(document.getElementById('ass-dia').value);
+            const cartao = document.getElementById('ass-cartao').value;
+
+            if(!nome || isNaN(valor) || isNaN(dia) || dia < 1 || dia > 31) return alert("Preenche todos os campos corretamente.");
+
+            db.assinaturas.push({ id: Date.now(), nome, valor, dia, cartao });
+            document.getElementById('ass-nome').value = "";
+            document.getElementById('ass-valor').value = "";
+            document.getElementById('ass-dia').value = "";
+            save();
+            alert("Assinatura programada!");
+        }
+
+        function apagarAssinatura(id) {
+            db.assinaturas = db.assinaturas.filter(a => a.id !== id);
+            save();
+        }
+
+        function processarAssinaturasAutomaticas() {
+            const hoje = new Date();
+            const diaAtual = hoje.getDate();
+            const mesAtual = hoje.getMonth() + 1;
+            const anoAtual = hoje.getFullYear();
+            const strMes = `${anoAtual}-${mesAtual.toString().padStart(2, '0')}`;
+            let processouAlgo = false;
+
+            db.assinaturas.forEach(ass => {
+                if (diaAtual >= ass.dia) {
+                    const chaveLancamento = `${ass.id}-${strMes}`;
+                    // Se ainda não lançou este mês, lança!
+                    if (!db.historicoAssinaturas.includes(chaveLancamento)) {
+                        const dataFixa = `${anoAtual}-${mesAtual.toString().padStart(2, '0')}-${ass.dia.toString().padStart(2, '0')}`;
+                        db[ass.cartao].gastos.push({
+                            id: Date.now() + Math.random(),
+                            data: dataFixa,
+                            desc: ass.nome + " (Automático)",
+                            valor: ass.valor,
+                            cat: "Assinatura",
+                            forma: "Crédito"
+                        });
+                        db.historicoAssinaturas.push(chaveLancamento);
+                        processouAlgo = true;
+                    }
+                }
+            });
+            if(processouAlgo) save();
+        }
+
+        // --- GESTÃO TRADICIONAL ---
         function adicionarGasto() {
+            const data = document.getElementById('lanc-data').value;
             const valor = parseFloat(document.getElementById('lanc-valor').value);
             const tipo = document.getElementById('lanc-tipo').value;
-            if(isNaN(valor)) return alert("Valor inválido!");
+            const desc = document.getElementById('lanc-desc').value;
+            const forma = document.getElementById('lanc-forma').value;
+            const cat = document.getElementById('lanc-cat').value;
 
-            if(tipo === "receita") db.receitas.push({ valor });
+            if(!desc || isNaN(valor) || !data) return alert("Preenche todos os dados.");
+
+            if(tipo === "receita") db.receitas.push({ id: Date.now(), data, desc, valor, forma });
             else {
                 const c = document.getElementById('lanc-cartao').value;
-                db[c].gastos.push({ valor });
+                db[c].gastos.push({ id: Date.now(), data, desc, valor, forma, cat });
             }
             save();
-            alert("Salvo!");
+            alert("Lançamento Registado!");
+            document.getElementById('lanc-desc').value = "";
+            document.getElementById('lanc-valor').value = "";
         }
 
         function salvarCard(id) {
@@ -291,10 +406,12 @@
         function saveS() {
             db.sNu = parseFloat(document.getElementById('s-nu').value) || 0;
             db.sMp = parseFloat(document.getElementById('s-mp').value) || 0;
+            db.invNu = parseFloat(document.getElementById('inv-nu').value) || 0;
+            db.invMp = parseFloat(document.getElementById('inv-mp').value) || 0;
             save();
         }
 
-        function save() { localStorage.setItem('ecoDB_v16', JSON.stringify(db)); render(); }
+        function save() { localStorage.setItem('ecoDB_v17', JSON.stringify(db)); render(); }
 
         function render() {
             const gNu = db.nu.gastos.reduce((a,b)=>a+b.valor,0);
@@ -302,6 +419,7 @@
             const gT = gNu + gMp;
             const mT = db.nu.meta + db.mp.meta;
             const rT = db.receitas.reduce((a,b)=>a+b.valor,0);
+            const guardado = db.invNu + db.invMp;
 
             document.getElementById('uso-meta-texto').innerText = `R$ ${gT.toFixed(2)} / R$ ${mT.toFixed(2)}`;
             document.getElementById('meta-bar').style.width = Math.min((gT/mT)*100, 100) + "%";
@@ -309,6 +427,7 @@
             document.getElementById('dash-receitas').innerText = "R$ " + rT.toFixed(2);
             document.getElementById('dash-faturas').innerText = "R$ " + gT.toFixed(2);
             document.getElementById('dash-saldo').innerText = "R$ " + (rT + db.sNu + db.sMp - gT).toFixed(2);
+            document.getElementById('dash-guardado').innerText = "R$ " + guardado.toFixed(2);
 
             ['nu','mp'].forEach(id => {
                 document.getElementById('label-'+id).innerText = db[id].nome;
@@ -318,7 +437,6 @@
                 document.getElementById('v-venc-'+id).innerText = "dia " + (db[id].venc || 0);
                 document.getElementById('card-'+id+'-box').style.borderLeftColor = db[id].cor;
                 
-                // Popula inputs com dados salvos
                 document.getElementById('e-nome-'+id).value = db[id].nome;
                 document.getElementById('e-meta-'+id).value = db[id].meta;
                 document.getElementById('e-limite-'+id).value = db[id].limite || 0;
@@ -326,21 +444,40 @@
                 document.getElementById('e-venc-'+id).value = db[id].venc || 0;
                 document.getElementById('e-cor-'+id).value = db[id].cor;
             });
+
+            // Renderizar Assinaturas
+            const listaAss = document.getElementById('lista-assinaturas');
+            if(db.assinaturas.length === 0) {
+                listaAss.innerHTML = "<p style='font-size:12px; color:#999; text-align:center;'>Nenhuma assinatura ativa.</p>";
+            } else {
+                listaAss.innerHTML = db.assinaturas.map(a => `
+                    <div class="item-assinatura">
+                        <span><i class="fas fa-sync-alt" style="color:#009ee3; font-size:10px; margin-right:5px;"></i> <b>${a.nome}</b> (Dia ${a.dia})</span>
+                        <div>
+                            <b>R$ ${a.valor.toFixed(2)}</b>
+                            <button class="btn-del" onclick="apagarAssinatura(${a.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
         }
 
         window.onload = () => {
             document.getElementById('lanc-data').valueAsDate = new Date();
             document.getElementById('s-nu').value = db.sNu;
             document.getElementById('s-mp').value = db.sMp;
+            document.getElementById('inv-nu').value = db.invNu;
+            document.getElementById('inv-mp').value = db.invMp;
             ajustarFormas();
+            processarAssinaturasAutomaticas(); // A Mágica Acontece Aqui!
             render();
         };
 
         function exportarBackup() {
             const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-            const a = document.createElement('a'); a.href = data; a.download = 'backup_v16.1.json'; a.click();
+            const a = document.createElement('a'); a.href = data; a.download = 'backup_v17.json'; a.click();
         }
-        function confirmarReset() { if(confirm("Zerar tudo?")) { localStorage.clear(); location.reload(); } }
+        function confirmarReset() { if(confirm("Apagar todos os dados permanentemente?")) { localStorage.clear(); location.reload(); } }
     </script>
 </body>
 </html>
