@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoFinance Pro Master</title>
+    <title>EcoFinance Pro Expert</title>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -16,7 +16,7 @@
             <span id="titulo-aba">Dashboard</span>
             <div class="header-icons">
                 <i class="fas fa-file-download" onclick="exportarBackup()"></i>
-                <i class="fas fa-calendar-check" onclick="fecharMes()"></i>
+                <i class="fas fa-sync" onclick="location.reload()"></i>
             </div>
         </div>
 
@@ -26,57 +26,30 @@
                     <small>Saldo Líquido Estimado</small>
                     <h2 id="saldo-liquido">R$ 0,00</h2>
                     <div class="progress-bg"><div id="score-bar" class="progress-fill"></div></div>
-                    <small id="score-valor">Score: --</small>
+                    <small id="score-valor">Calculando uso da meta...</small>
                 </div>
                 
                 <div class="grid-resumo">
                     <div class="mini-card">
-                        <small>Total em Contas</small>
+                        <small>Contas</small>
                         <p id="dash-contas" style="color: var(--sucesso);">R$ 0,00</p>
                     </div>
                     <div class="mini-card">
-                        <small>Total Faturas</small>
+                        <small>Faturas</small>
                         <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
                     </div>
                 </div>
 
                 <div class="card">
-                    <h3><i class="fas fa-chart-pie"></i> Gastos por Categoria</h3>
-                    <div id="pie-chart-container" class="pie-container"></div>
-                    <div id="legendas-categorias" class="legendas"></div>
-                </div>
-            </div>
-        </section>
-
-        <section id="aba-cartoes" class="aba-conteudo">
-            <div class="container">
-                <div class="selector-pills">
-                    <button id="btnNuPill" class="pill active" onclick="mudarCartao('Nubank', this)">Nubank</button>
-                    <button id="btnMPPill" class="pill" onclick="mudarCartao('MercadoPago', this)">M. Pago</button>
-                </div>
-
-                <div class="card config-card">
-                    <details>
-                        <summary><i class="fas fa-cog"></i> Ajustar Limites e Datas</summary>
-                        <div class="grid-inputs">
-                            <label>Meta Fatura: <input type="number" id="cfg-meta" onchange="salvarConfigCartao()"></label>
-                            <label>Limite Total: <input type="number" id="cfg-limite" onchange="salvarConfigCartao()"></label>
-                            <label>Dia Fechamento: <input type="number" id="cfg-fechamento" onchange="salvarConfigCartao()"></label>
-                            <label>Dia Vencimento: <input type="number" id="cfg-vencimento" onchange="salvarConfigCartao()"></label>
-                        </div>
-                    </details>
-                </div>
-
-                <div id="cartao-visual" class="card card-fatura">
-                    <h1 id="fatura-valor-oficial">R$ 0,00</h1>
-                    <p id="fatura-meta-ajustada">Meta Real: R$ 0,00</p>
-                    <small id="info-limite-disponivel">Disponível: R$ 0,00</small>
-                </div>
-
-                <div class="card">
-                    <h3><i class="fas fa-plus-circle"></i> Novo Lançamento</h3>
-                    <input type="date" id="lanc-data">
-                    <input type="text" id="lanc-desc" placeholder="Descrição">
+                    <h3><i class="fas fa-plus-circle"></i> Lançamento Rápido</h3>
+                    <div class="grid-inputs">
+                        <input type="date" id="lanc-data">
+                        <select id="lanc-cartao">
+                            <option value="Nubank">Nubank</option>
+                            <option value="MercadoPago">Mercado Pago</option>
+                        </select>
+                    </div>
+                    <input type="text" id="lanc-desc" placeholder="Descrição (ex: Uber)">
                     <div style="display:flex; gap:10px;">
                         <input type="number" id="lanc-valor" placeholder="Valor R$" style="flex:2">
                         <select id="lanc-cat" style="flex:2">
@@ -86,20 +59,27 @@
                             <option value="Serviços">⚙️ Serviços</option>
                         </select>
                     </div>
-                    <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
+                    <button class="btn-main" onclick="adicionarGasto()">SALVAR NO CARTÃO</button>
                 </div>
+            </div>
+        </section>
 
-                <div class="card">
-                    <h3>Lançamentos</h3>
-                    <div id="lista-lancamentos-fatura"></div>
-                </div>
+        <section id="aba-faturas" class="aba-conteudo">
+            <div class="tabs-cartoes">
+                <div class="tab-item active" id="tab-nu" onclick="mudarCartao('Nubank')">Nubank</div>
+                <div class="tab-item" id="tab-mp" onclick="mudarCartao('MercadoPago')">Mercado Pago</div>
+            </div>
+
+            <div class="container">
+                <div id="lista-faturas-agrupadas">
+                    </div>
             </div>
         </section>
 
         <section id="aba-contas" class="aba-conteudo">
             <div class="container">
                 <div class="card">
-                    <h3><i class="fas fa-university"></i> Saldo em Contas</h3>
+                    <h3><i class="fas fa-university"></i> Saldo Bancário</h3>
                     <div class="item-gasto">
                         <span>Nubank (Conta)</span>
                         <input type="number" id="saldo-nu" class="input-inline" onchange="salvarSaldos()">
@@ -109,17 +89,21 @@
                         <input type="number" id="saldo-mp" class="input-inline" onchange="salvarSaldos()">
                     </div>
                 </div>
-                
                 <div class="card">
-                    <h3>Histórico de Fechamentos</h3>
-                    <div id="lista-historico"></div>
+                    <h3>Configurações de Cartão</h3>
+                    <p style="font-size:11px; color:#888;">Configure os dias de vencimento abaixo:</p>
+                    <div class="grid-inputs">
+                        <label>Venc. Nu: <input type="number" id="cfg-venc-nu" onchange="salvarVencimentos()"></label>
+                        <label>Venc. MP: <input type="number" id="cfg-venc-mp" onchange="salvarVencimentos()"></label>
+                    </div>
                 </div>
+                <button class="btn-danger" onclick="confirmarReset()">RESETAR TUDO</button>
             </div>
         </section>
 
         <nav class="menu-inferior">
-            <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-home"></i><span>Início</span></div>
-            <div class="menu-item" onclick="navegar('cartoes', this)"><i class="fas fa-credit-card"></i><span>Cartões</span></div>
+            <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-home"></i><span>Dashboard</span></div>
+            <div class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-file-invoice-dollar"></i><span>Faturas</span></div>
             <div class="menu-item" onclick="navegar('contas', this)"><i class="fas fa-wallet"></i><span>Contas</span></div>
         </nav>
     </div>
