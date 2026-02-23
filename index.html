@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v15.0</title>
+    <title>EcoFinance Pro v16.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -31,31 +31,33 @@
         .mini-card small { font-size: 11px; color: #888; }
         .mini-card p { margin: 5px 0 0; font-weight: bold; font-size: 14px; }
 
-        /* CARTÕES ABA */
-        .card-gestao { border-left: 8px solid #ccc; margin-bottom: 20px; }
-        .card-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .btn-lapis { background: #f8f9fa; border: none; width: 35px; height: 35px; border-radius: 50%; color: var(--nubank); cursor: pointer; }
+        /* CONFIGURAÇÕES - ACCORDION */
+        .accordion-item { background: white; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; overflow: hidden; }
+        .accordion-header { padding: 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff; font-weight: bold; color: var(--texto); }
+        .accordion-content { display: none; padding: 15px; border-top: 1px solid #f0f0f0; background: #fafafa; }
+        .accordion-content.active { display: block; }
+
+        /* CARD GESTÃO DENTRO DO DROPDOWN */
+        .card-gestao { padding: 15px; background: #fff; border-radius: 12px; margin-bottom:15px; border-left: 8px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .info-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
         .info-col { display: flex; flex-direction: column; color: #777; }
         .info-col b { color: var(--texto); font-size: 15px; margin-top: 2px; }
         
-        /* FORMULÁRIO EDIÇÃO */
+        .btn-lapis { background: #f0f2f5; border: none; width: 32px; height: 32px; border-radius: 50%; color: var(--nubank); cursor: pointer; }
         .painel-edit { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
         .painel-edit.active { display: block; }
 
         /* INPUTS */
         .grid-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
         input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
-        label { font-size: 11px; color: #999; margin-bottom: 4px; display: block; }
-        .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; }
+        .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; }
 
         /* MENU INFERIOR */
-        .menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #eee; z-index: 2000; height: 65px; box-sizing: border-box; }
+        .menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #eee; z-index: 2000; height: 65px; }
         .menu-item { flex: 1; text-align: center; color: #bdc3c7; font-size: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
         .menu-item.active { color: var(--nubank); font-weight: bold; }
         .menu-item i { font-size: 20px; margin-bottom: 3px; }
 
-        /* PROGRESS BAR */
         .progress-bg { background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
         .progress-fill { height: 100%; background: white; width: 0%; transition: 0.6s; }
     </style>
@@ -71,142 +73,148 @@
             </div>
         </div>
 
-        <section id="aba-dashboard" class="secao-app active">
-            <div class="container">
-                <div class="card-resumo">
-                    <small>Uso da Meta Mensal (Cartões)</small>
-                    <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
-                    <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
-                    <small id="meta-percentual">0% consumido</small>
-                </div>
-                
-                <div class="grid-resumo">
-                    <div class="mini-card">
-                        <small>Receitas</small>
-                        <p id="dash-receitas" style="color: var(--sucesso);">R$ 0,00</p>
+        <main id="conteudo-principal">
+            
+            <section id="aba-dashboard" class="secao-app active">
+                <div class="container">
+                    <div class="card-resumo">
+                        <small>Uso da Meta Mensal (Cartões)</small>
+                        <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
+                        <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
+                        <small id="meta-percentual">0% consumido</small>
                     </div>
-                    <div class="mini-card">
-                        <small>Faturas</small>
-                        <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
-                    </div>
-                    <div class="mini-card">
-                        <small>Saldo</small>
-                        <p id="dash-saldo" style="color: var(--mercadopago);">R$ 0,00</p>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3><i class="fas fa-bolt"></i> Lançamento Rápido</h3>
-                    <div class="grid-inputs">
-                        <input type="date" id="lanc-data">
-                        <select id="lanc-tipo" onchange="ajustarFormas()">
-                            <option value="despesa">🔴 Despesa</option>
-                            <option value="receita">🟢 Receita</option>
-                        </select>
-                    </div>
-                    <div class="grid-inputs">
-                        <select id="lanc-cartao">
-                            <option value="Nubank">Nubank</option>
-                            <option value="MercadoPago">Mercado Pago</option>
-                        </select>
-                        <select id="lanc-forma"></select>
-                    </div>
-                    <input type="text" id="lanc-desc" placeholder="Descrição">
-                    <div class="grid-inputs" style="margin-top:10px;">
-                        <input type="number" id="lanc-valor" placeholder="Valor R$">
-                        <select id="lanc-cat">
-                            <option value="Alimentação">🛒 Alimentação</option>
-                            <option value="Transporte">🚗 Transporte</option>
-                            <option value="Lazer">🍿 Lazer</option>
-                            <option value="Salário">💰 Salário</option>
-                        </select>
-                    </div>
-                    <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
-                </div>
-            </div>
-        </section>
-
-        <section id="aba-cartoes" class="secao-app">
-            <div class="container">
-                <div class="card">
-                    <h3><i class="fas fa-credit-card"></i> Gestão de Cartões</h3>
                     
-                    <div id="card-nu-box" class="card-gestao" style="border-left-color: var(--nubank); padding: 15px; background: #fff; border-radius: 12px; margin-bottom:15px;">
-                        <div class="card-topo">
-                            <strong id="label-nu">Nubank</strong>
-                            <button class="btn-lapis" onclick="toggleEdit('nu')"><i class="fas fa-pencil-alt"></i></button>
+                    <div class="grid-resumo">
+                        <div class="mini-card">
+                            <small>Receitas</small>
+                            <p id="dash-receitas" style="color: var(--sucesso);">R$ 0,00</p>
                         </div>
-                        <div class="info-corpo">
-                            <div class="info-col"><span>Meta:</span><b id="v-meta-nu">R$ 0,00</b></div>
-                            <div class="info-col"><span>Limite:</span><b id="v-limite-nu">R$ 0,00</b></div>
-                            <div class="info-col"><span>Fecha:</span><b id="v-fecha-nu">dia 0</b></div>
-                            <div class="info-col"><span>Vence:</span><b id="v-venc-nu">dia 0</b></div>
+                        <div class="mini-card">
+                            <small>Faturas</small>
+                            <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
                         </div>
-                        <div id="edit-nu" class="painel-edit">
-                            <label>Nome</label><input type="text" id="e-nome-nu">
-                            <div class="grid-inputs">
-                                <div><label>Meta</label><input type="number" id="e-meta-nu"></div>
-                                <div><label>Limite</label><input type="number" id="e-limite-nu"></div>
-                            </div>
-                            <div class="grid-inputs">
-                                <div><label>Fechamento</label><input type="number" id="e-fecha-nu"></div>
-                                <div><label>Vencimento</label><input type="number" id="e-venc-nu"></div>
-                            </div>
-                            <label>Cor</label><input type="color" id="e-cor-nu" style="height:40px;">
-                            <button class="btn-main" onclick="salvarCard('nu')" style="background:var(--sucesso); margin-top:10px;">SALVAR</button>
+                        <div class="mini-card">
+                            <small>Saldo</small>
+                            <p id="dash-saldo" style="color: var(--mercadopago);">R$ 0,00</p>
                         </div>
                     </div>
 
-                    <div id="card-mp-box" class="card-gestao" style="border-left-color: var(--mercadopago); padding: 15px; background: #fff; border-radius: 12px;">
-                        <div class="card-topo">
-                            <strong id="label-mp">Mercado Pago</strong>
-                            <button class="btn-lapis" onclick="toggleEdit('mp')"><i class="fas fa-pencil-alt"></i></button>
+                    <div class="card">
+                        <h3><i class="fas fa-bolt"></i> Lançamento Rápido</h3>
+                        <div class="grid-inputs">
+                            <input type="date" id="lanc-data">
+                            <select id="lanc-tipo" onchange="ajustarFormas()">
+                                <option value="despesa">🔴 Despesa</option>
+                                <option value="receita">🟢 Receita</option>
+                            </select>
                         </div>
-                        <div class="info-corpo">
-                            <div class="info-col"><span>Meta:</span><b id="v-meta-mp">R$ 0,00</b></div>
-                            <div class="info-col"><span>Limite:</span><b id="v-limite-mp">R$ 0,00</b></div>
-                            <div class="info-col"><span>Fecha:</span><b id="v-fecha-mp">dia 0</b></div>
-                            <div class="info-col"><span>Vence:</span><b id="v-venc-mp">dia 0</b></div>
+                        <div class="grid-inputs">
+                            <select id="lanc-cartao">
+                                <option value="nu">Nubank</option>
+                                <option value="mp">Mercado Pago</option>
+                            </select>
+                            <select id="lanc-forma"></select>
                         </div>
-                        <div id="edit-mp" class="painel-edit">
-                            <label>Nome</label><input type="text" id="e-nome-mp">
-                            <div class="grid-inputs">
-                                <div><label>Meta</label><input type="number" id="e-meta-mp"></div>
-                                <div><label>Limite</label><input type="number" id="e-limite-mp"></div>
-                            </div>
-                            <div class="grid-inputs">
-                                <div><label>Fechamento</label><input type="number" id="e-fecha-mp"></div>
-                                <div><label>Vencimento</label><input type="number" id="e-venc-mp"></div>
-                            </div>
-                            <label>Cor</label><input type="color" id="e-cor-mp" style="height:40px;">
-                            <button class="btn-main" onclick="salvarCard('mp')" style="background:var(--sucesso); margin-top:10px;">SALVAR</button>
+                        <input type="text" id="lanc-desc" placeholder="Descrição">
+                        <div class="grid-inputs" style="margin-top:10px;">
+                            <input type="number" id="lanc-valor" placeholder="Valor R$">
+                            <select id="lanc-cat">
+                                <option value="Alimentação">🛒 Alimentação</option>
+                                <option value="Transporte">🚗 Transporte</option>
+                                <option value="Lazer">🍿 Lazer</option>
+                                <option value="Salário">💰 Salário</option>
+                            </select>
                         </div>
+                        <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
                     </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <section id="aba-faturas" class="secao-app"><div class="container"><div class="card"><h3>Em breve: Faturas</h3></div></div></section>
-        <section id="aba-contas" class="secao-app">
-            <div class="container">
-                <div class="card">
-                    <h3>Saldos</h3>
-                    <label>Nubank (Conta)</label><input type="number" id="s-nu" onchange="saveS()">
-                    <label>M. Pago (Conta)</label><input type="number" id="s-mp" onchange="saveS()">
+            <section id="aba-faturas" class="secao-app">
+                <div class="container">
+                    <div class="card">
+                        <h3><i class="fas fa-file-invoice-dollar"></i> Gestão de Faturas</h3>
+                        <p style="color:#888; font-size:13px;">O histórico de compras e fechamentos aparecerá aqui.</p>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
+
+            <section id="aba-contas" class="secao-app">
+                <div class="container">
+                    <div class="card">
+                        <h3><i class="fas fa-wallet"></i> Saldo em Contas</h3>
+                        <label>Nubank (Conta)</label><input type="number" id="s-nu" onchange="saveS()">
+                        <div style="margin-top:10px;"></div>
+                        <label>M. Pago (Conta)</label><input type="number" id="s-mp" onchange="saveS()">
+                    </div>
+                </div>
+            </section>
+
+            <section id="aba-config" class="secao-app">
+                <div class="container">
+                    <div class="accordion-item">
+                        <div class="accordion-header" onclick="toggleAccordion('content-cartoes')">
+                            <span><i class="fas fa-credit-card"></i> Ajuste de Cartão</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div id="content-cartoes" class="accordion-content">
+                            <div id="card-nu-box" class="card-gestao" style="border-left-color: var(--nubank);">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <strong id="label-nu">Nubank</strong>
+                                    <button class="btn-lapis" onclick="toggleEdit('nu')"><i class="fas fa-pencil-alt"></i></button>
+                                </div>
+                                <div class="info-corpo">
+                                    <div class="info-col"><span>Meta:</span><b id="v-meta-nu">R$ 0</b></div>
+                                    <div class="info-col"><span>Vence:</span><b id="v-venc-nu">dia 0</b></div>
+                                </div>
+                                <div id="edit-nu" class="painel-edit">
+                                    <label>Nome</label><input type="text" id="e-nome-nu">
+                                    <div class="grid-inputs">
+                                        <div><label>Meta</label><input type="number" id="e-meta-nu"></div>
+                                        <div><label>Cor</label><input type="color" id="e-cor-nu" style="height:44px;"></div>
+                                    </div>
+                                    <button class="btn-main" onclick="salvarCard('nu')" style="background:var(--sucesso);">APLICAR</button>
+                                </div>
+                            </div>
+                            <div id="card-mp-box" class="card-gestao" style="border-left-color: var(--mercadopago);">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <strong id="label-mp">Mercado Pago</strong>
+                                    <button class="btn-lapis" onclick="toggleEdit('mp')"><i class="fas fa-pencil-alt"></i></button>
+                                </div>
+                                <div class="info-corpo">
+                                    <div class="info-col"><span>Meta:</span><b id="v-meta-mp">R$ 0</b></div>
+                                    <div class="info-col"><span>Vence:</span><b id="v-venc-mp">dia 0</b></div>
+                                </div>
+                                <div id="edit-mp" class="painel-edit">
+                                    <label>Nome</label><input type="text" id="e-nome-mp">
+                                    <div class="grid-inputs">
+                                        <div><label>Meta</label><input type="number" id="e-meta-mp"></div>
+                                        <div><label>Cor</label><input type="color" id="e-cor-mp" style="height:44px;"></div>
+                                    </div>
+                                    <button class="btn-main" onclick="salvarCard('mp')" style="background:var(--sucesso);">APLICAR</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top:20px;">
+                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo);">RESETAR TODOS OS DADOS</button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
 
         <nav class="menu-inferior">
             <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-home"></i><span>Início</span></div>
-            <div class="menu-item" onclick="navegar('cartoes', this)"><i class="fas fa-credit-card"></i><span>Cartões</span></div>
             <div class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-file-invoice-dollar"></i><span>Faturas</span></div>
             <div class="menu-item" onclick="navegar('contas', this)"><i class="fas fa-wallet"></i><span>Contas</span></div>
+            <div class="menu-item" onclick="navegar('config', this)"><i class="fas fa-cog"></i><span>Config</span></div>
         </nav>
     </div>
 
     <script>
-        let db = JSON.parse(localStorage.getItem('ecoDB_v15')) || {
+        let db = JSON.parse(localStorage.getItem('ecoDB_v16')) || {
             nu: { nome: "Nubank", meta: 1100, limite: 5000, fecha: 13, venc: 20, cor: '#8a05be', gastos: [] },
             mp: { nome: "Mercado Pago", meta: 800, limite: 2000, fecha: 10, venc: 17, cor: '#009ee3', gastos: [] },
             sNu: 0, sMp: 0, receitas: []
@@ -221,6 +229,12 @@
             render();
         }
 
+        function toggleAccordion(id) {
+            document.getElementById(id).classList.toggle('active');
+            const icon = event.currentTarget.querySelector('.fa-chevron-down');
+            if(icon) icon.style.transform = document.getElementById(id).classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+
         function toggleEdit(id) { document.getElementById('edit-' + id).classList.toggle('active'); }
 
         function ajustarFormas() {
@@ -232,28 +246,24 @@
         }
 
         function adicionarGasto() {
-            const data = document.getElementById('lanc-data').value;
-            const tipo = document.getElementById('lanc-tipo').value;
             const valor = parseFloat(document.getElementById('lanc-valor').value);
-            const desc = document.getElementById('lanc-desc').value;
-            if(!desc || isNaN(valor)) return alert("Preencha tudo!");
+            const tipo = document.getElementById('lanc-tipo').value;
+            if(isNaN(valor)) return alert("Valor inválido!");
 
             if(tipo === "receita") db.receitas.push({ valor });
             else {
-                const c = document.getElementById('lanc-cartao').value === "Nubank" ? 'nu' : 'mp';
+                const c = document.getElementById('lanc-cartao').value;
                 db[c].gastos.push({ valor });
             }
             save();
-            alert("Lançado!");
+            alert("Salvo!");
         }
 
         function salvarCard(id) {
             db[id].nome = document.getElementById('e-nome-' + id).value;
             db[id].meta = parseFloat(document.getElementById('e-meta-' + id).value);
-            db[id].limite = parseFloat(document.getElementById('e-limite-' + id).value);
-            db[id].fecha = parseInt(document.getElementById('e-fecha-' + id).value);
-            db[id].venc = parseInt(document.getElementById('e-venc-' + id).value);
             db[id].cor = document.getElementById('e-cor-' + id).value;
+            document.documentElement.style.setProperty('--' + (id === 'nu' ? 'nubank' : 'mercadopago'), db[id].cor);
             toggleEdit(id);
             save();
         }
@@ -264,7 +274,7 @@
             save();
         }
 
-        function save() { localStorage.setItem('ecoDB_v15', JSON.stringify(db)); render(); }
+        function save() { localStorage.setItem('ecoDB_v16', JSON.stringify(db)); render(); }
 
         function render() {
             const gNu = db.nu.gastos.reduce((a,b)=>a+b.valor,0);
@@ -273,7 +283,6 @@
             const mT = db.nu.meta + db.mp.meta;
             const rT = db.receitas.reduce((a,b)=>a+b.valor,0);
 
-            // Dashboard
             document.getElementById('uso-meta-texto').innerText = `R$ ${gT.toFixed(2)} / R$ ${mT.toFixed(2)}`;
             document.getElementById('meta-bar').style.width = Math.min((gT/mT)*100, 100) + "%";
             document.getElementById('meta-percentual').innerText = ((gT/mT)*100).toFixed(1) + "% consumido";
@@ -281,21 +290,13 @@
             document.getElementById('dash-faturas').innerText = "R$ " + gT.toFixed(2);
             document.getElementById('dash-saldo').innerText = "R$ " + (rT + db.sNu + db.sMp - gT).toFixed(2);
 
-            // Cards Info
             ['nu','mp'].forEach(id => {
                 document.getElementById('label-'+id).innerText = db[id].nome;
                 document.getElementById('v-meta-'+id).innerText = "R$ " + db[id].meta.toFixed(2);
-                document.getElementById('v-limite-'+id).innerText = "R$ " + db[id].limite.toFixed(2);
-                document.getElementById('v-fecha-'+id).innerText = "dia " + db[id].fecha;
                 document.getElementById('v-venc-'+id).innerText = "dia " + db[id].venc;
                 document.getElementById('card-'+id+'-box').style.borderLeftColor = db[id].cor;
-                
-                // Preencher inputs de edição
                 document.getElementById('e-nome-'+id).value = db[id].nome;
                 document.getElementById('e-meta-'+id).value = db[id].meta;
-                document.getElementById('e-limite-'+id).value = db[id].limite;
-                document.getElementById('e-fecha-'+id).value = db[id].fecha;
-                document.getElementById('e-venc-'+id).value = db[id].venc;
                 document.getElementById('e-cor-'+id).value = db[id].cor;
             });
         }
@@ -307,6 +308,12 @@
             ajustarFormas();
             render();
         };
+
+        function exportarBackup() {
+            const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+            const a = document.createElement('a'); a.href = data; a.download = 'backup_v16.json'; a.click();
+        }
+        function confirmarReset() { if(confirm("Zerar tudo?")) { localStorage.clear(); location.reload(); } }
     </script>
 </body>
 </html>
