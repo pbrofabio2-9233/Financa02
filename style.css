@@ -89,6 +89,7 @@ input, select { width: 100%; padding: 12px; border: 1px solid var(--linha); bord
 .item-backup-info strong { font-size: 12px; color: var(--texto-main); }
 .item-backup-info small { font-size: 11px; color: var(--texto-sec); margin-top: 2px;}
 .btn-restaurar { background: var(--sucesso); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; }
+.btn-excluir-bkp { background: var(--perigo); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; margin-left: 5px; }
 
 .menu-inferior { position: fixed; bottom: 0; width: 100%; background: var(--menu-bg); display: flex; border-top: 1px solid var(--linha); z-index: 2000; height: 65px; transition: 0.3s; }
 .menu-item { flex: 1; text-align: center; color: var(--texto-sec); font-size: 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
