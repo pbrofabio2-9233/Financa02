@@ -1,4 +1,3 @@
-// Usando a chave v20 para garantir uma atualização limpa (migrando dados antigos)
 let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v19')) || {};
 let db = JSON.parse(localStorage.getItem('ecoDB_v20')) || {
     contas: dbAntigo.contas || [
@@ -24,7 +23,6 @@ function navegar(idAba, el) {
     document.getElementById('aba-' + idAba).classList.add('active');
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     el.classList.add('active');
-    // Atualiza o novo título no cabeçalho moderno
     document.getElementById('titulo-aba').innerText = el.querySelector('span').innerText;
     render();
 }
@@ -62,23 +60,42 @@ function populaSelectContas() {
 
 function atualizarRegrasLancamento() {
     const tipoLancamento = document.getElementById('lanc-tipo').value;
-    const contaId = document.getElementById('lanc-conta').value;
-    const conta = db.contas.find(c => c.id === contaId);
-    const formaSelect = document.getElementById('lanc-forma');
-    formaSelect.innerHTML = "";
+    let contaSelect = document.getElementById('lanc-conta');
+    let contaId = contaSelect.value;
+    let conta = db.contas.find(c => c.id === contaId);
 
     if(!conta) return;
 
+    // --- NOVA LÓGICA DE TROCA AUTOMÁTICA (Sem Alertas Chatos) ---
+    let precisaTrocar = false;
+    let tipoAlvo = null;
+
     if (conta.tipo === 'cartao' && !['despesa', 'emp_cartao'].includes(tipoLancamento)) {
-        alert("Cartões de crédito só aceitam Despesas ou Empréstimos de Cartão.");
-        document.getElementById('lanc-tipo').value = 'despesa';
-        return atualizarRegrasLancamento();
+        precisaTrocar = true;
+        tipoAlvo = 'movimentacao'; // Se for receita/empréstimo, muda para conta corrente
+    } else if (conta.tipo !== 'cartao' && tipoLancamento === 'emp_cartao') {
+        precisaTrocar = true;
+        tipoAlvo = 'cartao'; // Se for empréstimo de cartão, muda para um cartão
     }
-    if (conta.tipo !== 'cartao' && tipoLancamento === 'emp_cartao') {
-        alert("Esta opção é exclusiva para Cartões de Crédito.");
-        document.getElementById('lanc-tipo').value = 'despesa';
-        return atualizarRegrasLancamento();
+
+    if (precisaTrocar) {
+        let novaConta = db.contas.find(c => c.tipo === tipoAlvo);
+        // Se não achar conta corrente, tenta qualquer uma que não seja cartão
+        if (!novaConta && tipoAlvo === 'movimentacao') novaConta = db.contas.find(c => c.tipo !== 'cartao');
+        
+        if (novaConta) {
+            contaSelect.value = novaConta.id;
+            conta = novaConta; // Atualiza a variável local para continuar a lógica
+        } else {
+            alert("Você não possui uma conta compatível criada para este tipo de lançamento.");
+            document.getElementById('lanc-tipo').value = 'despesa';
+            return atualizarRegrasLancamento();
+        }
     }
+    // ------------------------------------------------------------
+
+    const formaSelect = document.getElementById('lanc-forma');
+    formaSelect.innerHTML = "";
 
     if (conta.tipo === 'cartao') {
         formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`;
