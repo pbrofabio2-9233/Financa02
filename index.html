@@ -10,48 +10,92 @@
 </head>
 <body>
 
-    <div class="header">
-        <i class="fas fa-chart-pie"></i>
-        <span>EcoFinance Pro</span>
-        <i class="fas fa-file-export" onclick="exportarBackup()"></i>
-    </div>
-
-    <div class="card-selector">
-        <button id="btnNu" class="btn-card active" style="background:#8a05be;" onclick="mudarCartao('Nubank')">Nubank</button>
-        <button id="btnMP" class="btn-card" style="background:#009ee3;" onclick="mudarCartao('MercadoPago')">M. Pago</button>
-    </div>
-
-    <div class="container">
-        <div class="card" style="text-align:center;">
-            <h1 id="totalVisual" style="margin:0;">R$ 0,00</h1>
-            <small id="metaAjustada">Meta Real: R$ 0,00</small>
-            <div class="progress-bg">
-                <div id="progresso" class="progress-fill"></div>
+    <div id="app">
+        <div class="header">
+            <span id="titulo-aba">Dashboard</span>
+            <div class="header-icons">
+                <i class="fas fa-file-export" onclick="exportarBackup()" title="Exportar Backup"></i>
+                <i class="fas fa-sync" onclick="location.reload()"></i>
             </div>
         </div>
 
-        <div class="card">
-            <h3>Novo Lançamento</h3>
-            <input type="text" id="desc" placeholder="Ex: Mercado">
-            <input type="number" id="valor" placeholder="Valor (0.00)">
-            <select id="cat">
-                <option value="Alimentação">🛒 Alimentação</option>
-                <option value="Transporte">🚗 Transporte</option>
-                <option value="Lazer">🍿 Lazer</option>
-            </select>
-            <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
-        </div>
+        <section id="aba-dashboard" class="aba-conteudo active">
+            <div class="container">
+                <div class="card-resumo">
+                    <small>Score Financeiro Geral</small>
+                    <h2 id="score-valor">Calculando...</h2>
+                    <div class="progress-bg"><div id="score-bar" class="progress-fill"></div></div>
+                </div>
+                
+                <div class="grid-resumo">
+                    <div class="mini-card">
+                        <small>Gasto Total</small>
+                        <p id="dash-total" class="valor-positivo">R$ 0,00</p>
+                    </div>
+                    <div class="mini-card">
+                        <small>Meta Real</small>
+                        <p id="dash-meta" class="valor-meta">R$ 0,00</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3><i class="fas fa-plus-circle"></i> Lançamento Rápido</h3>
+                    <input type="text" id="desc" placeholder="Descrição (ex: Uber)">
+                    <input type="number" id="valor" placeholder="Valor R$">
+                    <select id="cat">
+                        <option value="Alimentação">🛒 Alimentação</option>
+                        <option value="Transporte">🚗 Transporte</option>
+                        <option value="Lazer">🍿 Lazer</option>
+                        <option value="Serviços">⚙️ Serviços</option>
+                    </select>
+                    <button class="btn-main" onclick="adicionarGasto()">SALVAR NO CARTÃO ATUAL</button>
+                </div>
+            </div>
+        </section>
 
-        <div class="card">
-            <h3>Importar Texto</h3>
-            <textarea id="textoImportacao" placeholder="Cole aqui o resumo da fatura..."></textarea>
-            <button class="btn-main" style="background:#2ecc71;" onclick="processarTexto()">PROCESSAR</button>
-        </div>
+        <section id="aba-cartoes" class="aba-conteudo">
+            <div class="container">
+                <div class="selector-pills">
+                    <button id="btnNuPill" class="pill active" onclick="mudarCartao('Nubank', this)">Nubank</button>
+                    <button id="btnMPPill" class="pill" onclick="mudarCartao('MercadoPago', this)">M. Pago</button>
+                </div>
 
-        <div class="card">
-            <h3>Histórico</h3>
-            <div id="lista"></div>
-        </div>
+                <div id="cartao-visual" class="card card-fatura">
+                    <div class="fatura-header">
+                        <span id="nome-cartao">Nubank</span>
+                        <span class="status-badge">Aberta</span>
+                    </div>
+                    <h1 id="fatura-valor-oficial">R$ 0,00</h1>
+                    <p id="fatura-meta-ajustada">Meta Real: R$ 0,00</p>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-file-import"></i> Importar Fatura (Texto)</h3>
+                    <textarea id="textoImportacao" placeholder="Cole o texto da fatura aqui..."></textarea>
+                    <button class="btn-main" style="background:#2ecc71;" onclick="processarTexto()">PROCESSAR TEXTO</button>
+                </div>
+
+                <div class="card">
+                    <h3>Histórico da Fatura</h3>
+                    <div id="lista-lancamentos-fatura"></div>
+                </div>
+            </div>
+        </section>
+
+        <nav class="menu-inferior">
+            <div class="menu-item active" onclick="navegar('dashboard', this)">
+                <i class="fas fa-home"></i>
+                <span>Início</span>
+            </div>
+            <div class="menu-item" onclick="navegar('cartoes', this)">
+                <i class="fas fa-credit-card"></i>
+                <span>Cartões</span>
+            </div>
+            <div class="menu-item" onclick="confirmarReset()">
+                <i class="fas fa-trash-alt"></i>
+                <span>Reset</span>
+            </div>
+        </nav>
     </div>
 
     <script src="script.js"></script>
