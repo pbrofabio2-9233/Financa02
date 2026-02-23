@@ -1,3 +1,4 @@
+// Registra o plugin de texto no Gráfico
 Chart.register(ChartDataLabels);
 
 let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v22')) || {};
@@ -14,7 +15,7 @@ let db = JSON.parse(localStorage.getItem('ecoDB_v23')) || {
 let cartaoAtivoFatura = null;
 let meuGrafico = null;
 
-// FUNÇÃO NOVA: Traduz "2026-03" para "Março - 2026"
+// FUNÇÃO: Traduz "2026-03" para "Março - 2026"
 const mesesTexto = {'01':'Janeiro', '02':'Fevereiro', '03':'Março', '04':'Abril', '05':'Maio', '06':'Junho', '07':'Julho', '08':'Agosto', '09':'Setembro', '10':'Outubro', '11':'Novembro', '12':'Dezembro'};
 function formatarMesFatura(mesAnoStr) {
     const [ano, mes] = mesAnoStr.split('-');
@@ -39,9 +40,11 @@ function toggleDarkMode() {
     const icone = document.getElementById('btn-theme');
     body.classList.toggle('dark-mode');
     if (body.classList.contains('dark-mode')) {
-        localStorage.setItem('ecoTheme', 'dark'); icone.classList.replace('fa-moon', 'fa-sun');
+        localStorage.setItem('ecoTheme', 'dark'); 
+        icone.classList.replace('fa-moon', 'fa-sun');
     } else {
-        localStorage.setItem('ecoTheme', 'light'); icone.classList.replace('fa-sun', 'fa-moon');
+        localStorage.setItem('ecoTheme', 'light'); 
+        icone.classList.replace('fa-sun', 'fa-moon');
     }
     renderGrafico();
 }
@@ -104,11 +107,14 @@ function atualizarRegrasLancamento() {
 
     const formaSelect = document.getElementById('lanc-forma');
     formaSelect.innerHTML = "";
-    if (conta.tipo === 'cartao') { formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`; } 
-    else if (conta.tipo === 'movimentacao') {
+    if (conta.tipo === 'cartao') { 
+        formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`; 
+    } else if (conta.tipo === 'movimentacao') {
         if (['despesa', 'emp_concedido'].includes(tipoLancamento)) formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
         else formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Salário">💵 Salário</option><option value="Boleto">📄 Boleto</option>`;
-    } else if (conta.tipo === 'investimento') { formaSelect.innerHTML = `<option value="Transferencia">🔄 Transferência / Rendimento</option>`; }
+    } else if (conta.tipo === 'investimento') { 
+        formaSelect.innerHTML = `<option value="Transferencia">🔄 Transferência / Rendimento</option>`; 
+    }
 }
 
 function adicionarLancamento() {
@@ -137,6 +143,7 @@ function excluirLancamento(idLancamento) {
     if(!confirm("Apagar lançamento? O saldo será recalculado automaticamente.")) return;
     const lancamento = db.lancamentos.find(l => l.id === idLancamento);
     if(!lancamento) return;
+    
     const conta = db.contas.find(c => c.id === lancamento.contaId);
     if(conta && conta.tipo !== 'cartao') {
         if (['receita', 'emp_pessoal', 'compensacao'].includes(lancamento.tipo)) conta.saldo -= lancamento.valor;
@@ -377,7 +384,6 @@ function renderAbaContas() {
     });
 }
 
-// ABA FATURAS ATUALIZADA (Março - 2026 e Dados detalhados)
 function renderAbaFaturas() {
     const cartoes = db.contas.filter(c => c.tipo === 'cartao');
     const abas = document.getElementById('abas-cartoes-fatura');
@@ -414,7 +420,6 @@ function renderAbaFaturas() {
         let statusClass = isPaga ? 'badge-paga' : (isFechada ? 'badge-fechada' : 'badge-aberta');
         let statusTxt = isPaga ? '<i class="fas fa-check"></i> PAGA' : (isFechada ? 'FECHADA' : 'ABERTA');
         
-        // Uso da função de tradução de mês!
         let tituloFatura = formatarMesFatura(mes); 
 
         container.innerHTML += `
@@ -466,20 +471,110 @@ function renderAbaConfig() {
     const listaBackups = document.getElementById('lista-backups');
     if(listaBackups) {
         let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-        if(historico.length === 0) listaBackups.innerHTML = "<p style='font-size:12px; color:var(--texto-sec);'>Nenhum backup gerado ainda.</p>";
-        else listaBackups.innerHTML = historico.map(b => `<div class="item-backup"><div class="item-backup-info"><strong>${b.nome}</strong><small>${b.data} | ${b.versao} | ${b.size}</small></div><button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button></div>`).join('');
+        if(historico.length === 0) {
+            listaBackups.innerHTML = "<p style='font-size:12px; color:var(--texto-sec);'>Nenhum backup gerado ainda.</p>";
+        } else {
+            // AQUI ESTÁ O NOVO BOTÃO DE EXCLUSÃO DE BACKUP
+            listaBackups.innerHTML = historico.map(b => `
+                <div class="item-backup">
+                    <div class="item-backup-info">
+                        <strong>${b.nome}</strong>
+                        <small>${b.data} | ${b.versao} | ${b.size}</small>
+                    </div>
+                    <div>
+                        <button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})" title="Restaurar"><i class="fas fa-undo"></i></button>
+                        <button class="btn-excluir-bkp" onclick="excluirBackupLocal(${b.id})" title="Apagar do Histórico"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+}
+
+// FUNÇÃO NOVA: Apagar o backup do histórico local
+function excluirBackupLocal(id) {
+    if(confirm("Tem certeza que deseja apagar este backup do histórico do app? (Lembre-se de apagá-lo também da sua pasta de Downloads do celular se não for mais usá-lo)")) {
+        let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+        historico = historico.filter(b => b.id !== id);
+        localStorage.setItem('ecoDB_backups', JSON.stringify(historico));
+        renderAbaConfig();
     }
 }
 
 function exportarBackup() { 
-    const dataStr = JSON.stringify(db); const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB";
-    const now = new Date(); const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`;
+    const dataStr = JSON.stringify(db); 
+    const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB";
+    const now = new Date(); 
+    const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`;
+    
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v23.1", payload: dataStr });
-    if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
-    const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); 
-    renderAbaConfig(); alert("Backup gerado!");
+    hist.unshift({ 
+        id: Date.now(), 
+        nome: nomeArquivo, 
+        data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), 
+        size: sizeKB, 
+        versao: "v23.2", 
+        payload: dataStr 
+    });
+    
+    if(hist.length > 5) hist.pop(); 
+    localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
+    
+    const a = document.createElement('a'); 
+    a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); 
+    a.download = nomeArquivo; 
+    a.click(); 
+    
+    renderAbaConfig(); 
+    alert("Backup gerado!");
 }
-function restaurarBackupLocal(id) { if(confirm("Substituir dados atuais?")) { let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; let bkp = hist.find(b => b.id === id); if(bkp) { localStorage.setItem('ecoDB_v23', bkp.payload); location.reload(); } } }
-function importarArquivoJSON(event) { const file = event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const json = JSON.parse(e.target.result); if(json && json.contas) { localStorage.setItem('ecoDB_v23', JSON.stringify(json)); location.reload(); } else alert("Arquivo inválido."); } catch(err) { alert("Erro de leitura."); } }; reader.readAsText(file); }
-function confirmarReset() { const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite: excluir"); if (palavra && palavra.toLowerCase() === "excluir") { localStorage.setItem('ecoDB_v23', JSON.stringify({contas: [{ id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' }, { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' }, { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }], lancamentos: [], faturasPagas: []})); location.reload(); } else if (palavra !== null) alert("Cancelado."); }
+
+function restaurarBackupLocal(id) { 
+    if(confirm("Substituir dados atuais?")) { 
+        let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
+        let bkp = hist.find(b => b.id === id); 
+        if(bkp) { 
+            localStorage.setItem('ecoDB_v23', bkp.payload); 
+            location.reload(); 
+        } 
+    } 
+}
+
+function importarArquivoJSON(event) { 
+    const file = event.target.files[0]; 
+    if(!file) return; 
+    const reader = new FileReader(); 
+    reader.onload = function(e) { 
+        try { 
+            const json = JSON.parse(e.target.result); 
+            if(json && json.contas) { 
+                localStorage.setItem('ecoDB_v23', JSON.stringify(json)); 
+                location.reload(); 
+            } else {
+                alert("Arquivo inválido."); 
+            }
+        } catch(err) { 
+            alert("Erro de leitura."); 
+        } 
+    }; 
+    reader.readAsText(file); 
+}
+
+function confirmarReset() { 
+    const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite: excluir"); 
+    if (palavra && palavra.toLowerCase() === "excluir") { 
+        const dbPadrao = {
+            contas: [
+                { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' }, 
+                { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' }, 
+                { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }
+            ], 
+            lancamentos: [], 
+            faturasPagas: []
+        };
+        localStorage.setItem('ecoDB_v23', JSON.stringify(dbPadrao)); 
+        location.reload(); 
+    } else if (palavra !== null) {
+        alert("Cancelado."); 
+    } 
+}
