@@ -1,33 +1,76 @@
-// Funções Aba Cartões v13.0
-function toggleEdicaoCartao(id) {
-    const form = document.getElementById(`form-edit-${id}`);
-    form.classList.toggle('active');
-    
-    if(form.classList.contains('active')) {
-        const cartao = id === 'nu' ? db.Nubank : db.MercadoPago;
-        document.getElementById(`edit-nome-${id}`).value = cartao.nome || (id === 'nu' ? "Nubank" : "Mercado Pago");
-        document.getElementById(`edit-limite-${id}`).value = cartao.limite || 0;
-        document.getElementById(`edit-meta-${id}`).value = cartao.meta || 0;
-        document.getElementById(`edit-fecha-${id}`).value = cartao.fechamento || 0;
-        document.getElementById(`edit-venc-${id}`).value = cartao.vencimento || 0;
-        document.getElementById(`edit-cor-${id}`).value = cartao.cor;
-    }
+/* GESTÃO DE CARTÕES v14.0 */
+.card-item-gestao {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid #eee;
+    border-left-width: 8px; /* Cor dinâmica */
 }
 
-function salvarAlteracoesCartao(id) {
-    const cartao = id === 'nu' ? db.Nubank : db.MercadoPago;
-    
-    cartao.nome = document.getElementById(`edit-nome-${id}`).value;
-    cartao.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value) || 0;
-    cartao.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value) || 0;
-    cartao.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 0;
-    cartao.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 0;
-    cartao.cor = document.getElementById(`edit-cor-${id}`).value;
+.card-item-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
 
-    if(id === 'nu') document.documentElement.style.setProperty('--nubank', cartao.cor);
-    else document.documentElement.style.setProperty('--mercadopago', cartao.cor);
+.btn-circular {
+    background: #f8f9fa;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    color: var(--nubank);
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
 
-    document.getElementById(`form-edit-${id}`).classList.remove('active');
-    salvar(); // Chama a função de salvar no LocalStorage e atualizar UI
-    alert("Configurações aplicadas!");
+.card-item-corpo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.col-info {
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+    color: #777;
+}
+
+.col-info b {
+    color: #2d3436;
+    font-size: 16px;
+    margin-top: 4px;
+}
+
+/* Painel de Edição */
+.painel-edicao {
+    display: none;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px dashed #eee;
+}
+
+.painel-edicao.active { display: block; }
+
+.grid-form { display: flex; gap: 10px; margin-bottom: 10px; }
+.grid-form div { flex: 1; }
+.grid-form label { font-size: 11px; color: #999; margin-left: 5px; }
+
+.input-cor-grande {
+    height: 45px;
+    padding: 5px;
+    cursor: pointer;
+    margin-bottom: 15px;
+}
+
+.btn-sucesso {
+    width: 100%;
+    padding: 15px;
+    background: var(--sucesso);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
 }
