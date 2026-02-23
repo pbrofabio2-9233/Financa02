@@ -6,7 +6,6 @@
 
 body { font-family: -apple-system, sans-serif; background: var(--fundo); margin: 0; padding-bottom: 80px; color: var(--texto); overflow-x: hidden; }
 
-/* CABEÇALHO MODERNO */
 .header-modern { 
     background: linear-gradient(135deg, #1e272e, #2d3436); 
     color: white; 
@@ -28,7 +27,6 @@ body { font-family: -apple-system, sans-serif; background: var(--fundo); margin:
 .container { padding: 15px; }
 .card { background: white; border-radius: 15px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 
-/* Dashboard 6 Blocos */
 .card-resumo { background: linear-gradient(135deg, #1e272e, #2d3436); color: white; padding: 22px; border-radius: 20px; text-align: center; }
 .grid-resumo-6 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
 .mini-card { background: white; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center;}
@@ -41,7 +39,6 @@ body { font-family: -apple-system, sans-serif; background: var(--fundo); margin:
 .txt-texto { color: var(--texto); }
 .txt-azul { color: var(--azul); }
 
-/* Inputs e Botões */
 .grid-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
 input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; background: #fff;}
 .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;}
@@ -49,18 +46,15 @@ input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radiu
 .btn-del { color: var(--perigo); background: none; border: none; cursor: pointer; padding: 5px; }
 .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-/* Accordion Config */
 .accordion-item { background: white; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; overflow: hidden; }
 .accordion-header { padding: 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff; font-weight: bold; }
 .accordion-content { display: none; padding: 15px; border-top: 1px solid #f0f0f0; background: #fafafa; }
 .accordion-content.active { display: block; }
 
-/* Caixa de Edição de Conta */
 .conta-edit-box { background: white; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
 .painel-edit { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
 .painel-edit.active { display: block; }
 
-/* Faturas Timeline - Visual Pasta */
 .abas-superiores { display: flex; background: #1e272e; overflow-x: auto; white-space: nowrap; padding: 15px 10px 0 10px; gap: 5px; border-radius: 0 0 15px 15px;}
 .tab-btn { flex: 1; min-width: 110px; background: #2d3436; border: none; padding: 14px 10px; color: #b2bec3; font-weight: bold; cursor: pointer; border-radius: 12px 12px 0 0; transition: 0.3s; }
 .tab-btn.active { background: var(--fundo); color: var(--texto); }
@@ -75,12 +69,17 @@ input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radiu
 .badge-paga { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 .item-linha { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 13px; }
 
-/* Menu Inferior */
+/* Estilo para a Lista de Backups */
+.item-backup { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #eee; border-radius: 8px; margin-bottom: 8px; background: #fafafa; }
+.item-backup-info { display: flex; flex-direction: column; }
+.item-backup-info strong { font-size: 12px; color: var(--texto); }
+.item-backup-info small { font-size: 11px; color: #888; margin-top: 2px;}
+.btn-restaurar { background: var(--sucesso); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; }
+
 .menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #eee; z-index: 2000; height: 65px; }
 .menu-item { flex: 1; text-align: center; color: #bdc3c7; font-size: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
 .menu-item.active { color: #1e272e; font-weight: bold; }
 .menu-item i { font-size: 20px; margin-bottom: 3px; }
 
-/* Barras */
 .progress-bg { background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
 .progress-fill { height: 100%; background: var(--sucesso); width: 0%; transition: 0.6s; }
