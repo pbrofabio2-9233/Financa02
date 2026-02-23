@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v16.0</title>
+    <title>EcoFinance Pro v16.1</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -39,7 +39,7 @@
 
         /* CARD GESTÃO DENTRO DO DROPDOWN */
         .card-gestao { padding: 15px; background: #fff; border-radius: 12px; margin-bottom:15px; border-left: 8px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .info-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+        .info-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; margin-top: 10px; }
         .info-col { display: flex; flex-direction: column; color: #777; }
         .info-col b { color: var(--texto); font-size: 15px; margin-top: 2px; }
         
@@ -160,37 +160,53 @@
                         <div id="content-cartoes" class="accordion-content">
                             <div id="card-nu-box" class="card-gestao" style="border-left-color: var(--nubank);">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <strong id="label-nu">Nubank</strong>
+                                    <strong id="label-nu" style="font-size:18px;">Nubank</strong>
                                     <button class="btn-lapis" onclick="toggleEdit('nu')"><i class="fas fa-pencil-alt"></i></button>
                                 </div>
                                 <div class="info-corpo">
                                     <div class="info-col"><span>Meta:</span><b id="v-meta-nu">R$ 0</b></div>
+                                    <div class="info-col"><span>Limite:</span><b id="v-limite-nu">R$ 0</b></div>
+                                    <div class="info-col"><span>Fecha:</span><b id="v-fecha-nu">dia 0</b></div>
                                     <div class="info-col"><span>Vence:</span><b id="v-venc-nu">dia 0</b></div>
                                 </div>
                                 <div id="edit-nu" class="painel-edit">
-                                    <label>Nome</label><input type="text" id="e-nome-nu">
-                                    <div class="grid-inputs">
+                                    <label>Nome do Cartão</label><input type="text" id="e-nome-nu">
+                                    <div class="grid-inputs" style="margin-top:8px;">
+                                        <div><label>Limite Total</label><input type="number" id="e-limite-nu"></div>
                                         <div><label>Meta</label><input type="number" id="e-meta-nu"></div>
-                                        <div><label>Cor</label><input type="color" id="e-cor-nu" style="height:44px;"></div>
                                     </div>
+                                    <div class="grid-inputs">
+                                        <div><label>Dia Fechamento</label><input type="number" id="e-fecha-nu"></div>
+                                        <div><label>Dia Vencimento</label><input type="number" id="e-venc-nu"></div>
+                                    </div>
+                                    <label>Cor da Identidade</label>
+                                    <input type="color" id="e-cor-nu" style="height:44px; padding:0; border-radius:8px; border:none;">
                                     <button class="btn-main" onclick="salvarCard('nu')" style="background:var(--sucesso);">APLICAR</button>
                                 </div>
                             </div>
                             <div id="card-mp-box" class="card-gestao" style="border-left-color: var(--mercadopago);">
                                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <strong id="label-mp">Mercado Pago</strong>
+                                    <strong id="label-mp" style="font-size:18px;">Mercado Pago</strong>
                                     <button class="btn-lapis" onclick="toggleEdit('mp')"><i class="fas fa-pencil-alt"></i></button>
                                 </div>
                                 <div class="info-corpo">
                                     <div class="info-col"><span>Meta:</span><b id="v-meta-mp">R$ 0</b></div>
+                                    <div class="info-col"><span>Limite:</span><b id="v-limite-mp">R$ 0</b></div>
+                                    <div class="info-col"><span>Fecha:</span><b id="v-fecha-mp">dia 0</b></div>
                                     <div class="info-col"><span>Vence:</span><b id="v-venc-mp">dia 0</b></div>
                                 </div>
                                 <div id="edit-mp" class="painel-edit">
-                                    <label>Nome</label><input type="text" id="e-nome-mp">
-                                    <div class="grid-inputs">
+                                    <label>Nome do Cartão</label><input type="text" id="e-nome-mp">
+                                    <div class="grid-inputs" style="margin-top:8px;">
+                                        <div><label>Limite Total</label><input type="number" id="e-limite-mp"></div>
                                         <div><label>Meta</label><input type="number" id="e-meta-mp"></div>
-                                        <div><label>Cor</label><input type="color" id="e-cor-mp" style="height:44px;"></div>
                                     </div>
+                                    <div class="grid-inputs">
+                                        <div><label>Dia Fechamento</label><input type="number" id="e-fecha-mp"></div>
+                                        <div><label>Dia Vencimento</label><input type="number" id="e-venc-mp"></div>
+                                    </div>
+                                    <label>Cor da Identidade</label>
+                                    <input type="color" id="e-cor-mp" style="height:44px; padding:0; border-radius:8px; border:none;">
                                     <button class="btn-main" onclick="salvarCard('mp')" style="background:var(--sucesso);">APLICAR</button>
                                 </div>
                             </div>
@@ -261,8 +277,12 @@
 
         function salvarCard(id) {
             db[id].nome = document.getElementById('e-nome-' + id).value;
-            db[id].meta = parseFloat(document.getElementById('e-meta-' + id).value);
+            db[id].meta = parseFloat(document.getElementById('e-meta-' + id).value) || 0;
+            db[id].limite = parseFloat(document.getElementById('e-limite-' + id).value) || 0;
+            db[id].fecha = parseInt(document.getElementById('e-fecha-' + id).value) || 0;
+            db[id].venc = parseInt(document.getElementById('e-venc-' + id).value) || 0;
             db[id].cor = document.getElementById('e-cor-' + id).value;
+            
             document.documentElement.style.setProperty('--' + (id === 'nu' ? 'nubank' : 'mercadopago'), db[id].cor);
             toggleEdit(id);
             save();
@@ -293,10 +313,17 @@
             ['nu','mp'].forEach(id => {
                 document.getElementById('label-'+id).innerText = db[id].nome;
                 document.getElementById('v-meta-'+id).innerText = "R$ " + db[id].meta.toFixed(2);
-                document.getElementById('v-venc-'+id).innerText = "dia " + db[id].venc;
+                document.getElementById('v-limite-'+id).innerText = "R$ " + (db[id].limite ? db[id].limite.toFixed(2) : "0.00");
+                document.getElementById('v-fecha-'+id).innerText = "dia " + (db[id].fecha || 0);
+                document.getElementById('v-venc-'+id).innerText = "dia " + (db[id].venc || 0);
                 document.getElementById('card-'+id+'-box').style.borderLeftColor = db[id].cor;
+                
+                // Popula inputs com dados salvos
                 document.getElementById('e-nome-'+id).value = db[id].nome;
                 document.getElementById('e-meta-'+id).value = db[id].meta;
+                document.getElementById('e-limite-'+id).value = db[id].limite || 0;
+                document.getElementById('e-fecha-'+id).value = db[id].fecha || 0;
+                document.getElementById('e-venc-'+id).value = db[id].venc || 0;
                 document.getElementById('e-cor-'+id).value = db[id].cor;
             });
         }
@@ -311,7 +338,7 @@
 
         function exportarBackup() {
             const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-            const a = document.createElement('a'); a.href = data; a.download = 'backup_v16.json'; a.click();
+            const a = document.createElement('a'); a.href = data; a.download = 'backup_v16.1.json'; a.click();
         }
         function confirmarReset() { if(confirm("Zerar tudo?")) { localStorage.clear(); location.reload(); } }
     </script>
