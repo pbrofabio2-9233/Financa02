@@ -1,17 +1,15 @@
-// DATABASE v19.0 - Nova Estrutura Dinâmica
 let db = JSON.parse(localStorage.getItem('ecoDB_v19')) || {
     contas: [
-        { id: 'nu_mov', nome: 'Nubank (Conta)', tipo: 'movimentacao', saldo: 0, cor: '#8a05be' },
-        { id: 'nu_cred', nome: 'Nubank (Crédito)', tipo: 'cartao', meta: 1100, limite: 5000, fechamento: 13, vencimento: 20, cor: '#8a05be' },
-        { id: 'mp_inv', nome: 'Caixinha Nubank', tipo: 'investimento', saldo: 0, cor: '#8a05be' }
+        { id: 'c_nu_mov', nome: 'Nubank (Conta)', tipo: 'movimentacao', saldo: 0, cor: '#8a05be' },
+        { id: 'c_nu_cred', nome: 'Nubank (Crédito)', tipo: 'cartao', meta: 1100, limite: 5000, fechamento: 5, vencimento: 10, cor: '#8a05be' },
+        { id: 'c_mp_inv', nome: 'Caixinha Nubank', tipo: 'investimento', saldo: 0, cor: '#8a05be' }
     ],
     lancamentos: [],
-    faturasPagas: [] // Array de IDs de faturas pagas (Ex: nu_cred-2026-02)
+    faturasPagas: []
 };
 
 let cartaoAtivoFatura = null;
 
-// --- INICIALIZAÇÃO E NAVEGAÇÃO ---
 window.onload = () => {
     document.getElementById('lanc-data').valueAsDate = new Date();
     populaSelectContas();
@@ -19,6 +17,7 @@ window.onload = () => {
     render();
 };
 
+// --- NAVEGAÇÃO E UI ---
 function navegar(idAba, el) {
     document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
     document.getElementById('aba-' + idAba).classList.add('active');
@@ -30,8 +29,6 @@ function navegar(idAba, el) {
 
 function toggleAccordion(id) {
     document.getElementById(id).classList.toggle('active');
-    const icon = event.currentTarget.querySelector('.fa-chevron-down');
-    if(icon) icon.style.transform = document.getElementById(id).classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
 }
 
 function toggleCamposCartao() {
@@ -41,7 +38,37 @@ function toggleCamposCartao() {
 
 function toggleFatura(id) { document.getElementById(id).classList.toggle('show'); }
 
-// --- REGRAS DE NEGÓCIO E LANÇAMENTO ---
+function toggleEditConta(id) { document.getElementById(`form-edit-${id}`).classList.toggle('active'); }
+
+
+// --- LÓGICA DE FATURAS E FECHAMENTO ---
+
+// Função que calcula em qual fatura (Mês/Ano) a compra vai cair baseado no dia de fechamento
+function getMesFatura(dataLancamento, diaFechamento) {
+    const [anoStr, mesStr, diaStr] = dataLancamento.split('-');
+    let ano = parseInt(anoStr);
+    let mes = parseInt(mesStr);
+    let dia = parseInt(diaStr);
+
+    // Se o dia da compra for igual ou posterior ao dia de fechamento, cai no próximo mês
+    if (dia >= diaFechamento) {
+        mes += 1;
+        if (mes > 12) { mes = 1; ano += 1; }
+    }
+    return `${ano}-${mes.toString().padStart(2, '0')}`;
+}
+
+// Verifica se a fatura já passou da data de fechamento
+function verificaFaturaFechada(mesFatura, diaFechamento) {
+    const [anoStr, mesStr] = mesFatura.split('-');
+    const dataFechamento = new Date(parseInt(anoStr), parseInt(mesStr) - 1, diaFechamento);
+    const dataHoje = new Date();
+    dataHoje.setHours(0,0,0,0);
+    return dataHoje >= dataFechamento; // Se hoje é igual ou maior que a data de fechamento, está fechada
+}
+
+
+// --- REGRAS DE LANÇAMENTO ---
 function populaSelectContas() {
     const select = document.getElementById('lanc-conta');
     select.innerHTML = "";
@@ -56,31 +83,29 @@ function atualizarRegrasLancamento() {
     const contaId = document.getElementById('lanc-conta').value;
     const conta = db.contas.find(c => c.id === contaId);
     const formaSelect = document.getElementById('lanc-forma');
-    
     formaSelect.innerHTML = "";
 
     if(!conta) return;
 
-    // Bloqueios de Segurança
-    if (conta.tipo === 'cartao' && (tipoLancamento === 'receita' || tipoLancamento === 'emp_concedido' || tipoLancamento === 'emp_pessoal' || tipoLancamento === 'compensacao')) {
+    if (conta.tipo === 'cartao' && !['despesa', 'emp_cartao'].includes(tipoLancamento)) {
         alert("Cartões de crédito só aceitam Despesas ou Empréstimos de Cartão.");
         document.getElementById('lanc-tipo').value = 'despesa';
         return atualizarRegrasLancamento();
     }
+
     if (conta.tipo !== 'cartao' && tipoLancamento === 'emp_cartao') {
         alert("Esta opção é exclusiva para Cartões de Crédito.");
         document.getElementById('lanc-tipo').value = 'despesa';
         return atualizarRegrasLancamento();
     }
 
-    // Regras de Formas de Pagamento
     if (conta.tipo === 'cartao') {
         formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`;
     } else if (conta.tipo === 'movimentacao') {
-        if (tipoLancamento === 'despesa' || tipoLancamento === 'emp_concedido') {
+        if (['despesa', 'emp_concedido'].includes(tipoLancamento)) {
             formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
         } else {
-            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Salário">💵 Salário</option><option value="Estorno">↩️ Estorno</option>`;
+            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Salário">💵 Salário</option><option value="Boleto">📄 Boleto</option>`;
         }
     } else if (conta.tipo === 'investimento') {
         formaSelect.innerHTML = `<option value="Transferencia">🔄 Transferência / Rendimento</option>`;
@@ -98,27 +123,24 @@ function adicionarLancamento() {
 
     if(!desc || isNaN(valor) || !data) return alert("Preencha todos os dados.");
 
-    // Atualização imediata de saldos para contas que não são cartão
     const conta = db.contas.find(c => c.id === contaId);
     if (conta.tipo !== 'cartao') {
-        if (tipo === 'receita' || tipo === 'emp_pessoal' || tipo === 'compensacao') conta.saldo += valor;
-        if (tipo === 'despesa' || tipo === 'emp_concedido') conta.saldo -= valor;
+        if (['receita', 'emp_pessoal', 'compensacao'].includes(tipo)) conta.saldo += valor;
+        if (['despesa', 'emp_concedido'].includes(tipo)) conta.saldo -= valor;
     }
 
     db.lancamentos.push({ id: Date.now(), data, tipo, contaId, forma, desc, valor, cat });
-    
     save();
     alert("Lançamento Registrado!");
     document.getElementById('lanc-desc').value = "";
     document.getElementById('lanc-valor').value = "";
 }
 
-// --- GESTÃO DE CONTAS ---
+// --- GESTÃO DE CONTAS E EDIÇÃO ---
 function criarConta() {
     const nome = document.getElementById('nova-conta-nome').value;
     const tipo = document.getElementById('nova-conta-tipo').value;
     const cor = document.getElementById('nova-conta-cor').value;
-    
     if(!nome) return alert("Informe o nome da conta.");
 
     const novaConta = { id: 'c_' + Date.now(), nome, tipo, cor, saldo: 0 };
@@ -129,19 +151,30 @@ function criarConta() {
         novaConta.fechamento = parseInt(document.getElementById('nova-conta-fecha').value) || 1;
         novaConta.vencimento = parseInt(document.getElementById('nova-conta-venc').value) || 1;
     }
-
     db.contas.push(novaConta);
-    save();
-    populaSelectContas();
-    alert("Conta criada!");
+    save(); populaSelectContas(); alert("Conta criada!");
+}
+
+function salvarEdicaoConta(id) {
+    const conta = db.contas.find(c => c.id === id);
+    conta.nome = document.getElementById(`edit-nome-${id}`).value;
+    conta.cor = document.getElementById(`edit-cor-${id}`).value;
+    
+    if(conta.tipo === 'cartao') {
+        conta.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value) || 0;
+        conta.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value) || 0;
+        conta.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1;
+        conta.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1;
+    }
+    toggleEditConta(id);
+    save(); populaSelectContas(); alert("Conta atualizada!");
 }
 
 function excluirConta(id) {
-    if(confirm("Deseja realmente excluir esta conta e todos os seus lançamentos?")) {
+    if(confirm("Excluir esta conta e todos os seus lançamentos?")) {
         db.contas = db.contas.filter(c => c.id !== id);
         db.lancamentos = db.lancamentos.filter(l => l.contaId !== id);
-        save();
-        populaSelectContas();
+        save(); populaSelectContas();
     }
 }
 
@@ -154,54 +187,48 @@ function alternarPagamentoFatura(faturaID) {
 
 function save() { localStorage.setItem('ecoDB_v19', JSON.stringify(db)); render(); }
 
-// --- RENDERIZAÇÃO E CÁLCULOS (O Coração da v19) ---
+// --- RENDERIZAÇÃO CENTRAL ---
 function render() {
     const hoje = new Date();
-    const mesAtual = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
-    
+    const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
     let calc = { despesas: 0, receitas: 0, fatAberta: 0, fatFechada: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0 };
 
-    // Calcula Saldos Fixos
     db.contas.forEach(c => {
         if(c.tipo === 'movimentacao') calc.saldoLivre += c.saldo;
         if(c.tipo === 'investimento') calc.investido += c.saldo;
         if(c.tipo === 'cartao') calc.metaTotalCartao += c.meta;
     });
 
-    // Processa Lançamentos do Mês Atual (Para Despesas e Receitas)
     db.lancamentos.forEach(l => {
-        const lMesAno = l.data.substring(0,7);
         const conta = db.contas.find(c => c.id === l.contaId);
-        
-        // CÁLCULO MÊS ATUAL: Apenas Despesas e Receitas (Ignora Empréstimos na contagem de receita/despesa)
-        if (lMesAno === mesAtual) {
+        if(!conta) return;
+
+        // Dashboards de Receita e Despesa contam TUDO do mês corrido (excluindo empréstimos e transferências)
+        const mesRealLancamento = l.data.substring(0,7);
+        if (mesRealLancamento === mesCorrente) {
             if (l.tipo === 'despesa') calc.despesas += l.valor;
             if (l.tipo === 'receita') calc.receitas += l.valor;
         }
 
-        // CÁLCULO DE FATURAS E METAS (Apenas Cartões)
-        if (conta && conta.tipo === 'cartao') {
-            const fatID = `${conta.id}-${lMesAno}`;
+        // Faturas e Metas
+        if (conta.tipo === 'cartao') {
+            const mesFatura = getMesFatura(l.data, conta.fechamento);
+            const fatID = `${conta.id}-${mesFatura}`;
             const isPaga = db.faturasPagas.includes(fatID);
-            const diaLancamento = parseInt(l.data.substring(8,10));
-            const isFechada = hoje.getDate() >= conta.fechamento; // Lógica simplificada de fechamento
+            const isFechada = verificaFaturaFechada(mesFatura, conta.fechamento);
 
-            if (!isPaga) {
-                // Se é gasto no cartão (despesa ou empréstimo de cartão), soma na fatura
-                if(l.tipo === 'despesa' || l.tipo === 'emp_cartao') {
-                    if(lMesAno === mesAtual && isFechada) calc.fatFechada += l.valor;
-                    else calc.fatAberta += l.valor;
-                }
+            if (!isPaga && (l.tipo === 'despesa' || l.tipo === 'emp_cartao')) {
+                if (isFechada) calc.fatFechada += l.valor;
+                else calc.fatAberta += l.valor;
             }
 
-            // USO DA META: Soma apenas "despesa", exclui "emp_cartao"
-            if (lMesAno === mesAtual && l.tipo === 'despesa') {
+            // Uso da meta só calcula "despesas" (ignora emp_cartao) da fatura atual em andamento
+            if (mesFatura === getMesFatura(hoje.toISOString().split('T')[0], conta.fechamento) && l.tipo === 'despesa') {
                 calc.usoMetaCartao += l.valor;
             }
         }
     });
 
-    // ATUALIZA DASHBOARD
     document.getElementById('dash-receitas').innerText = `R$ ${calc.receitas.toFixed(2)}`;
     document.getElementById('dash-despesas').innerText = `R$ ${calc.despesas.toFixed(2)}`;
     document.getElementById('dash-fat-aberta').innerText = `R$ ${calc.fatAberta.toFixed(2)}`;
@@ -209,7 +236,6 @@ function render() {
     document.getElementById('dash-saldo-livre').innerText = `R$ ${calc.saldoLivre.toFixed(2)}`;
     document.getElementById('dash-investido').innerText = `R$ ${calc.investido.toFixed(2)}`;
 
-    // Balão de Meta
     document.getElementById('uso-meta-texto').innerText = `R$ ${calc.usoMetaCartao.toFixed(2)} / R$ ${calc.metaTotalCartao.toFixed(2)}`;
     const pMeta = calc.metaTotalCartao > 0 ? (calc.usoMetaCartao / calc.metaTotalCartao) * 100 : 0;
     const bar = document.getElementById('meta-bar');
@@ -217,9 +243,7 @@ function render() {
     bar.style.background = pMeta > 100 ? "var(--perigo)" : (pMeta > 80 ? "var(--alerta)" : "var(--sucesso)");
     document.getElementById('meta-percentual').innerText = `${pMeta.toFixed(1)}% consumido`;
 
-    renderAbaContas();
-    renderAbaConfig();
-    renderAbaFaturas();
+    renderAbaContas(); renderAbaConfig(); renderAbaFaturas();
 }
 
 function renderAbaContas() {
@@ -227,16 +251,11 @@ function renderAbaContas() {
     if(!lista) return;
     lista.innerHTML = `<h3><i class="fas fa-exchange-alt"></i> Movimentação</h3>`;
     db.contas.filter(c => c.tipo === 'movimentacao').forEach(c => {
-        lista.innerHTML += `<div class="card" style="border-left:5px solid ${c.cor}">
-            <div style="display:flex; justify-content:space-between"><b>${c.nome}</b> <b>R$ ${c.saldo.toFixed(2)}</b></div>
-        </div>`;
+        lista.innerHTML += `<div class="card" style="border-left:5px solid ${c.cor}"><div style="display:flex; justify-content:space-between"><b>${c.nome}</b> <b>R$ ${c.saldo.toFixed(2)}</b></div></div>`;
     });
-
     lista.innerHTML += `<h3 style="margin-top:20px;"><i class="fas fa-chart-line"></i> Investimentos</h3>`;
     db.contas.filter(c => c.tipo === 'investimento').forEach(c => {
-        lista.innerHTML += `<div class="card" style="border-left:5px solid ${c.cor}">
-            <div style="display:flex; justify-content:space-between"><b>${c.nome}</b> <b class="txt-azul">R$ ${c.saldo.toFixed(2)}</b></div>
-        </div>`;
+        lista.innerHTML += `<div class="card" style="border-left:5px solid ${c.cor}"><div style="display:flex; justify-content:space-between"><b>${c.nome}</b> <b class="txt-azul">R$ ${c.saldo.toFixed(2)}</b></div></div>`;
     });
 }
 
@@ -245,10 +264,35 @@ function renderAbaConfig() {
     if(!lista) return;
     lista.innerHTML = "";
     db.contas.forEach(c => {
+        let camposCartao = '';
+        if(c.tipo === 'cartao') {
+            camposCartao = `
+                <div class="grid-inputs" style="margin-top:10px;">
+                    <div><label>Limite Total</label><input type="number" id="edit-limite-${c.id}" value="${c.limite}"></div>
+                    <div><label>Meta Limite</label><input type="number" id="edit-meta-${c.id}" value="${c.meta}"></div>
+                </div>
+                <div class="grid-inputs">
+                    <div><label>Dia Fechamento</label><input type="number" id="edit-fecha-${c.id}" value="${c.fechamento}"></div>
+                    <div><label>Dia Vencimento</label><input type="number" id="edit-venc-${c.id}" value="${c.vencimento}"></div>
+                </div>
+            `;
+        }
         lista.innerHTML += `
-        <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid #eee; align-items:center;">
-            <span><i class="fas fa-circle" style="color:${c.cor}; font-size:10px;"></i> ${c.nome} <small>(${c.tipo})</small></span>
-            <button class="btn-del" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
+        <div class="conta-edit-box" style="border-left: 5px solid ${c.cor};">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>${c.nome} <small style="color:#888;">(${c.tipo})</small></strong>
+                <div>
+                    <button class="btn-lapis" onclick="toggleEditConta('${c.id}')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn-del" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            <div id="form-edit-${c.id}" class="painel-edit">
+                <label>Nome da Conta</label><input type="text" id="edit-nome-${c.id}" value="${c.nome}">
+                ${camposCartao}
+                <label style="margin-top:10px;">Cor</label>
+                <input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="height:40px; padding:0; border:none; border-radius:8px;">
+                <button class="btn-main" onclick="salvarEdicaoConta('${c.id}')" style="background:var(--sucesso); margin-top:10px;">SALVAR ALTERAÇÕES</button>
+            </div>
         </div>`;
     });
 }
@@ -259,36 +303,30 @@ function renderAbaFaturas() {
     const container = document.getElementById('lista-faturas-agrupadas');
     
     if(cartoes.length === 0) {
-        abas.innerHTML = "";
-        container.innerHTML = "<p style='text-align:center; padding:20px; color:#999;'>Nenhum cartão cadastrado.</p>";
+        abas.innerHTML = ""; container.innerHTML = "<p style='text-align:center; padding:20px; color:#999;'>Nenhum cartão cadastrado.</p>";
         return;
     }
 
     if(!cartaoAtivoFatura || !cartoes.find(c => c.id === cartaoAtivoFatura)) cartaoAtivoFatura = cartoes[0].id;
 
-    abas.innerHTML = cartoes.map(c => `
-        <button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" 
-        style="${c.id === cartaoAtivoFatura ? 'border-bottom-color:'+c.cor : ''}" 
-        onclick="cartaoAtivoFatura='${c.id}'; render();">${c.nome}</button>
-    `).join('');
+    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" style="${c.id === cartaoAtivoFatura ? 'border-bottom-color:'+c.cor : ''}" onclick="cartaoAtivoFatura='${c.id}'; render();">${c.nome}</button>`).join('');
 
     const cartao = cartoes.find(c => c.id === cartaoAtivoFatura);
     const lancCartao = db.lancamentos.filter(l => l.contaId === cartao.id);
     const agrupado = {};
 
     lancCartao.forEach(l => {
-        const mes = l.data.substring(0,7);
-        if(!agrupado[mes]) agrupado[mes] = { total: 0, itens: [] };
-        agrupado[mes].total += l.valor;
-        agrupado[mes].itens.push(l);
+        const mesFatura = getMesFatura(l.data, cartao.fechamento);
+        if(!agrupado[mesFatura]) agrupado[mesFatura] = { total: 0, itens: [] };
+        agrupado[mesFatura].total += l.valor;
+        agrupado[mesFatura].itens.push(l);
     });
 
     container.innerHTML = "";
     Object.keys(agrupado).sort().reverse().forEach(mes => {
         const fatID = `${cartao.id}-${mes}`;
         const isPaga = db.faturasPagas.includes(fatID);
-        const dataHoje = new Date();
-        const isFechada = dataHoje.getDate() >= cartao.fechamento && mes === `${dataHoje.getFullYear()}-${(dataHoje.getMonth()+1).toString().padStart(2,'0')}`;
+        const isFechada = verificaFaturaFechada(mes, cartao.fechamento);
         
         let statusClass = isPaga ? 'badge-paga' : (isFechada ? 'badge-fechada' : 'badge-aberta');
         let statusTxt = isPaga ? '<i class="fas fa-check"></i> PAGA' : (isFechada ? 'FECHADA' : 'ABERTA');
@@ -296,29 +334,16 @@ function renderAbaFaturas() {
         container.innerHTML += `
         <div class="fatura-bloco">
             <div class="fatura-resumo" style="border-left-color:${cartao.cor}" onclick="toggleFatura('det-${mes}')">
-                <div>
-                    <strong style="font-size:16px;">${mes}</strong>
-                    <div style="font-size:11px; color:#888;">Vence dia ${cartao.vencimento}</div>
-                </div>
-                <div style="text-align:right;">
-                    <b style="font-size:16px; display:block; margin-bottom:5px;">R$ ${agrupado[mes].total.toFixed(2)}</b>
-                    <span class="badge-status ${statusClass}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${statusTxt}</span>
-                </div>
+                <div><strong style="font-size:16px;">${mes}</strong><div style="font-size:11px; color:#888;">Vence dia ${cartao.vencimento}</div></div>
+                <div style="text-align:right;"><b style="font-size:16px; display:block; margin-bottom:5px;">R$ ${agrupado[mes].total.toFixed(2)}</b>
+                <span class="badge-status ${statusClass}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${statusTxt}</span></div>
             </div>
             <div class="fatura-detalhes" id="det-${mes}">
-                ${agrupado[mes].itens.map(i => `
-                    <div class="item-linha">
-                        <span>${i.data.split('-')[2]} - ${i.desc} <br><small style="color:#aaa;">${i.tipo === 'emp_cartao' ? '(Empréstimo)' : ''}</small></span>
-                        <b>R$ ${i.valor.toFixed(2)}</b>
-                    </div>
-                `).join('')}
+                ${agrupado[mes].itens.map(i => `<div class="item-linha"><span>${i.data.split('-')[2]} - ${i.desc} <br><small style="color:#aaa;">${i.tipo === 'emp_cartao' ? '(Empréstimo de Cartão)' : ''}</small></span><b>R$ ${i.valor.toFixed(2)}</b></div>`).join('')}
             </div>
         </div>`;
     });
 }
 
-function exportarBackup() {
-    const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-    const a = document.createElement('a'); a.href = data; a.download = 'backup_v19.json'; a.click();
-}
+function exportarBackup() { const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db)); const a = document.createElement('a'); a.href = data; a.download = 'backup_v19.1.json'; a.click(); }
 function confirmarReset() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
