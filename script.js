@@ -1,4 +1,3 @@
-// REGISTRAR O PLUGIN DE TEXTOS NO GRÁFICO
 Chart.register(ChartDataLabels);
 
 let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v22')) || {};
@@ -14,6 +13,13 @@ let db = JSON.parse(localStorage.getItem('ecoDB_v23')) || {
 
 let cartaoAtivoFatura = null;
 let meuGrafico = null;
+
+// FUNÇÃO NOVA: Traduz "2026-03" para "Março - 2026"
+const mesesTexto = {'01':'Janeiro', '02':'Fevereiro', '03':'Março', '04':'Abril', '05':'Maio', '06':'Junho', '07':'Julho', '08':'Agosto', '09':'Setembro', '10':'Outubro', '11':'Novembro', '12':'Dezembro'};
+function formatarMesFatura(mesAnoStr) {
+    const [ano, mes] = mesAnoStr.split('-');
+    return `${mesesTexto[mes]} - ${ano}`;
+}
 
 window.onload = () => {
     if (localStorage.getItem('ecoTheme') === 'dark') {
@@ -216,7 +222,6 @@ function render() {
     renderGrafico(); renderAbaContas(); renderAbaConfig(); renderAbaFaturas();
 }
 
-// --- GRÁFICO COM LEGENDAS INTELIGENTES (NOVO) ---
 function renderGrafico() {
     const ctx = document.getElementById('graficoCategorias');
     if(!ctx) return;
@@ -264,13 +269,10 @@ function renderGrafico() {
             layout: { padding: 20 },
             plugins: {
                 legend: { position: 'right', labels: { color: corTexto, font: { size: 11 } } },
-                // Configuração do Plugin DataLabels (R$ Formatado)
                 datalabels: {
                     color: '#fff',
                     font: { weight: 'bold', size: 10 },
-                    formatter: (value, context) => {
-                        return 'R$ ' + value.toFixed(2).replace('.', ',');
-                    },
+                    formatter: (value) => 'R$ ' + value.toFixed(2).replace('.', ','),
                     align: 'center', anchor: 'center',
                     textStrokeColor: 'rgba(0,0,0,0.5)', textStrokeWidth: 2
                 }
@@ -306,8 +308,8 @@ function renderHistorico() {
         <div class="card" style="margin-bottom: 10px; padding: 15px; border-left: 4px solid ${conta ? conta.cor : '#ccc'};">
             <div class="item-linha" style="border:none; padding:0;">
                 <div class="hist-info">
-                    <b>${l.desc}</b>
-                    <small>${l.data.split('-').reverse().join('/')} • ${conta ? conta.nome : 'Conta Excluída'} • ${l.cat || 'Sem Categoria'}</small>
+                    <b style="color:var(--texto-main); font-size:14px;">${l.desc}</b>
+                    <small style="color:var(--texto-sec);">${l.data.split('-').reverse().join('/')} • ${conta ? conta.nome : 'Conta Excluída'} • ${l.cat || 'Sem Categoria'}</small>
                 </div>
                 <div style="text-align: right;">
                     <b style="color: ${corValor}; display:block;">${sinal} R$ ${l.valor.toFixed(2)}</b>
@@ -336,7 +338,6 @@ function renderHistorico() {
     }).join('');
 }
 
-// --- NOVO: ABA CONTAS EXPANSÍVEL ---
 function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos');
     if(!lista) return;
@@ -364,7 +365,10 @@ function renderAbaContas() {
                     const sinal = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? '-' : '+';
                     const cor = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? 'var(--perigo)' : 'var(--sucesso)';
                     return `<div class="item-linha">
-                                <span style="color:var(--texto-main);">${l.data.split('-')[2]}/${l.data.split('-')[1]} - ${l.desc}</span>
+                                <div style="display:flex; flex-direction:column;">
+                                    <span style="color:var(--texto-main); font-weight: bold;">${l.desc}</span>
+                                    <small style="color:var(--texto-sec); font-size: 11px;">${l.data.split('-').reverse().join('/')} • ${l.cat || 'Sem Categoria'}</small>
+                                </div>
                                 <b style="color:${cor};">${sinal} R$ ${l.valor.toFixed(2)}</b>
                             </div>`
                 }).join('')}
@@ -373,7 +377,8 @@ function renderAbaContas() {
     });
 }
 
-function renderAbaFaturas() { /* Resto do código mantido igual... */
+// ABA FATURAS ATUALIZADA (Março - 2026 e Dados detalhados)
+function renderAbaFaturas() {
     const cartoes = db.contas.filter(c => c.tipo === 'cartao');
     const abas = document.getElementById('abas-cartoes-fatura');
     const container = document.getElementById('lista-faturas-agrupadas');
@@ -408,16 +413,26 @@ function renderAbaFaturas() { /* Resto do código mantido igual... */
         const isFechada = verificaFaturaFechada(mes, cartao.fechamento);
         let statusClass = isPaga ? 'badge-paga' : (isFechada ? 'badge-fechada' : 'badge-aberta');
         let statusTxt = isPaga ? '<i class="fas fa-check"></i> PAGA' : (isFechada ? 'FECHADA' : 'ABERTA');
+        
+        // Uso da função de tradução de mês!
+        let tituloFatura = formatarMesFatura(mes); 
 
         container.innerHTML += `
         <div class="fatura-bloco">
             <div class="fatura-resumo" style="border-left-color:${cartao.cor}" onclick="toggleFatura('det-${mes}')">
-                <div><strong style="font-size:16px; color:var(--texto-main);">${mes}</strong><div style="font-size:11px; color:var(--texto-sec);">Vence dia ${cartao.vencimento}</div></div>
+                <div><strong style="font-size:16px; color:var(--texto-main); text-transform: capitalize;">${tituloFatura}</strong><div style="font-size:11px; color:var(--texto-sec);">Vence dia ${cartao.vencimento}</div></div>
                 <div style="text-align:right;"><b style="font-size:16px; display:block; margin-bottom:5px; color:var(--texto-main);">R$ ${agrupado[mes].total.toFixed(2)}</b>
                 <span class="badge-status ${statusClass}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${statusTxt}</span></div>
             </div>
             <div class="fatura-detalhes" id="det-${mes}">
-                ${agrupado[mes].itens.map(i => `<div class="item-linha"><span style="color:var(--texto-main);">${i.data.split('-')[2]} - ${i.desc} <br><small style="color:var(--texto-sec);">${i.tipo === 'emp_cartao' ? '(Empréstimo)' : ''}</small></span><b style="color:var(--texto-main);">R$ ${i.valor.toFixed(2)}</b></div>`).join('')}
+                ${agrupado[mes].itens.map(i => `
+                <div class="item-linha">
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="color:var(--texto-main); font-weight: bold;">${i.desc}</span>
+                        <small style="color:var(--texto-sec); font-size: 11px;">${i.data.split('-').reverse().join('/')} • ${i.cat || 'Sem Categoria'} ${i.tipo === 'emp_cartao' ? '<br>(Empréstimo de Cartão)' : ''}</small>
+                    </div>
+                    <b style="color:var(--texto-main);">R$ ${i.valor.toFixed(2)}</b>
+                </div>`).join('')}
             </div>
         </div>`;
     });
@@ -456,11 +471,11 @@ function renderAbaConfig() {
     }
 }
 
-function exportarBackup() { /* mantido */
+function exportarBackup() { 
     const dataStr = JSON.stringify(db); const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB";
     const now = new Date(); const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`;
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v23.0", payload: dataStr });
+    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v23.1", payload: dataStr });
     if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
     const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); 
     renderAbaConfig(); alert("Backup gerado!");
