@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v19.0</title>
+    <title>EcoFinance Pro v19.1</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -30,30 +30,12 @@
                     </div>
                     
                     <div class="grid-resumo-6">
-                        <div class="mini-card">
-                            <small>Receitas (Mês)</small>
-                            <p id="dash-receitas" class="txt-sucesso">R$ 0,00</p>
-                        </div>
-                        <div class="mini-card">
-                            <small>Despesas (Mês)</small>
-                            <p id="dash-despesas" class="txt-perigo">R$ 0,00</p>
-                        </div>
-                        <div class="mini-card">
-                            <small>Fatura Aberta</small>
-                            <p id="dash-fat-aberta" class="txt-alerta">R$ 0,00</p>
-                        </div>
-                        <div class="mini-card">
-                            <small>Fatura Fechada</small>
-                            <p id="dash-fat-fechada" class="txt-perigo">R$ 0,00</p>
-                        </div>
-                        <div class="mini-card">
-                            <small>Saldo Livre</small>
-                            <p id="dash-saldo-livre" class="txt-texto">R$ 0,00</p>
-                        </div>
-                        <div class="mini-card">
-                            <small>Investido</small>
-                            <p id="dash-investido" class="txt-azul">R$ 0,00</p>
-                        </div>
+                        <div class="mini-card"><small>Receitas</small><p id="dash-receitas" class="txt-sucesso">R$ 0,00</p></div>
+                        <div class="mini-card"><small>Despesas</small><p id="dash-despesas" class="txt-perigo">R$ 0,00</p></div>
+                        <div class="mini-card"><small>Fatura Aberta</small><p id="dash-fat-aberta" class="txt-alerta">R$ 0,00</p></div>
+                        <div class="mini-card"><small>Fatura Fechada</small><p id="dash-fat-fechada" class="txt-perigo">R$ 0,00</p></div>
+                        <div class="mini-card"><small>Saldo Livre</small><p id="dash-saldo-livre" class="txt-texto">R$ 0,00</p></div>
+                        <div class="mini-card"><small>Investido</small><p id="dash-investido" class="txt-azul">R$ 0,00</p></div>
                     </div>
 
                     <div class="card card-lancamento">
@@ -70,16 +52,11 @@
                                 <option value="compensacao">✅ Recebi Pag. Empréstimo</option>
                             </select>
                         </div>
-
                         <div class="grid-inputs">
-                            <select id="lanc-conta" onchange="atualizarRegrasLancamento()">
-                                </select>
-                            <select id="lanc-forma">
-                                </select>
+                            <select id="lanc-conta" onchange="atualizarRegrasLancamento()"></select>
+                            <select id="lanc-forma"></select>
                         </div>
-
                         <input type="text" id="lanc-desc" placeholder="Descrição da movimentação">
-                        
                         <div class="grid-inputs" style="margin-top:10px;">
                             <input type="number" id="lanc-valor" placeholder="Valor R$">
                             <select id="lanc-cat">
@@ -91,21 +68,18 @@
                                 <option value="Outros">⚙️ Outros</option>
                             </select>
                         </div>
-                        <button class="btn-main" onclick="adicionarLancamento()">SALVAR</button>
+                        <button class="btn-main" onclick="adicionarLancamento()">SALVAR LANÇAMENTO</button>
                     </div>
                 </div>
             </section>
 
             <section id="aba-faturas" class="secao-app">
-                <div class="abas-superiores" id="abas-cartoes-fatura">
-                    </div>
-                <div class="container" id="lista-faturas-agrupadas">
-                    </div>
+                <div class="abas-superiores" id="abas-cartoes-fatura"></div>
+                <div class="container" id="lista-faturas-agrupadas"></div>
             </section>
 
             <section id="aba-contas" class="secao-app">
-                <div class="container" id="lista-contas-saldos">
-                    </div>
+                <div class="container" id="lista-contas-saldos"></div>
             </section>
 
             <section id="aba-config" class="secao-app">
@@ -121,8 +95,8 @@
                             <div class="grid-inputs">
                                 <input type="text" id="nova-conta-nome" placeholder="Nome (Ex: Nubank, C6)">
                                 <select id="nova-conta-tipo" onchange="toggleCamposCartao()">
-                                    <option value="movimentacao">Conta Movimentação (Corrente)</option>
-                                    <option value="investimento">Conta Investimento (Poupança)</option>
+                                    <option value="movimentacao">Conta Movimentação</option>
+                                    <option value="investimento">Conta Investimento</option>
                                     <option value="cartao">Cartão de Crédito</option>
                                 </select>
                             </div>
@@ -137,13 +111,14 @@
                                 </div>
                             </div>
                             <div class="grid-inputs">
-                                <label style="width:100%">Cor: <input type="color" id="nova-conta-cor" style="height:40px; padding:0;"></label>
+                                <label style="width:100%; font-size:11px; color:#888;">Cor: <input type="color" id="nova-conta-cor" style="height:40px; padding:0; border:none;"></label>
                             </div>
                             <button class="btn-main" onclick="criarConta()" style="background:var(--sucesso);">CRIAR CONTA</button>
                             
                             <hr style="margin:20px 0; border:1px solid #eee;">
                             <h4>Contas Cadastradas</h4>
-                            <div id="lista-contas-edit"></div>
+                            <div id="lista-contas-edit">
+                                </div>
                         </div>
                     </div>
 
