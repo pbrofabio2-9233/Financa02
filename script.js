@@ -1,11 +1,13 @@
-let db = JSON.parse(localStorage.getItem('ecoDB_v19')) || {
-    contas: [
+// Usando a chave v20 para garantir uma atualização limpa (migrando dados antigos)
+let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v19')) || {};
+let db = JSON.parse(localStorage.getItem('ecoDB_v20')) || {
+    contas: dbAntigo.contas || [
         { id: 'c_nu_mov', nome: 'Nubank (Conta)', tipo: 'movimentacao', saldo: 0, cor: '#8a05be' },
         { id: 'c_nu_cred', nome: 'Nubank (Crédito)', tipo: 'cartao', meta: 1100, limite: 5000, fechamento: 5, vencimento: 10, cor: '#8a05be' },
         { id: 'c_mp_inv', nome: 'Caixinha Nubank', tipo: 'investimento', saldo: 0, cor: '#8a05be' }
     ],
-    lancamentos: [],
-    faturasPagas: []
+    lancamentos: dbAntigo.lancamentos || [],
+    faturasPagas: dbAntigo.faturasPagas || []
 };
 
 let cartaoAtivoFatura = null;
@@ -22,6 +24,7 @@ function navegar(idAba, el) {
     document.getElementById('aba-' + idAba).classList.add('active');
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     el.classList.add('active');
+    // Atualiza o novo título no cabeçalho moderno
     document.getElementById('titulo-aba').innerText = el.querySelector('span').innerText;
     render();
 }
@@ -139,7 +142,6 @@ function salvarEdicaoConta(id) {
         conta.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1;
         conta.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1;
     } else {
-        // NOVO: Atualiza o saldo para contas que não são cartão
         conta.saldo = parseFloat(document.getElementById(`edit-saldo-${id}`).value) || 0;
     }
     toggleEditConta(id); save(); populaSelectContas(); alert("Conta atualizada!");
@@ -160,7 +162,7 @@ function alternarPagamentoFatura(faturaID) {
     save();
 }
 
-function save() { localStorage.setItem('ecoDB_v19', JSON.stringify(db)); render(); }
+function save() { localStorage.setItem('ecoDB_v20', JSON.stringify(db)); render(); }
 
 function render() {
     const hoje = new Date();
@@ -248,7 +250,6 @@ function renderAbaConfig() {
                 </div>
             `;
         } else {
-            // NOVO: Campo de saldo para Movimentação e Investimento
             camposExtras = `
                 <div class="grid-inputs" style="margin-top:10px;">
                     <div><label>Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" value="${c.saldo}"></div>
@@ -288,7 +289,6 @@ function renderAbaFaturas() {
 
     if(!cartaoAtivoFatura || !cartoes.find(c => c.id === cartaoAtivoFatura)) cartaoAtivoFatura = cartoes[0].id;
 
-    // NOVO: Lógica visual do botão injetando cor na borda superior se estiver ativo
     abas.innerHTML = cartoes.map(c => `
         <button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" 
         style="${c.id === cartaoAtivoFatura ? 'border-top: 4px solid '+c.cor+';' : ''}" 
@@ -329,5 +329,5 @@ function renderAbaFaturas() {
     });
 }
 
-function exportarBackup() { const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db)); const a = document.createElement('a'); a.href = data; a.download = 'backup_v19.2.json'; a.click(); }
+function exportarBackup() { const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db)); const a = document.createElement('a'); a.href = data; a.download = 'backup_v20.json'; a.click(); }
 function confirmarReset() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
