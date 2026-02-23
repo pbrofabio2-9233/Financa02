@@ -3,19 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v19.2</title>
+    <title>EcoFinance Pro v20.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20.0">
 </head>
 <body>
 
     <div id="app">
-        <div class="header">
-            <span id="titulo-aba">Início</span>
-            <div class="header-icons">
-                <i class="fas fa-file-download" onclick="exportarBackup()"></i>
-                <i class="fas fa-sync" onclick="location.reload()"></i>
-            </div>
+        <div class="header-modern">
+            <h1 id="titulo-aba">Início</h1>
         </div>
 
         <main id="conteudo-principal">
@@ -117,14 +113,29 @@
                             
                             <hr style="margin:20px 0; border:1px solid #eee;">
                             <h4>Contas Cadastradas</h4>
-                            <div id="lista-contas-edit">
-                                </div>
+                            <div id="lista-contas-edit"></div>
                         </div>
                     </div>
 
-                    <div class="card" style="margin-top:20px;">
-                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo);">APAGAR TODOS OS DADOS</button>
+                    <div class="card" style="margin-top:20px; border: 1px solid #eee;">
+                        <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                            <strong style="color: #2d3436; font-size: 16px;"><i class="fas fa-shield-alt"></i> Segurança e Dados</strong>
+                        </div>
+                        
+                        <div class="btn-grid-2">
+                            <button class="btn-main" onclick="exportarBackup()" style="background:var(--azul); font-size:12px; padding: 12px;">
+                                <i class="fas fa-file-download"></i> FAZER BACKUP
+                            </button>
+                            <button class="btn-main" onclick="location.reload()" style="background:#7f8c8d; font-size:12px; padding: 12px;">
+                                <i class="fas fa-sync"></i> RECARREGAR APP
+                            </button>
+                        </div>
+                        
+                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo); margin-top:5px; font-size:12px; padding: 12px;">
+                            <i class="fas fa-trash"></i> APAGAR TODOS OS DADOS
+                        </button>
                     </div>
+
                 </div>
             </section>
 
@@ -138,6 +149,6 @@
         </nav>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=20.0"></script>
 </body>
 </html>
