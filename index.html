@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v24.0</title>
+    <title>EcoFinance Pro v23.2</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
-    <link rel="stylesheet" href="style.css?v=24.0">
+    <link rel="stylesheet" href="style.css?v=23.2">
 </head>
 <body>
 
@@ -24,7 +24,7 @@
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
                     <div class="card-resumo">
-                        <small>Uso da Meta Mensal (Apenas Pessoais)</small>
+                        <small>Uso da Meta Mensal (Apenas Gastos Pessoais)</small>
                         <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
                         <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
                         <small id="meta-percentual">0% consumido</small>
@@ -48,6 +48,7 @@
 
                     <div class="card card-lancamento">
                         <h3><i class="fas fa-bolt"></i> Lançamento Rápido</h3>
+                        
                         <div class="grid-inputs">
                             <input type="date" id="lanc-data">
                             <select id="lanc-tipo" onchange="atualizarRegrasLancamento()">
@@ -63,7 +64,7 @@
                             <select id="lanc-conta" onchange="atualizarRegrasLancamento()"></select>
                             <select id="lanc-forma"></select>
                         </div>
-                        <input type="text" id="lanc-desc" placeholder="Descrição">
+                        <input type="text" id="lanc-desc" placeholder="Descrição da movimentação">
                         <div class="grid-inputs" style="margin-top:10px;">
                             <input type="number" id="lanc-valor" placeholder="Valor R$">
                             <select id="lanc-cat">
@@ -77,7 +78,7 @@
                                 <option value="Outros">⚙️ Outros</option>
                             </select>
                         </div>
-                        <button class="btn-main" onclick="adicionarLancamento()">SALVAR</button>
+                        <button class="btn-main" onclick="adicionarLancamento()">SALVAR LANÇAMENTO</button>
                     </div>
                 </div>
             </section>
@@ -85,11 +86,11 @@
             <section id="aba-historico" class="secao-app">
                 <div class="container">
                     <div class="card">
-                        <h3 style="margin-bottom: 10px;"><i class="fas fa-filter"></i> Filtros</h3>
+                        <h3 style="margin-bottom: 10px;"><i class="fas fa-filter"></i> Filtros de Pesquisa</h3>
                         <div class="grid-inputs">
                             <input type="month" id="filtro-mes" onchange="renderHistorico()">
                             <select id="filtro-cat" onchange="renderHistorico()">
-                                <option value="todas">Todas Categorias</option>
+                                <option value="todas">Todas as Categorias</option>
                                 <option value="Alimentação">🛒 Alimentação</option>
                                 <option value="Transporte">🚗 Transporte</option>
                                 <option value="Moradia">🏠 Moradia</option>
@@ -116,49 +117,68 @@
 
             <section id="aba-config" class="secao-app">
                 <div class="container">
+                    
                     <div class="accordion-item">
                         <div class="accordion-header" onclick="toggleAccordion('content-contas-cad')">
-                            <span><i class="fas fa-plus-circle"></i> Gerenciar Contas</span>
+                            <span><i class="fas fa-plus-circle"></i> Gerenciar Contas e Cartões</span>
                             <i class="fas fa-chevron-down"></i>
                         </div>
                         <div id="content-contas-cad" class="accordion-content">
+                            <p style="font-size:11px; color:#888;">Crie novas contas informando o tipo correto.</p>
                             <div class="grid-inputs">
-                                <input type="text" id="nova-conta-nome" placeholder="Nome">
+                                <input type="text" id="nova-conta-nome" placeholder="Nome (Ex: Nubank, C6)">
                                 <select id="nova-conta-tipo" onchange="toggleCamposCartao()">
-                                    <option value="movimentacao">Movimentação</option>
-                                    <option value="investimento">Investimento</option>
+                                    <option value="movimentacao">Conta Movimentação</option>
+                                    <option value="investimento">Conta Investimento</option>
                                     <option value="cartao">Cartão de Crédito</option>
                                 </select>
                             </div>
                             <div id="campos-cartao-add" style="display:none;">
                                 <div class="grid-inputs">
-                                    <input type="number" id="nova-conta-limite" placeholder="Limite">
-                                    <input type="number" id="nova-conta-meta" placeholder="Meta">
+                                    <input type="number" id="nova-conta-limite" placeholder="Limite Total">
+                                    <input type="number" id="nova-conta-meta" placeholder="Meta de Gasto">
                                 </div>
                                 <div class="grid-inputs">
                                     <input type="number" id="nova-conta-fecha" placeholder="Dia Fechamento">
                                     <input type="number" id="nova-conta-venc" placeholder="Dia Vencimento">
                                 </div>
                             </div>
-                            <label style="font-size:11px; color:#888;">Cor: <input type="color" id="nova-conta-cor" style="height:30px;"></label>
-                            <button class="btn-main" onclick="criarConta()" style="background:var(--sucesso); margin-top:10px;">CRIAR CONTA</button>
-                            <div id="lista-contas-edit" style="margin-top:20px;"></div>
+                            <div class="grid-inputs">
+                                <label style="width:100%; font-size:11px; color:#888;">Cor: <input type="color" id="nova-conta-cor" style="height:40px; padding:0; border:none;"></label>
+                            </div>
+                            <button class="btn-main" onclick="criarConta()" style="background:var(--sucesso);">CRIAR CONTA</button>
+                            
+                            <hr style="margin:20px 0; border:1px solid var(--linha);">
+                            <h4>Contas Cadastradas</h4>
+                            <div id="lista-contas-edit"></div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <strong><i class="fas fa-shield-alt"></i> Segurança</strong>
-                        <div class="btn-grid-2" style="margin-top:10px;">
-                            <button class="btn-main" onclick="exportarBackup()" style="background:var(--azul); font-size:11px;"><i class="fas fa-download"></i> BACKUP</button>
-                            <button class="btn-main" onclick="document.getElementById('file-upload').click()" style="background:#8e44ad; font-size:11px;"><i class="fas fa-upload"></i> LER JSON</button>
+                    <div class="card" style="margin-top:20px;">
+                        <div style="margin-bottom: 15px; border-bottom: 1px solid var(--linha); padding-bottom: 10px;">
+                            <strong style="color: var(--texto-main); font-size: 16px;"><i class="fas fa-shield-alt"></i> Segurança e Dados</strong>
                         </div>
-                        <input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)">
                         
-                        <input type="file" id="file-import-ofx" style="display:none;" accept=".ofx,.csv" onchange="processarArquivoExtrato(event)">
+                        <div class="btn-grid-2">
+                            <button class="btn-main" onclick="exportarBackup()" style="background:var(--azul); font-size:12px; padding: 12px;">
+                                <i class="fas fa-file-download"></i> SALVAR BACKUP
+                            </button>
+                            <button class="btn-main" onclick="document.getElementById('file-upload').click()" style="background:#8e44ad; font-size:12px; padding: 12px;">
+                                <i class="fas fa-file-upload"></i> LER ARQUIVO JSON
+                            </button>
+                            <input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)">
+                        </div>
                         
-                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo); margin-top:10px; font-size:11px;">APAGAR TUDO</button>
-                        <div id="lista-backups" style="margin-top:15px;"></div>
+                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo); margin-top:10px; font-size:12px; padding: 12px;">
+                            <i class="fas fa-trash"></i> APAGAR TODOS OS DADOS
+                        </button>
+
+                        <div style="margin-top: 20px; border-top: 1px dashed var(--linha); padding-top: 15px;">
+                            <strong style="font-size: 14px; color: var(--texto-main);"><i class="fas fa-history"></i> Histórico de Backups Locais</strong>
+                            <div id="lista-backups"></div>
+                        </div>
                     </div>
+
                 </div>
             </section>
 
@@ -173,6 +193,6 @@
         </nav>
     </div>
 
-    <script src="script.js?v=24.0"></script>
+    <script src="script.js?v=23.2"></script>
 </body>
 </html>
