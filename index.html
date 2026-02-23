@@ -7,7 +7,6 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
 
@@ -20,13 +19,12 @@
             </div>
         </div>
 
-        <section id="aba-dashboard" class="aba-conteudo active">
+        <div id="aba-dashboard" class="secao-app active">
             <div class="container">
                 <div class="card-resumo">
                     <small>Saldo Líquido Estimado</small>
                     <h2 id="saldo-liquido">R$ 0,00</h2>
                     <div class="progress-bg"><div id="score-bar" class="progress-fill"></div></div>
-                    <small id="score-valor">Uso da meta geral</small>
                 </div>
                 
                 <div class="grid-resumo">
@@ -49,7 +47,7 @@
                             <option value="MercadoPago">Mercado Pago</option>
                         </select>
                     </div>
-                    <input type="text" id="lanc-desc" placeholder="Descrição (ex: Uber)">
+                    <input type="text" id="lanc-desc" placeholder="Descrição">
                     <div class="grid-inputs">
                         <input type="number" id="lanc-valor" placeholder="Valor R$">
                         <select id="lanc-cat">
@@ -59,23 +57,47 @@
                             <option value="Serviços">⚙️ Serviços</option>
                         </select>
                     </div>
-                    <button class="btn-main" onclick="adicionarGasto()">SALVAR LANÇAMENTO</button>
+                    <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section id="aba-faturas" class="aba-conteudo">
-            <div class="tabs-cartoes">
-                <div class="tab-item active" id="tab-nu" onclick="mudarCartao('Nubank')">Nubank</div>
-                <div class="tab-item" id="tab-mp" onclick="mudarCartao('MercadoPago')">Mercado Pago</div>
+        <div id="aba-cartoes" class="secao-app">
+            <div class="container">
+                <div class="card">
+                    <h3><i class="fas fa-credit-card"></i> Configurar Cartões</h3>
+                    <p style="font-size: 11px; color: #888; margin-bottom: 15px;">Ajuste seus limites e metas mensais.</p>
+                    
+                    <div class="card-inner">
+                        <h4 style="color: var(--nubank)">Nubank</h4>
+                        <div class="grid-inputs">
+                            <label>Meta: <input type="number" id="cfg-meta-nu" onchange="salvarConfig()"></label>
+                            <label>Vencimento: <input type="number" id="cfg-venc-nu" onchange="salvarConfig()"></label>
+                        </div>
+                    </div>
+
+                    <div class="card-inner" style="margin-top: 15px;">
+                        <h4 style="color: var(--mercadopago)">Mercado Pago</h4>
+                        <div class="grid-inputs">
+                            <label>Meta: <input type="number" id="cfg-meta-mp" onchange="salvarConfig()"></label>
+                            <label>Vencimento: <input type="number" id="cfg-venc-mp" onchange="salvarConfig()"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="aba-faturas" class="secao-app">
+            <div class="tabs-superiores">
+                <div class="tab-item active" id="tab-nu" onclick="mudarCartaoFatura('Nubank')">Nubank</div>
+                <div class="tab-item" id="tab-mp" onclick="mudarCartaoFatura('MercadoPago')">Mercado Pago</div>
             </div>
             <div class="container">
-                <div id="lista-faturas-agrupadas">
-                    </div>
+                <div id="lista-faturas-agrupadas"></div>
             </div>
-        </section>
+        </div>
 
-        <section id="aba-contas" class="aba-conteudo">
+        <div id="aba-contas" class="secao-app">
             <div class="container">
                 <div class="card">
                     <h3><i class="fas fa-university"></i> Saldo Bancário</h3>
@@ -88,30 +110,22 @@
                         <input type="number" id="saldo-mp" onchange="salvarSaldos()">
                     </div>
                 </div>
-                
-                <div class="card">
-                    <h3><i class="fas fa-cog"></i> Vencimentos</h3>
-                    <div class="grid-inputs">
-                        <label>Venc. Nu: <input type="number" id="cfg-venc-nu" onchange="salvarVencimentos()"></label>
-                        <label>Venc. MP: <input type="number" id="cfg-venc-mp" onchange="salvarVencimentos()"></label>
-                    </div>
-                </div>
-                <button class="btn-danger" onclick="confirmarReset()">LIMPAR TODOS OS DADOS</button>
+                <button class="btn-danger" onclick="confirmarReset()">LIMPAR TUDO</button>
             </div>
-        </section>
+        </div>
 
         <nav class="menu-inferior">
             <div class="menu-item active" onclick="navegar('dashboard', this)">
-                <i class="fas fa-home"></i>
-                <span>Início</span>
+                <i class="fas fa-home"></i><span>Início</span>
+            </div>
+            <div class="menu-item" onclick="navegar('cartoes', this)">
+                <i class="fas fa-credit-card"></i><span>Cartões</span>
             </div>
             <div class="menu-item" onclick="navegar('faturas', this)">
-                <i class="fas fa-file-invoice-dollar"></i>
-                <span>Faturas</span>
+                <i class="fas fa-file-invoice-dollar"></i><span>Faturas</span>
             </div>
             <div class="menu-item" onclick="navegar('contas', this)">
-                <i class="fas fa-wallet"></i>
-                <span>Contas</span>
+                <i class="fas fa-wallet"></i><span>Contas</span>
             </div>
         </nav>
     </div>
