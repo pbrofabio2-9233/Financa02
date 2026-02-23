@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoFinance Pro Master</title>
-    <link rel="manifest" href="manifest.json">
+    <title>EcoFinance Pro v9.0</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -12,121 +11,112 @@
 
     <div id="app">
         <div class="header">
-            <span id="titulo-aba">Dashboard</span>
+            <span id="titulo-aba">Início</span>
             <div class="header-icons">
                 <i class="fas fa-file-download" onclick="exportarBackup()"></i>
                 <i class="fas fa-sync" onclick="location.reload()"></i>
             </div>
         </div>
 
-        <div id="aba-dashboard" class="secao-app active">
-            <div class="container">
-                <div class="card-resumo">
-                    <small>Saldo Líquido Estimado</small>
-                    <h2 id="saldo-liquido">R$ 0,00</h2>
-                    <div class="progress-bg"><div id="score-bar" class="progress-fill"></div></div>
-                </div>
-                
-                <div class="grid-resumo">
-                    <div class="mini-card">
-                        <small>Contas</small>
-                        <p id="dash-contas" style="color: var(--sucesso);">R$ 0,00</p>
+        <main id="conteudo-principal">
+            <section id="aba-dashboard" class="secao-app active">
+                <div class="container">
+                    <div class="card-resumo">
+                        <small>Uso da Meta Mensal (Cartões)</small>
+                        <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
+                        <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
+                        <small id="meta-percentual">0% consumido</small>
                     </div>
-                    <div class="mini-card">
-                        <small>Faturas</small>
-                        <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3><i class="fas fa-plus-circle"></i> Lançamento Rápido</h3>
-                    <div class="grid-inputs">
-                        <input type="date" id="lanc-data">
-                        <select id="lanc-cartao">
-                            <option value="Nubank">Nubank</option>
-                            <option value="MercadoPago">Mercado Pago</option>
-                        </select>
-                    </div>
-                    <input type="text" id="lanc-desc" placeholder="Descrição">
-                    <div class="grid-inputs">
-                        <input type="number" id="lanc-valor" placeholder="Valor R$">
-                        <select id="lanc-cat">
-                            <option value="Alimentação">🛒 Alimentação</option>
-                            <option value="Transporte">🚗 Transporte</option>
-                            <option value="Lazer">🍿 Lazer</option>
-                            <option value="Serviços">⚙️ Serviços</option>
-                        </select>
-                    </div>
-                    <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="aba-cartoes" class="secao-app">
-            <div class="container">
-                <div class="card">
-                    <h3><i class="fas fa-credit-card"></i> Configurar Cartões</h3>
-                    <p style="font-size: 11px; color: #888; margin-bottom: 15px;">Ajuste seus limites e metas mensais.</p>
                     
-                    <div class="card-inner">
-                        <h4 style="color: var(--nubank)">Nubank</h4>
-                        <div class="grid-inputs">
-                            <label>Meta: <input type="number" id="cfg-meta-nu" onchange="salvarConfig()"></label>
-                            <label>Vencimento: <input type="number" id="cfg-venc-nu" onchange="salvarConfig()"></label>
+                    <div class="grid-resumo">
+                        <div class="mini-card">
+                            <small>Receitas</small>
+                            <p id="dash-receitas" style="color: var(--sucesso);">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <small>Faturas</small>
+                            <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <small>Saldo</small>
+                            <p id="dash-saldo-total" style="color: var(--mercadopago);">R$ 0,00</p>
                         </div>
                     </div>
 
-                    <div class="card-inner" style="margin-top: 15px;">
-                        <h4 style="color: var(--mercadopago)">Mercado Pago</h4>
+                    <div class="card card-lancamento">
+                        <h3><i class="fas fa-bolt"></i> Lançamento Rápido</h3>
+                        
                         <div class="grid-inputs">
-                            <label>Meta: <input type="number" id="cfg-meta-mp" onchange="salvarConfig()"></label>
-                            <label>Vencimento: <input type="number" id="cfg-venc-mp" onchange="salvarConfig()"></label>
+                            <input type="date" id="lanc-data">
+                            <select id="lanc-tipo" onchange="ajustarFormasPagamento()">
+                                <option value="despesa">🔴 Despesa</option>
+                                <option value="receita">🟢 Receita</option>
+                            </select>
                         </div>
+
+                        <div class="grid-inputs">
+                            <select id="lanc-cartao">
+                                <option value="Nubank">Nubank</option>
+                                <option value="MercadoPago">Mercado Pago</option>
+                            </select>
+                            <select id="lanc-forma">
+                                </select>
+                        </div>
+
+                        <input type="text" id="lanc-desc" placeholder="Descrição (ex: Salário, Uber...)">
+                        
+                        <div class="grid-inputs">
+                            <input type="number" id="lanc-valor" placeholder="Valor R$">
+                            <select id="lanc-cat">
+                                <option value="Alimentação">🛒 Alimentação</option>
+                                <option value="Transporte">🚗 Transporte</option>
+                                <option value="Salário">💰 Salário</option>
+                                <option value="Outros">⚙️ Outros</option>
+                            </select>
+                        </div>
+                        <button class="btn-main" onclick="adicionarGasto()">SALVAR LANÇAMENTO</button>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <div id="aba-faturas" class="secao-app">
-            <div class="tabs-superiores">
-                <div class="tab-item active" id="tab-nu" onclick="mudarCartaoFatura('Nubank')">Nubank</div>
-                <div class="tab-item" id="tab-mp" onclick="mudarCartaoFatura('MercadoPago')">Mercado Pago</div>
-            </div>
-            <div class="container">
-                <div id="lista-faturas-agrupadas"></div>
-            </div>
-        </div>
-
-        <div id="aba-contas" class="secao-app">
-            <div class="container">
-                <div class="card">
-                    <h3><i class="fas fa-university"></i> Saldo Bancário</h3>
-                    <div class="item-input">
-                        <span>Nubank (Conta)</span>
-                        <input type="number" id="saldo-nu" onchange="salvarSaldos()">
-                    </div>
-                    <div class="item-input">
-                        <span>Mercado Pago (Conta)</span>
-                        <input type="number" id="saldo-mp" onchange="salvarSaldos()">
+            <section id="aba-cartoes" class="secao-app">
+                <div class="container">
+                    <div class="card">
+                        <h3><i class="fas fa-credit-card"></i> Metas dos Cartões</h3>
+                        <label>Meta Nubank: <input type="number" id="cfg-meta-nu" onchange="salvarConfig()"></label>
+                        <label>Meta Mercado Pago: <input type="number" id="cfg-meta-mp" onchange="salvarConfig()"></label>
+                        <hr>
+                        <label>Dia Venc. Nu: <input type="number" id="cfg-venc-nu" onchange="salvarConfig()"></label>
+                        <label>Dia Venc. MP: <input type="number" id="cfg-venc-mp" onchange="salvarConfig()"></label>
                     </div>
                 </div>
-                <button class="btn-danger" onclick="confirmarReset()">LIMPAR TUDO</button>
-            </div>
-        </div>
+            </section>
+
+            <section id="aba-faturas" class="secao-app">
+                <div class="abas-superiores">
+                    <button class="tab-btn active" id="tab-nu" onclick="mudarCartaoFatura('Nubank')">Nubank</button>
+                    <button class="tab-btn" id="tab-mp" onclick="mudarCartaoFatura('MercadoPago')">Mercado Pago</button>
+                </div>
+                <div class="container" id="lista-faturas-agrupadas"></div>
+            </section>
+
+            <section id="aba-contas" class="secao-app">
+                <div class="container">
+                    <div class="card">
+                        <h3><i class="fas fa-wallet"></i> Saldo em Conta (Dinheiro Vivo)</h3>
+                        <label>Nubank: <input type="number" id="saldo-nu" onchange="salvarSaldos()"></label>
+                        <label>Mercado Pago: <input type="number" id="saldo-mp" onchange="salvarSaldos()"></label>
+                    </div>
+                    <button class="btn-danger" onclick="confirmarReset()">RESETAR TUDO</button>
+                </div>
+            </section>
+        </main>
 
         <nav class="menu-inferior">
-            <div class="menu-item active" onclick="navegar('dashboard', this)">
-                <i class="fas fa-home"></i><span>Início</span>
-            </div>
-            <div class="menu-item" onclick="navegar('cartoes', this)">
-                <i class="fas fa-credit-card"></i><span>Cartões</span>
-            </div>
-            <div class="menu-item" onclick="navegar('faturas', this)">
-                <i class="fas fa-file-invoice-dollar"></i><span>Faturas</span>
-            </div>
-            <div class="menu-item" onclick="navegar('contas', this)">
-                <i class="fas fa-wallet"></i><span>Contas</span>
-            </div>
+            <button class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-home"></i><span>Início</span></button>
+            <button class="menu-item" onclick="navegar('cartoes', this)"><i class="fas fa-credit-card"></i><span>Cartões</span></button>
+            <button class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-file-invoice-dollar"></i><span>Faturas</span></button>
+            <button class="menu-item" onclick="navegar('contas', this)"><i class="fas fa-wallet"></i><span>Contas</span></button>
         </nav>
     </div>
 
