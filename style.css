@@ -1,0 +1,112 @@
+:root {
+    --nubank: #8a05be;
+    --mercadopago: #009ee3;
+    --fundo: #f8f9fa;
+    --texto: #2d3436;
+    --sucesso: #00b894;
+    --alerta: #fdcb6e;
+    --perigo: #d63031;
+    --card-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--fundo);
+    margin: 0;
+    color: var(--texto);
+    line-height: 1.6;
+}
+
+/* Header */
+.header {
+    background: #1e272e;
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+/* Seletor de Cartões */
+.card-selector {
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+}
+
+.btn-card {
+    flex: 1;
+    padding: 15px;
+    border: none;
+    border-radius: 15px;
+    font-weight: bold;
+    color: white;
+    transition: 0.3s;
+    opacity: 0.5;
+}
+
+.btn-card.active {
+    opacity: 1;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* Containers */
+.container { padding: 10px 20px; }
+
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+}
+
+/* Progress Bar */
+.progress-bg {
+    background: #dfe6e9;
+    height: 12px;
+    border-radius: 10px;
+    margin: 15px 0;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    transition: 1s ease-in-out;
+}
+
+/* Inputs e Botões */
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 2px solid #f1f2f6;
+    border-radius: 12px;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+.btn-main {
+    width: 100%;
+    padding: 16px;
+    background: #1e272e;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Lista de Gastos */
+.item-gasto {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f2f6;
+}

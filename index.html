@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoFinance Pro</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="header">
+        <i class="fas fa-chart-pie"></i>
+        <span>EcoFinance Pro</span>
+        <i class="fas fa-file-export" onclick="exportarBackup()"></i>
+    </div>
+
+    <div class="card-selector">
+        <button id="btnNu" class="btn-card active" style="background:#8a05be;" onclick="mudarCartao('Nubank')">Nubank</button>
+        <button id="btnMP" class="btn-card" style="background:#009ee3;" onclick="mudarCartao('MercadoPago')">M. Pago</button>
+    </div>
+
+    <div class="container">
+        <div class="card" style="text-align:center;">
+            <h1 id="totalVisual" style="margin:0;">R$ 0,00</h1>
+            <small id="metaAjustada">Meta Real: R$ 0,00</small>
+            <div class="progress-bg">
+                <div id="progresso" class="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Novo Lançamento</h3>
+            <input type="text" id="desc" placeholder="Ex: Mercado">
+            <input type="number" id="valor" placeholder="Valor (0.00)">
+            <select id="cat">
+                <option value="Alimentação">🛒 Alimentação</option>
+                <option value="Transporte">🚗 Transporte</option>
+                <option value="Lazer">🍿 Lazer</option>
+            </select>
+            <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
+        </div>
+
+        <div class="card">
+            <h3>Importar Texto</h3>
+            <textarea id="textoImportacao" placeholder="Cole aqui o resumo da fatura..."></textarea>
+            <button class="btn-main" style="background:#2ecc71;" onclick="processarTexto()">PROCESSAR</button>
+        </div>
+
+        <div class="card">
+            <h3>Histórico</h3>
+            <div id="lista"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
