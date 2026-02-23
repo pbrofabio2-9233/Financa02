@@ -15,7 +15,6 @@ let db = JSON.parse(localStorage.getItem('ecoDB_v23')) || {
 let cartaoAtivoFatura = null;
 let meuGrafico = null;
 
-// FUNÇÃO: Traduz "2026-03" para "Março - 2026"
 const mesesTexto = {'01':'Janeiro', '02':'Fevereiro', '03':'Março', '04':'Abril', '05':'Maio', '06':'Junho', '07':'Julho', '08':'Agosto', '09':'Setembro', '10':'Outubro', '11':'Novembro', '12':'Dezembro'};
 function formatarMesFatura(mesAnoStr) {
     const [ano, mes] = mesAnoStr.split('-');
@@ -172,6 +171,67 @@ function salvarEdicaoLancamento(idLancamento) {
     l.valor = novoValor; l.data = novaData; l.desc = novaDesc; l.cat = novaCat;
     save(); renderHistorico(); alert("Lançamento atualizado e saldos corrigidos!");
 }
+
+// === AS FUNÇÕES QUE ESTAVAM FALTANDO VOLTARAM AQUI ===
+
+function criarConta() {
+    const nome = document.getElementById('nova-conta-nome').value;
+    const tipo = document.getElementById('nova-conta-tipo').value;
+    const cor = document.getElementById('nova-conta-cor').value;
+    if(!nome) return alert("Informe o nome da conta.");
+
+    const novaConta = { id: 'c_' + Date.now(), nome, tipo, cor, saldo: 0 };
+    if(tipo === 'cartao') {
+        novaConta.limite = parseFloat(document.getElementById('nova-conta-limite').value) || 0;
+        novaConta.meta = parseFloat(document.getElementById('nova-conta-meta').value) || 0;
+        novaConta.fechamento = parseInt(document.getElementById('nova-conta-fecha').value) || 1;
+        novaConta.vencimento = parseInt(document.getElementById('nova-conta-venc').value) || 1;
+    }
+    db.contas.push(novaConta); 
+    save(); 
+    populaSelectContas(); 
+    alert("Conta criada com sucesso!");
+    
+    // Limpar os campos após criar
+    document.getElementById('nova-conta-nome').value = "";
+}
+
+function salvarEdicaoConta(id) {
+    const conta = db.contas.find(c => c.id === id);
+    conta.nome = document.getElementById(`edit-nome-${id}`).value;
+    conta.cor = document.getElementById(`edit-cor-${id}`).value;
+    
+    if(conta.tipo === 'cartao') {
+        conta.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value) || 0;
+        conta.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value) || 0;
+        conta.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1;
+        conta.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1;
+    } else {
+        conta.saldo = parseFloat(document.getElementById(`edit-saldo-${id}`).value) || 0;
+    }
+    toggleEditConta(id); 
+    save(); 
+    populaSelectContas(); 
+    alert("Conta atualizada!");
+}
+
+function excluirConta(id) {
+    if(confirm("Excluir esta conta e todos os seus lançamentos permanentemente?")) {
+        db.contas = db.contas.filter(c => c.id !== id);
+        db.lancamentos = db.lancamentos.filter(l => l.contaId !== id);
+        save(); 
+        populaSelectContas();
+    }
+}
+
+function alternarPagamentoFatura(faturaID) {
+    const idx = db.faturasPagas.indexOf(faturaID);
+    if(idx > -1) db.faturasPagas.splice(idx, 1);
+    else db.faturasPagas.push(faturaID);
+    save();
+}
+
+// =======================================================
 
 function save() { localStorage.setItem('ecoDB_v23', JSON.stringify(db)); render(); }
 
@@ -474,7 +534,6 @@ function renderAbaConfig() {
         if(historico.length === 0) {
             listaBackups.innerHTML = "<p style='font-size:12px; color:var(--texto-sec);'>Nenhum backup gerado ainda.</p>";
         } else {
-            // AQUI ESTÁ O NOVO BOTÃO DE EXCLUSÃO DE BACKUP
             listaBackups.innerHTML = historico.map(b => `
                 <div class="item-backup">
                     <div class="item-backup-info">
@@ -491,7 +550,6 @@ function renderAbaConfig() {
     }
 }
 
-// FUNÇÃO NOVA: Apagar o backup do histórico local
 function excluirBackupLocal(id) {
     if(confirm("Tem certeza que deseja apagar este backup do histórico do app? (Lembre-se de apagá-lo também da sua pasta de Downloads do celular se não for mais usá-lo)")) {
         let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
@@ -513,7 +571,7 @@ function exportarBackup() {
         nome: nomeArquivo, 
         data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), 
         size: sizeKB, 
-        versao: "v23.2", 
+        versao: "v23.3", 
         payload: dataStr 
     });
     
