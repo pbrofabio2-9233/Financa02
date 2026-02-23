@@ -3,66 +3,67 @@
         <div class="card">
             <div class="header-sessao">
                 <h3><i class="fas fa-credit-card"></i> Meus Cartões</h3>
-                <small>Toque no lápis para editar</small>
             </div>
 
-            <div id="card-nu-display" class="card-detalhe-limpo" style="border-left: 6px solid var(--nubank);">
-                <div class="card-topo-edit">
+            <div id="card-nu-display" class="card-item-gestao">
+                <div class="card-item-topo">
                     <strong id="label-nome-nu">Nubank</strong>
-                    <button class="btn-lapis" onclick="toggleEdicaoCartao('nu')">
+                    <button class="btn-circular" onclick="toggleEdicaoCartao('nu')">
                         <i class="fas fa-pencil-alt"></i>
                     </button>
                 </div>
-                <div class="info-corpo-cartao">
-                    <div class="info-linha"><span>Meta:</span> <b id="val-meta-nu">R$ 0,00</b></div>
-                    <div class="info-linha"><span>Limite:</span> <b id="val-limite-nu">R$ 0,00</b></div>
-                    <div class="info-linha"><span>Fecha:</span> dia <b id="val-fecha-nu">0</b></div>
-                    <div class="info-linha"><span>Vence:</span> dia <b id="val-venc-nu">0</b></div>
+                <div class="card-item-corpo">
+                    <div class="col-info"><span>Meta:</span> <b id="val-meta-nu">R$ 0,00</b></div>
+                    <div class="col-info"><span>Limite:</span> <b id="val-limite-nu">R$ 0,00</b></div>
+                    <div class="col-info"><span>Fecha:</span> dia <b id="val-fecha-nu">0</b></div>
+                    <div class="col-info"><span>Vence:</span> dia <b id="val-venc-nu">0</b></div>
                 </div>
 
-                <div id="form-edit-nu" class="form-edicao-oculto">
-                    <input type="text" id="edit-nome-nu" placeholder="Nome do Cartão">
-                    <div class="grid-inputs">
-                        <input type="number" id="edit-limite-nu" placeholder="Limite Total">
-                        <input type="number" id="edit-meta-nu" placeholder="Meta Limite">
+                <div id="form-edit-nu" class="painel-edicao">
+                    <label>Nome do Cartão</label>
+                    <input type="text" id="edit-nome-nu">
+                    <div class="grid-form">
+                        <div><label>Limite Total</label><input type="number" id="edit-limite-nu"></div>
+                        <div><label>Meta Limite</label><input type="number" id="edit-meta-nu"></div>
                     </div>
-                    <div class="grid-inputs">
-                        <input type="number" id="edit-fecha-nu" placeholder="Fechamento">
-                        <input type="number" id="edit-venc-nu" placeholder="Vencimento">
+                    <div class="grid-form">
+                        <div><label>Dia Fechamento</label><input type="number" id="edit-fecha-nu"></div>
+                        <div><label>Dia Vencimento</label><input type="number" id="edit-venc-nu"></div>
                     </div>
-                    <label style="font-size:11px; color:#888;">Cor do Cartão:</label>
-                    <input type="color" id="edit-cor-nu" class="input-color">
-                    <button class="btn-main" style="background:var(--sucesso);" onclick="salvarAlteracoesCartao('nu')">ATUALIZAR CARTÃO</button>
+                    <label>Cor da Identidade</label>
+                    <input type="color" id="edit-cor-nu" class="input-cor-grande">
+                    <button class="btn-sucesso" onclick="salvarAlteracoesCartao('nu')">APLICAR ALTERAÇÕES</button>
                 </div>
             </div>
 
-            <div id="card-mp-display" class="card-detalhe-limpo" style="border-left: 6px solid var(--mercadopago); margin-top:20px;">
-                <div class="card-topo-edit">
+            <div id="card-mp-display" class="card-item-gestao" style="margin-top:20px;">
+                <div class="card-item-topo">
                     <strong id="label-nome-mp">Mercado Pago</strong>
-                    <button class="btn-lapis" onclick="toggleEdicaoCartao('mp')">
+                    <button class="btn-circular" onclick="toggleEdicaoCartao('mp')">
                         <i class="fas fa-pencil-alt"></i>
                     </button>
                 </div>
-                <div class="info-corpo-cartao">
-                    <div class="info-linha"><span>Meta:</span> <b id="val-meta-mp">R$ 0,00</b></div>
-                    <div class="info-linha"><span>Limite:</span> <b id="val-limite-mp">R$ 0,00</b></div>
-                    <div class="info-linha"><span>Fecha:</span> dia <b id="val-fecha-mp">0</b></div>
-                    <div class="info-linha"><span>Vence:</span> dia <b id="val-venc-mp">0</b></div>
+                <div class="card-item-corpo">
+                    <div class="col-info"><span>Meta:</span> <b id="val-meta-mp">R$ 0,00</b></div>
+                    <div class="col-info"><span>Limite:</span> <b id="val-limite-mp">R$ 0,00</b></div>
+                    <div class="col-info"><span>Fecha:</span> dia <b id="val-fecha-mp">0</b></div>
+                    <div class="col-info"><span>Vence:</span> dia <b id="val-venc-mp">0</b></div>
                 </div>
 
-                <div id="form-edit-mp" class="form-edicao-oculto">
-                    <input type="text" id="edit-nome-mp" placeholder="Nome do Cartão">
-                    <div class="grid-inputs">
-                        <input type="number" id="edit-limite-mp" placeholder="Limite Total">
-                        <input type="number" id="edit-meta-mp" placeholder="Meta Limite">
+                <div id="form-edit-mp" class="painel-edicao">
+                    <label>Nome do Cartão</label>
+                    <input type="text" id="edit-nome-mp">
+                    <div class="grid-form">
+                        <div><label>Limite Total</label><input type="number" id="edit-limite-mp"></div>
+                        <div><label>Meta Limite</label><input type="number" id="edit-meta-mp"></div>
                     </div>
-                    <div class="grid-inputs">
-                        <input type="number" id="edit-fecha-mp" placeholder="Fechamento">
-                        <input type="number" id="edit-venc-mp" placeholder="Vencimento">
+                    <div class="grid-form">
+                        <div><label>Dia Fechamento</label><input type="number" id="edit-fecha-mp"></div>
+                        <div><label>Dia Vencimento</label><input type="number" id="edit-venc-mp"></div>
                     </div>
-                    <label style="font-size:11px; color:#888;">Cor do Cartão:</label>
-                    <input type="color" id="edit-cor-mp" class="input-color">
-                    <button class="btn-main" style="background:var(--sucesso);" onclick="salvarAlteracoesCartao('mp')">ATUALIZAR CARTÃO</button>
+                    <label>Cor da Identidade</label>
+                    <input type="color" id="edit-cor-mp" class="input-cor-grande">
+                    <button class="btn-sucesso" onclick="salvarAlteracoesCartao('mp')">APLICAR ALTERAÇÕES</button>
                 </div>
             </div>
         </div>
