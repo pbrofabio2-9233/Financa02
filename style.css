@@ -3,33 +3,52 @@
     --texto: #2d3436; --sucesso: #27ae60; --perigo: #e74c3c;
 }
 
-body { font-family: sans-serif; background: var(--fundo); margin: 0; padding-bottom: 80px; color: var(--texto); }
+body { font-family: sans-serif; background: var(--fundo); margin: 0; padding-bottom: 80px; color: var(--texto); overflow-x: hidden; }
 
+/* Visibilidade das Abas */
 .secao-app { display: none; }
-.secao-app.active { display: block; }
+.secao-app.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .header { background: #1e272e; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
 
 .container { padding: 15px; }
+.card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.card-inner { border: 1px solid #f0f0f0; padding: 12px; border-radius: 10px; }
 
-/* Correção do Espaçamento (X) entre blocos de totais e lançamento */
-.grid-resumo { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 20px; } /* Margem inferior adicionada */
-.mini-card { background: white; flex: 1; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-
-/* Card de Lançamento com distanciamento uniforme */
-.card-lancamento { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 10px; }
-
+/* Dashboard */
 .card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 25px; border-radius: 20px; text-align: center; }
+.grid-resumo { display: flex; gap: 10px; margin-top: 15px; margin-bottom: 20px; }
+.mini-card { background: white; flex: 1; padding: 12px; border-radius: 12px; text-align: center; font-size: 11px; }
+.mini-card p { margin: 5px 0 0; font-weight: bold; font-size: 14px; }
 
-/* Menu Inferior Restaurado (Layout Anterior) */
+/* Lançamento Rápido */
+.card-lancamento { background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+/* Menu Inferior Estilo Original */
 .menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 10px 0; border-top: 1px solid #eee; z-index: 2000; }
 .menu-item { flex: 1; display: flex; flex-direction: column; align-items: center; color: #b2bec3; font-size: 11px; cursor: pointer; }
 .menu-item.active { color: var(--nubank); font-weight: bold; }
 .menu-item i { font-size: 22px; margin-bottom: 3px; }
 
-.grid-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
-input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
-.btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; }
+/* Faturas Accordion */
+.abas-superiores { display: flex; background: #1e272e; }
+.tab-btn { flex: 1; background: none; border: none; padding: 15px; color: #7f8c8d; font-weight: bold; cursor: pointer; }
+.tab-btn.active { color: white; border-bottom: 3px solid var(--nubank); }
 
-.progress-bg { background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin: 15px 0; }
-.progress-fill { height: 100%; background: white; border-radius: 10px; width: 0%; transition: 0.8s; }
+.fatura-bloco { background: white; border-radius: 10px; margin-bottom: 10px; border: 1px solid #eee; overflow: hidden; }
+.fatura-resumo { padding: 15px; cursor: pointer; border-left: 5px solid #ccc; }
+.fatura-detalhes { display: none; padding: 10px 15px; background: #fafafa; border-top: 1px solid #eee; }
+.fatura-detalhes.show { display: block; }
+
+/* Elementos Gerais */
+.grid-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
+input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
+.btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; }
+.btn-danger { width: 100%; background: none; border: 1px solid var(--perigo); color: var(--perigo); padding: 10px; border-radius: 8px; margin-top: 20px; }
+
+.progress-bg { background: rgba(255,255,255,0.2); height: 10px; border-radius: 10px; margin: 15px 0; }
+.progress-fill { height: 100%; background: white; width: 0%; transition: 0.8s; }
+.item-input { display: flex; justify-content: space-between; align-items: center; }
+.item-input input { width: 40%; }
+.item-linha { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
