@@ -10,141 +10,57 @@
 }
 
 body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
+    font-family: -apple-system, system-ui, sans-serif;
     background-color: var(--fundo);
     margin: 0;
     color: var(--texto);
-    user-select: none;
 }
 
-/* Header */
 .header {
-    background: #1e272e;
-    color: white;
-    padding: 18px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    background: #1e272e; color: white; padding: 15px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 100;
 }
 
-.header-icons i { margin-left: 15px; cursor: pointer; }
-
-/* Navegação por Abas */
-.aba-conteudo { display: none; padding-bottom: 90px; }
+.aba-conteudo { display: none; padding-bottom: 100px; }
 .aba-conteudo.active { display: block; animation: fadeIn 0.3s ease; }
-
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-/* Menu Inferior */
 .menu-inferior {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background: white;
-    display: flex;
-    justify-content: space-around;
-    padding: 12px 0;
-    box-shadow: 0 -3px 20px rgba(0,0,0,0.1);
-    z-index: 1000;
+    position: fixed; bottom: 0; width: 100%; background: white;
+    display: flex; padding: 10px 0; box-shadow: 0 -3px 15px rgba(0,0,0,0.1);
 }
 
-.menu-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #b2bec3;
-    font-size: 11px;
-    flex: 1;
-}
-
+.menu-item { flex: 1; display: flex; flex-direction: column; align-items: center; color: #b2bec3; font-size: 11px; }
 .menu-item.active { color: var(--nubank); }
-.menu-item i { font-size: 22px; margin-bottom: 4px; }
+.menu-item i { font-size: 20px; margin-bottom: 3px; }
 
-/* Containers e Cards */
 .container { padding: 15px; }
 
-.card {
-    background: white;
-    border-radius: 18px;
-    padding: 20px;
-    margin-bottom: 15px;
-    box-shadow: var(--card-shadow);
+.card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; box-shadow: var(--card-shadow); }
+.card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 20px; border-radius: 20px; }
+
+.grid-resumo { display: flex; gap: 10px; margin-top: 15px; }
+.mini-card { background: white; flex: 1; padding: 12px; border-radius: 12px; box-shadow: var(--card-shadow); color: var(--texto); }
+
+.card-fatura { border-left: 6px solid var(--nubank); }
+
+/* Progress Bars */
+.progress-bg { background: rgba(0,0,0,0.05); height: 8px; border-radius: 10px; margin: 8px 0; overflow: hidden; }
+.progress-fill { height: 100%; width: 0%; transition: 0.6s; }
+
+.meta-item { margin-bottom: 15px; }
+.meta-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; }
+
+.historico-mes-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px; border-radius: 10px; background: #f9f9f9; margin-bottom: 8px;
 }
 
-.card-resumo {
-    background: linear-gradient(135deg, #6c5ce7, #8a05be);
-    color: white;
-    padding: 25px;
-    border-radius: 22px;
-    margin-bottom: 20px;
-}
+input, select, textarea { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+.btn-main { width: 100%; padding: 15px; background: #1e272e; color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; }
 
-.grid-resumo { display: flex; gap: 12px; margin-bottom: 20px; }
-.mini-card {
-    background: white;
-    flex: 1;
-    padding: 15px;
-    border-radius: 15px;
-    box-shadow: var(--card-shadow);
-}
-
-.mini-card p { margin: 5px 0 0; font-weight: bold; font-size: 18px; }
-
-/* Fatura Visual */
-.card-fatura { border-left: 8px solid var(--nubank); }
-.fatura-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.status-badge { background: #e1f5fe; color: #039be5; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; }
-
-/* Barras de Progresso */
-.progress-bg { background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin-top: 15px; overflow: hidden; }
-.progress-fill { height: 100%; background: white; width: 0%; transition: 0.6s; }
-
-/* Inputs e Botões */
-input, select, textarea {
-    width: 100%;
-    padding: 14px;
-    margin: 8px 0 15px;
-    border: 1px solid #dfe6e9;
-    border-radius: 12px;
-    box-sizing: border-box;
-    font-size: 16px;
-    background: #f9f9f9;
-}
-
-.btn-main {
-    width: 100%;
-    padding: 16px;
-    background: #1e272e;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 16px;
-}
-
-/* Listas */
-.item-gasto {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 0;
-    border-bottom: 1px solid #f1f2f6;
-}
-
-.btn-delete { color: var(--perigo); margin-left: 15px; font-size: 18px; }
-
-/* Pills */
-.selector-pills { display: flex; gap: 8px; margin-bottom: 15px; }
-.pill {
-    flex: 1;
-    padding: 10px;
-    border-radius: 25px;
-    border: 1px solid #ddd;
-    background: white;
-    font-weight: bold;
-    font-size: 13px;
-}
+.item-gasto { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+.pill { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; background: white; font-weight: bold; font-size: 12px; }
 .pill.active { background: var(--nubank); color: white; border-color: var(--nubank); }
+.btn-delete { color: var(--perigo); margin-left: 10px; }
