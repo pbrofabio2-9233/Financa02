@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoFinance Pro v9.0</title>
+    <title>EcoFinance Pro v10.0</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
 </head>
 <body>
 
@@ -63,13 +64,14 @@
                                 </select>
                         </div>
 
-                        <input type="text" id="lanc-desc" placeholder="Descrição (ex: Salário, Uber...)">
+                        <input type="text" id="lanc-desc" placeholder="Descrição">
                         
                         <div class="grid-inputs">
                             <input type="number" id="lanc-valor" placeholder="Valor R$">
                             <select id="lanc-cat">
                                 <option value="Alimentação">🛒 Alimentação</option>
                                 <option value="Transporte">🚗 Transporte</option>
+                                <option value="Lazer">🍿 Lazer</option>
                                 <option value="Salário">💰 Salário</option>
                                 <option value="Outros">⚙️ Outros</option>
                             </select>
@@ -79,44 +81,21 @@
                 </div>
             </section>
 
-            <section id="aba-cartoes" class="secao-app">
-                <div class="container">
-                    <div class="card">
-                        <h3><i class="fas fa-credit-card"></i> Metas dos Cartões</h3>
-                        <label>Meta Nubank: <input type="number" id="cfg-meta-nu" onchange="salvarConfig()"></label>
-                        <label>Meta Mercado Pago: <input type="number" id="cfg-meta-mp" onchange="salvarConfig()"></label>
-                        <hr>
-                        <label>Dia Venc. Nu: <input type="number" id="cfg-venc-nu" onchange="salvarConfig()"></label>
-                        <label>Dia Venc. MP: <input type="number" id="cfg-venc-mp" onchange="salvarConfig()"></label>
-                    </div>
-                </div>
-            </section>
-
-            <section id="aba-faturas" class="secao-app">
-                <div class="abas-superiores">
-                    <button class="tab-btn active" id="tab-nu" onclick="mudarCartaoFatura('Nubank')">Nubank</button>
-                    <button class="tab-btn" id="tab-mp" onclick="mudarCartaoFatura('MercadoPago')">Mercado Pago</button>
-                </div>
-                <div class="container" id="lista-faturas-agrupadas"></div>
-            </section>
-
-            <section id="aba-contas" class="secao-app">
-                <div class="container">
-                    <div class="card">
-                        <h3><i class="fas fa-wallet"></i> Saldo em Conta (Dinheiro Vivo)</h3>
-                        <label>Nubank: <input type="number" id="saldo-nu" onchange="salvarSaldos()"></label>
-                        <label>Mercado Pago: <input type="number" id="saldo-mp" onchange="salvarSaldos()"></label>
-                    </div>
-                    <button class="btn-danger" onclick="confirmarReset()">RESETAR TUDO</button>
-                </div>
-            </section>
-        </main>
+            </main>
 
         <nav class="menu-inferior">
-            <button class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-home"></i><span>Início</span></button>
-            <button class="menu-item" onclick="navegar('cartoes', this)"><i class="fas fa-credit-card"></i><span>Cartões</span></button>
-            <button class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-file-invoice-dollar"></i><span>Faturas</span></button>
-            <button class="menu-item" onclick="navegar('contas', this)"><i class="fas fa-wallet"></i><span>Contas</span></button>
+            <div class="menu-item active" onclick="navegar('dashboard', this)">
+                <i class="fas fa-home"></i><span>Início</span>
+            </div>
+            <div class="menu-item" onclick="navegar('cartoes', this)">
+                <i class="fas fa-credit-card"></i><span>Cartões</span>
+            </div>
+            <div class="menu-item" onclick="navegar('faturas', this)">
+                <i class="fas fa-file-invoice-dollar"></i><span>Faturas</span>
+            </div>
+            <div class="menu-item" onclick="navegar('contas', this)">
+                <i class="fas fa-wallet"></i><span>Contas</span>
+            </div>
         </nav>
     </div>
 
