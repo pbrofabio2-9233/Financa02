@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-pt">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v17.0</title>
+    <title>EcoFinance Pro v18.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -26,7 +26,6 @@
 
         /* DASHBOARD */
         .card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 22px; border-radius: 20px; text-align: center; }
-        /* Alteração: Grelha 2x2 para acomodar o Dinheiro Guardado */
         .grid-resumo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .mini-card { background: white; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .mini-card small { font-size: 11px; color: #888; }
@@ -53,6 +52,22 @@
         label { font-size: 11px; color: #999; margin-bottom: 4px; display: block; }
         .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer;}
         .btn-del { color: var(--perigo); background: none; border: none; cursor: pointer; padding: 5px; }
+
+        /* ABA FATURAS (Estilo Nummo) */
+        .abas-superiores { display: flex; background: #1e272e; }
+        .tab-btn { flex: 1; background: none; border: none; padding: 15px; color: #7f8c8d; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: white; border-bottom-color: var(--nubank); }
+
+        .fatura-bloco { background: white; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .fatura-resumo { padding: 18px; cursor: pointer; border-left: 6px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
+        .fatura-detalhes { display: none; padding: 10px 18px; background: #fafafa; border-top: 1px solid #eee; }
+        .fatura-detalhes.show { display: block; }
+        
+        .badge-status { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; cursor: pointer; }
+        .badge-aberta { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .badge-paga { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+        .item-linha { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 13px; }
 
         /* LISTA ASSINATURAS */
         .item-assinatura { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 13px; }
@@ -140,12 +155,12 @@
             </section>
 
             <section id="aba-faturas" class="secao-app">
-                <div class="container">
-                    <div class="card">
-                        <h3><i class="fas fa-file-invoice-dollar"></i> Gestão de Faturas</h3>
-                        <p style="color:#888; font-size:13px;">O histórico de compras e fechamentos aparecerá aqui.</p>
-                    </div>
+                <div class="abas-superiores">
+                    <button class="tab-btn active" id="tab-nu-fat" onclick="mudarCartaoFatura('nu')">Nubank</button>
+                    <button class="tab-btn" id="tab-mp-fat" onclick="mudarCartaoFatura('mp')">Mercado Pago</button>
                 </div>
+                <div class="container" id="lista-faturas-agrupadas">
+                    </div>
             </section>
 
             <section id="aba-contas" class="secao-app">
@@ -160,10 +175,9 @@
 
                     <div class="card">
                         <h3><i class="fas fa-piggy-bank"></i> Caixinhas / Investimentos</h3>
-                        <p style="font-size:11px; color:#888;">Este valor compõe o teu património, mas não afeta o saldo livre.</p>
                         <div class="grid-inputs">
-                            <div><label>Nubank (Guardado)</label><input type="number" id="inv-nu" onchange="saveS()"></div>
-                            <div><label>M. Pago (Guardado)</label><input type="number" id="inv-mp" onchange="saveS()"></div>
+                            <div><label>Nubank</label><input type="number" id="inv-nu" onchange="saveS()"></div>
+                            <div><label>M. Pago</label><input type="number" id="inv-mp" onchange="saveS()"></div>
                         </div>
                     </div>
                 </div>
@@ -178,28 +192,36 @@
                             <i class="fas fa-chevron-down"></i>
                         </div>
                         <div id="content-assinaturas" class="accordion-content">
-                            <p style="font-size:11px; color:#888; margin-bottom:10px;">Adiciona a Netflix, Spotify, etc. O sistema lança na fatura automaticamente no dia programado.</p>
+                            <p style="font-size:11px; color:#888; margin-bottom:10px;">Programe faturas de cartão, boletos ou débitos em conta.</p>
                             <div class="grid-inputs">
-                                <input type="text" id="ass-nome" placeholder="Nome (Ex: Netflix)">
+                                <input type="text" id="ass-nome" placeholder="Nome (Ex: Netflix, Conta Luz)">
                                 <input type="number" id="ass-valor" placeholder="Valor R$">
                             </div>
                             <div class="grid-inputs">
                                 <div>
-                                    <label>Lança em que dia?</label>
-                                    <input type="number" id="ass-dia" placeholder="Dia (1 a 31)" min="1" max="31">
+                                    <label>Tipo de Débito</label>
+                                    <select id="ass-tipo">
+                                        <option value="cartao">💳 Cartão de Crédito</option>
+                                        <option value="conta">📄 Boleto / Conta</option>
+                                    </select>
                                 </div>
                                 <div>
-                                    <label>Qual Cartão?</label>
-                                    <select id="ass-cartao">
+                                    <label>Qual Cartão/Conta?</label>
+                                    <select id="ass-fonte">
                                         <option value="nu">Nubank</option>
                                         <option value="mp">Mercado Pago</option>
                                     </select>
                                 </div>
                             </div>
+                            <div class="grid-inputs">
+                                <div>
+                                    <label>Dia do Vencimento</label>
+                                    <input type="number" id="ass-dia" placeholder="Dia (1 a 31)" min="1" max="31">
+                                </div>
+                            </div>
                             <button class="btn-main" onclick="adicionarAssinatura()" style="background:var(--mercadopago);">PROGRAMAR DESPESA</button>
                             
-                            <div id="lista-assinaturas" style="margin-top: 20px;">
-                                </div>
+                            <div id="lista-assinaturas" style="margin-top: 20px;"></div>
                         </div>
                     </div>
 
@@ -281,15 +303,17 @@
     </div>
 
     <script>
-        // Mapeamento Inteligente e Migração de versões antigas
-        let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v16')) || {};
-        let db = JSON.parse(localStorage.getItem('ecoDB_v17')) || {
+        let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v17')) || {};
+        let db = JSON.parse(localStorage.getItem('ecoDB_v18')) || {
             nu: dbAntigo.nu || { nome: "Nubank", meta: 1100, limite: 5000, fecha: 13, venc: 20, cor: '#8a05be', gastos: [] },
             mp: dbAntigo.mp || { nome: "Mercado Pago", meta: 800, limite: 2000, fecha: 10, venc: 17, cor: '#009ee3', gastos: [] },
             sNu: dbAntigo.sNu || 0, sMp: dbAntigo.sMp || 0, receitas: dbAntigo.receitas || [],
-            invNu: 0, invMp: 0, // Novos campos de investimentos
-            assinaturas: [], historicoAssinaturas: [] // Novos campos de automação
+            invNu: dbAntigo.invNu || 0, invMp: dbAntigo.invMp || 0,
+            assinaturas: dbAntigo.assinaturas || [], historicoAssinaturas: dbAntigo.historicoAssinaturas || [],
+            faturasPagas: dbAntigo.faturasPagas || [] // Array crucial para a aba Faturas
         };
+
+        let cartaoAtivoFatura = 'nu';
 
         function navegar(id, el) {
             document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
@@ -297,6 +321,16 @@
             document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
             el.classList.add('active');
             document.getElementById('titulo-aba').innerText = el.querySelector('span').innerText;
+            render();
+        }
+
+        function mudarCartaoFatura(cartaoId) {
+            cartaoAtivoFatura = cartaoId;
+            document.getElementById('tab-nu-fat').classList.remove('active');
+            document.getElementById('tab-mp-fat').classList.remove('active');
+            document.getElementById('tab-' + cartaoId + '-fat').classList.add('active');
+            // Atualiza a cor da aba dinamicamente
+            document.getElementById('tab-' + cartaoId + '-fat').style.borderBottomColor = db[cartaoId].cor;
             render();
         }
 
@@ -308,6 +342,8 @@
 
         function toggleEdit(id) { document.getElementById('edit-' + id).classList.toggle('active'); }
 
+        function toggleFatura(id) { document.getElementById(id).classList.toggle('show'); }
+
         function ajustarFormas() {
             const t = document.getElementById('lanc-tipo').value;
             const f = document.getElementById('lanc-forma');
@@ -316,21 +352,21 @@
                 `<option value="Salário">💵 Salário</option><option value="Pix">📱 Pix</option>`;
         }
 
-        // --- SISTEMA DE ASSINATURAS (NOVIDADE) ---
+        // --- SISTEMA DE ASSINATURAS E BOLETOS ---
         function adicionarAssinatura() {
             const nome = document.getElementById('ass-nome').value;
             const valor = parseFloat(document.getElementById('ass-valor').value);
             const dia = parseInt(document.getElementById('ass-dia').value);
-            const cartao = document.getElementById('ass-cartao').value;
+            const tipo = document.getElementById('ass-tipo').value; // cartao ou conta
+            const fonte = document.getElementById('ass-fonte').value; // nu ou mp
 
             if(!nome || isNaN(valor) || isNaN(dia) || dia < 1 || dia > 31) return alert("Preenche todos os campos corretamente.");
 
-            db.assinaturas.push({ id: Date.now(), nome, valor, dia, cartao });
+            db.assinaturas.push({ id: Date.now(), nome, valor, dia, tipo, fonte });
             document.getElementById('ass-nome').value = "";
             document.getElementById('ass-valor').value = "";
-            document.getElementById('ass-dia').value = "";
             save();
-            alert("Assinatura programada!");
+            alert("Despesa Fixa Programada!");
         }
 
         function apagarAssinatura(id) {
@@ -341,25 +377,23 @@
         function processarAssinaturasAutomaticas() {
             const hoje = new Date();
             const diaAtual = hoje.getDate();
-            const mesAtual = hoje.getMonth() + 1;
-            const anoAtual = hoje.getFullYear();
-            const strMes = `${anoAtual}-${mesAtual.toString().padStart(2, '0')}`;
+            const strMes = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
             let processouAlgo = false;
 
             db.assinaturas.forEach(ass => {
                 if (diaAtual >= ass.dia) {
                     const chaveLancamento = `${ass.id}-${strMes}`;
-                    // Se ainda não lançou este mês, lança!
                     if (!db.historicoAssinaturas.includes(chaveLancamento)) {
-                        const dataFixa = `${anoAtual}-${mesAtual.toString().padStart(2, '0')}-${ass.dia.toString().padStart(2, '0')}`;
-                        db[ass.cartao].gastos.push({
-                            id: Date.now() + Math.random(),
-                            data: dataFixa,
-                            desc: ass.nome + " (Automático)",
-                            valor: ass.valor,
-                            cat: "Assinatura",
-                            forma: "Crédito"
-                        });
+                        const dataFixa = `${strMes}-${ass.dia.toString().padStart(2, '0')}`;
+                        
+                        if (ass.tipo === "cartao") {
+                            db[ass.fonte].gastos.push({ id: Date.now() + Math.random(), data: dataFixa, desc: ass.nome + " (Auto)", valor: ass.valor, cat: "Fixa", forma: "Crédito" });
+                        } else {
+                            // Se é Boleto/Conta, subtrai do saldo e lança uma notificação silenciosa (ou abate do saldo visual)
+                            if (ass.fonte === 'nu') db.sNu -= ass.valor;
+                            else db.sMp -= ass.valor;
+                        }
+                        
                         db.historicoAssinaturas.push(chaveLancamento);
                         processouAlgo = true;
                     }
@@ -390,6 +424,13 @@
             document.getElementById('lanc-valor').value = "";
         }
 
+        function alternarPagamentoFatura(faturaID) {
+            const index = db.faturasPagas.indexOf(faturaID);
+            if(index > -1) db.faturasPagas.splice(index, 1); // Desmarcar
+            else db.faturasPagas.push(faturaID); // Marcar como paga
+            save();
+        }
+
         function salvarCard(id) {
             db[id].nome = document.getElementById('e-nome-' + id).value;
             db[id].meta = parseFloat(document.getElementById('e-meta-' + id).value) || 0;
@@ -411,24 +452,78 @@
             save();
         }
 
-        function save() { localStorage.setItem('ecoDB_v17', JSON.stringify(db)); render(); }
+        function save() { localStorage.setItem('ecoDB_v18', JSON.stringify(db)); render(); }
 
         function render() {
-            const gNu = db.nu.gastos.reduce((a,b)=>a+b.valor,0);
-            const gMp = db.mp.gastos.reduce((a,b)=>a+b.valor,0);
-            const gT = gNu + gMp;
+            let fatAbertasGeral = 0;
             const mT = db.nu.meta + db.mp.meta;
             const rT = db.receitas.reduce((a,b)=>a+b.valor,0);
             const guardado = db.invNu + db.invMp;
 
-            document.getElementById('uso-meta-texto').innerText = `R$ ${gT.toFixed(2)} / R$ ${mT.toFixed(2)}`;
-            document.getElementById('meta-bar').style.width = Math.min((gT/mT)*100, 100) + "%";
-            document.getElementById('meta-percentual').innerText = ((gT/mT)*100).toFixed(1) + "% consumido";
+            // Calcular o total de Faturas em Aberto para o Dashboard
+            ['nu','mp'].forEach(c => {
+                db[c].gastos.forEach(g => {
+                    const fID = `${c}-${g.data.substring(0,7)}`;
+                    if(!db.faturasPagas.includes(fID)) fatAbertasGeral += g.valor;
+                });
+            });
+
+            document.getElementById('uso-meta-texto').innerText = `R$ ${fatAbertasGeral.toFixed(2)} / R$ ${mT.toFixed(2)}`;
+            document.getElementById('meta-bar').style.width = Math.min((fatAbertasGeral/mT)*100, 100) + "%";
+            document.getElementById('meta-percentual').innerText = mT > 0 ? ((fatAbertasGeral/mT)*100).toFixed(1) + "% consumido" : "0%";
             document.getElementById('dash-receitas').innerText = "R$ " + rT.toFixed(2);
-            document.getElementById('dash-faturas').innerText = "R$ " + gT.toFixed(2);
-            document.getElementById('dash-saldo').innerText = "R$ " + (rT + db.sNu + db.sMp - gT).toFixed(2);
+            document.getElementById('dash-faturas').innerText = "R$ " + fatAbertasGeral.toFixed(2);
+            document.getElementById('dash-saldo').innerText = "R$ " + (rT + db.sNu + db.sMp - fatAbertasGeral).toFixed(2);
             document.getElementById('dash-guardado').innerText = "R$ " + guardado.toFixed(2);
 
+            // RENDERIZAR ABA FATURAS (Estilo Nummo)
+            const listaFat = document.getElementById('lista-faturas-agrupadas');
+            if(listaFat) {
+                listaFat.innerHTML = "";
+                const agrupFat = {};
+                
+                db[cartaoAtivoFatura].gastos.forEach(g => {
+                    const mes = g.data.substring(0,7);
+                    if(!agrupFat[mes]) agrupFat[mes] = { total: 0, itens: [] };
+                    agrupFat[mes].total += g.valor;
+                    agrupFat[mes].itens.push(g);
+                });
+
+                Object.keys(agrupFat).sort().reverse().forEach(mes => {
+                    const fatID = `${cartaoAtivoFatura}-${mes}`;
+                    const isPaga = db.faturasPagas.includes(fatID);
+                    const classBadge = isPaga ? 'badge-paga' : 'badge-aberta';
+                    const textoBadge = isPaga ? '<i class="fas fa-check"></i> PAGA' : 'EM ABERTO';
+                    
+                    listaFat.innerHTML += `
+                        <div class="fatura-bloco">
+                            <div class="fatura-resumo" style="border-left-color:${db[cartaoAtivoFatura].cor}" onclick="toggleFatura('det-${mes}')">
+                                <div>
+                                    <strong style="font-size:16px;">${mes}</strong>
+                                    <div style="margin-top:4px; font-size:11px; color:#888;">Vence dia ${db[cartaoAtivoFatura].venc}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <b style="font-size:16px; display:block; margin-bottom:5px;">R$ ${agrupFat[mes].total.toFixed(2)}</b>
+                                    <span class="badge-status ${classBadge}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${textoBadge}</span>
+                                </div>
+                            </div>
+                            <div class="fatura-detalhes" id="det-${mes}">
+                                ${agrupFat[mes].itens.map(i => `
+                                    <div class="item-linha">
+                                        <span>${i.data.split('-')[2]} - ${i.desc}</span>
+                                        <b>R$ ${i.valor.toFixed(2)}</b>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>`;
+                });
+                
+                if(Object.keys(agrupFat).length === 0) {
+                    listaFat.innerHTML = `<div style="text-align:center; padding:30px; color:#999;"><i class="fas fa-receipt" style="font-size:40px; margin-bottom:10px;"></i><p>Nenhuma fatura registrada neste cartão.</p></div>`;
+                }
+            }
+
+            // Cards Info Configurações
             ['nu','mp'].forEach(id => {
                 document.getElementById('label-'+id).innerText = db[id].nome;
                 document.getElementById('v-meta-'+id).innerText = "R$ " + db[id].meta.toFixed(2);
@@ -452,7 +547,7 @@
             } else {
                 listaAss.innerHTML = db.assinaturas.map(a => `
                     <div class="item-assinatura">
-                        <span><i class="fas fa-sync-alt" style="color:#009ee3; font-size:10px; margin-right:5px;"></i> <b>${a.nome}</b> (Dia ${a.dia})</span>
+                        <span><i class="fas fa-sync-alt" style="color:#009ee3; font-size:10px; margin-right:5px;"></i> <b>${a.nome}</b> (${a.tipo === 'cartao' ? '💳 Cartão' : '📄 Conta'} - Dia ${a.dia})</span>
                         <div>
                             <b>R$ ${a.valor.toFixed(2)}</b>
                             <button class="btn-del" onclick="apagarAssinatura(${a.id})"><i class="fas fa-trash"></i></button>
@@ -469,13 +564,15 @@
             document.getElementById('inv-nu').value = db.invNu;
             document.getElementById('inv-mp').value = db.invMp;
             ajustarFormas();
-            processarAssinaturasAutomaticas(); // A Mágica Acontece Aqui!
+            processarAssinaturasAutomaticas();
             render();
+            // Iniciar com a cor do Nubank na aba
+            document.getElementById('tab-nu-fat').style.borderBottomColor = db.nu.cor;
         };
 
         function exportarBackup() {
             const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-            const a = document.createElement('a'); a.href = data; a.download = 'backup_v17.json'; a.click();
+            const a = document.createElement('a'); a.href = data; a.download = 'backup_v18.json'; a.click();
         }
         function confirmarReset() { if(confirm("Apagar todos os dados permanentemente?")) { localStorage.clear(); location.reload(); } }
     </script>
