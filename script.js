@@ -1,12 +1,11 @@
-let cartaoAtual = "Nubank";
-let db = JSON.parse(localStorage.getItem('ecoDB_v4')) || {
-    Nubank: { total: 0, meta: 1100, limite: 5000, fechamento: 13, vencimento: 20, lene: 406, gastos: [], cor: '#8a05be' },
-    MercadoPago: { total: 0, meta: 800, limite: 2000, fechamento: 10, vencimento: 17, lene: 0, gastos: [], cor: '#009ee3' },
+let cartaoAtivo = "Nubank";
+let db = JSON.parse(localStorage.getItem('ecoDB_v5')) || {
+    Nubank: { gastos: [], cor: '#8a05be', vencimento: 20 },
+    MercadoPago: { gastos: [], cor: '#009ee3', vencimento: 17 },
     saldos: { contaNu: 0, contaMP: 0 },
-    historico: []
+    faturasPagas: [] // IDs das faturas pagas (Ex: "Nubank-2026-02")
 };
 
-// --- NAVEGAÇÃO ---
 function navegar(aba, elemento) {
     document.querySelectorAll('.aba-conteudo').forEach(a => a.classList.remove('active'));
     document.getElementById(`aba-${aba}`).classList.add('active');
@@ -16,29 +15,112 @@ function navegar(aba, elemento) {
     atualizarUI();
 }
 
-// --- LOGICA FINANCEIRA ---
-function mudarCartao(nome, elemento) {
-    cartaoAtual = nome;
-    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-    elemento.classList.add('active');
-    
-    // Carregar configurações nos inputs
-    const info = db[cartaoAtual];
-    document.getElementById('cfg-meta').value = info.meta;
-    document.getElementById('cfg-limite').value = info.limite;
-    document.getElementById('cfg-fechamento').value = info.fechamento;
-    document.getElementById('cfg-vencimento').value = info.vencimento;
-    
+function mudarCartao(nome) {
+    cartaoAtivo = nome;
+    document.getElementById('tab-nu').classList.toggle('active', nome === 'Nubank');
+    document.getElementById('tab-mp').classList.toggle('active', nome === 'MercadoPago');
     atualizarUI();
 }
 
-function salvarConfigCartao() {
-    db[cartaoAtual].meta = parseFloat(document.getElementById('cfg-meta').value);
-    db[cartaoAtual].limite = parseFloat(document.getElementById('cfg-limite').value);
-    db[cartaoAtual].fechamento = parseInt(document.getElementById('cfg-fechamento').value);
-    db[cartaoAtual].vencimento = parseInt(document.getElementById('cfg-vencimento').value);
+function adicionarGasto() {
+    const data = document.getElementById('lanc-data').value;
+    const cartao = document.getElementById('lanc-cartao').value;
+    const desc = document.getElementById('lanc-desc').value;
+    const valor = parseFloat(document.getElementById('lanc-valor').value);
+    const cat = document.getElementById('lanc-cat').value;
+
+    if(!data || !desc || isNaN(valor)) return alert("Preencha tudo!");
+
+    db[cartao].gastos.push({ id: Date.now(), data, desc, valor, cat });
+    salvar();
+    
+    document.getElementById('lanc-desc').value = "";
+    document.getElementById('lanc-valor').value = "";
+}
+
+function toggleFatura(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('show');
+}
+
+function alternarPagamentoFatura(faturaID) {
+    const index = db.faturasPagas.indexOf(faturaID);
+    if(index > -1) db.faturasPagas.splice(index, 1);
+    else db.faturasPagas.push(faturaID);
     salvar();
 }
+
+function salvar() {
+    localStorage.setItem('ecoDB_v5', JSON.stringify(db));
+    atualizarUI();
+}
+
+function atualizarUI() {
+    const totalContas = db.saldos.contaNu + db.saldos.contaMP;
+    let totalFaturasAbertas = 0;
+
+    // Agrupar Gastos do Cartão Ativo por Mês
+    const gastosAgrupados = {};
+    db[cartaoAtivo].gastos.forEach(g => {
+        const dataObj = new Date(g.data);
+        const mesAno = `${dataObj.getFullYear()}-${(dataObj.getMonth() + 1).toString().padStart(2, '0')}`;
+        if(!gastosAgrupados[mesAno]) gastosAgrupados[mesAno] = { total: 0, itens: [] };
+        gastosAgrupados[mesAno].total += g.valor;
+        gastosAgrupados[mesAno].itens.push(g);
+    });
+
+    // Renderizar Faturas
+    const listaFaturas = document.getElementById('lista-faturas-agrupadas');
+    listaFaturas.innerHTML = "";
+
+    Object.keys(gastosAgrupados).sort().reverse().forEach(mes => {
+        const faturaID = `${cartaoAtivo}-${mes}`;
+        const isPaga = db.faturasPagas.includes(faturaID);
+        const dados = gastosAgrupados[mes];
+        
+        if(!isPaga) totalFaturasAbertas += dados.total;
+
+        listaFaturas.innerHTML += `
+            <div class="fatura-bloco">
+                <div class="fatura-resumo" style="border-left-color: ${db[cartaoAtivo].cor}" onclick="toggleFatura('det-${mes}')">
+                    <div class="fatura-topo">
+                        <strong>${mes}</strong>
+                        <span>R$ ${dados.total.toFixed(2)}</span>
+                    </div>
+                    <div class="fatura-topo" style="margin-top:5px; font-size:11px; color:#888;">
+                        <span>Vencimento: dia ${db[cartaoAtivo].vencimento}</span>
+                        <span class="${isPaga ? 'status-pago' : 'status-aberto'}" onclick="event.stopPropagation(); alternarPagamentoFatura('${faturaID}')">
+                            ${isPaga ? 'PAGA' : 'EM ABERTO'}
+                        </span>
+                    </div>
+                </div>
+                <div class="fatura-detalhes" id="det-${mes}">
+                    ${dados.itens.map(i => `
+                        <div class="item-lancamento">
+                            <span>${i.data.split('-')[2]} - ${i.desc}</span>
+                            <b>R$ ${i.valor.toFixed(2)}</b>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    // Dashboard
+    document.getElementById('dash-contas').innerText = `R$ ${totalContas.toFixed(2)}`;
+    document.getElementById('dash-faturas').innerText = `R$ ${totalFaturasAbertas.toFixed(2)}`;
+    document.getElementById('saldo-liquido').innerText = `R$ ${(totalContas - totalFaturasAbertas).toFixed(2)}`;
+}
+
+// Inicialização
+window.onload = () => {
+    document.getElementById('lanc-data').valueAsDate = new Date();
+    document.getElementById('saldo-nu').value = db.saldos.contaNu;
+    document.getElementById('saldo-mp').value = db.saldos.contaMP;
+    document.getElementById('cfg-venc-nu').value = db.Nubank.vencimento;
+    document.getElementById('cfg-venc-mp').value = db.MercadoPago.vencimento;
+    atualizarUI();
+};
 
 function salvarSaldos() {
     db.saldos.contaNu = parseFloat(document.getElementById('saldo-nu').value) || 0;
@@ -46,88 +128,10 @@ function salvarSaldos() {
     salvar();
 }
 
-function adicionarGasto() {
-    const desc = document.getElementById('lanc-desc').value;
-    const valor = parseFloat(document.getElementById('lanc-valor').value);
-    const data = document.getElementById('lanc-data').value;
-    const cat = document.getElementById('lanc-cat').value;
-
-    if(!desc || isNaN(valor) || !data) return alert("Preencha todos os campos!");
-
-    db[cartaoAtual].total += valor;
-    db[cartaoAtual].gastos.unshift({ id: Date.now(), d: desc, v: valor, c: cat, data: data });
-    
+function salvarVencimentos() {
+    db.Nubank.vencimento = parseInt(document.getElementById('cfg-venc-nu').value);
+    db.MercadoPago.vencimento = parseInt(document.getElementById('cfg-venc-mp').value);
     salvar();
-    document.getElementById('lanc-desc').value = "";
-    document.getElementById('lanc-valor').value = "";
 }
 
-function excluirGasto(id) {
-    const index = db[cartaoAtual].gastos.findIndex(g => g.id === id);
-    if(index > -1) {
-        db[cartaoAtual].total -= db[cartaoAtual].gastos[index].v;
-        db[cartaoAtual].gastos.splice(index, 1);
-        salvar();
-    }
-}
-
-function editarGasto(id) {
-    const gasto = db[cartaoAtual].gastos.find(g => g.id === id);
-    const novoDesc = prompt("Nova descrição:", gasto.d);
-    const novoValor = prompt("Novo valor:", gasto.v);
-    if(novoDesc && novoValor) {
-        db[cartaoAtual].total = (db[cartaoAtual].total - gasto.v) + parseFloat(novoValor);
-        gasto.d = novoDesc;
-        gasto.v = parseFloat(novoValor);
-        salvar();
-    }
-}
-
-function salvar() {
-    localStorage.setItem('ecoDB_v4', JSON.stringify(db));
-    atualizarUI();
-}
-
-// --- INTERFACE ---
-function atualizarUI() {
-    const info = db[cartaoAtual];
-    const totalContas = db.saldos.contaNu + db.saldos.contaMP;
-    const totalFaturas = db.Nubank.total + db.MercadoPago.total;
-    const liquido = totalContas - totalFaturas;
-
-    // Dash
-    document.getElementById('saldo-liquido').innerText = `R$ ${liquido.toFixed(2)}`;
-    document.getElementById('dash-contas').innerText = `R$ ${totalContas.toFixed(2)}`;
-    document.getElementById('dash-faturas').innerText = `R$ ${totalFaturas.toFixed(2)}`;
-    
-    const percScore = (totalFaturas / (db.Nubank.meta + db.MercadoPago.meta)) * 100;
-    document.getElementById('score-bar').style.width = Math.min(percScore, 100) + "%";
-    document.getElementById('score-valor').innerText = `Uso da Meta: ${percScore.toFixed(1)}%`;
-
-    // Cartão Selecionado
-    document.getElementById('fatura-valor-oficial').innerText = `R$ ${info.total.toFixed(2)}`;
-    document.getElementById('fatura-meta-ajustada').innerText = `Meta Real: R$ ${(info.total - info.lene).toFixed(2)}`;
-    document.getElementById('info-limite-disponivel').innerText = `Limite Disponível: R$ ${(info.limite - info.total).toFixed(2)}`;
-
-    // Listas
-    const lista = document.getElementById('lista-lancamentos-fatura');
-    lista.innerHTML = info.gastos.map(g => `
-        <div class="item-gasto">
-            <span onclick="editarGasto(${g.id})"><strong>${g.d}</strong><br><small>${g.data} • ${g.c}</small></span>
-            <div>
-                <b>R$ ${g.v.toFixed(2)}</b>
-                <i class="fas fa-trash btn-del" onclick="excluirGasto(${g.id})"></i>
-            </div>
-        </div>
-    `).join('');
-
-    // Preencher campos de saldo
-    document.getElementById('saldo-nu').value = db.saldos.contaNu;
-    document.getElementById('saldo-mp').value = db.saldos.contaMP;
-}
-
-window.onload = () => {
-    // Definir data de hoje no input de lançamento
-    document.getElementById('lanc-data').valueAsDate = new Date();
-    atualizarUI();
-};
+function confirmarReset() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
