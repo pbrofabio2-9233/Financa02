@@ -3,84 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v18.0</title>
+    <title>EcoFinance Pro v19.0</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        :root {
-            --nubank: #8a05be; --mercadopago: #009ee3; --fundo: #f0f2f5;
-            --texto: #2d3436; --sucesso: #27ae60; --perigo: #e74c3c;
-        }
-
-        body { font-family: -apple-system, sans-serif; background: var(--fundo); margin: 0; padding-bottom: 80px; color: var(--texto); overflow-x: hidden; }
-
-        /* HEADER */
-        .header { background: #1e272e; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; height: 60px; box-sizing: border-box; }
-        
-        /* SEÇÕES */
-        .secao-app { display: none; width: 100%; }
-        .secao-app.active { display: block; animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .container { padding: 15px; }
-        .card { background: white; border-radius: 15px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-
-        /* DASHBOARD */
-        .card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 22px; border-radius: 20px; text-align: center; }
-        .grid-resumo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .mini-card { background: white; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .mini-card small { font-size: 11px; color: #888; }
-        .mini-card p { margin: 5px 0 0; font-weight: bold; font-size: 14px; }
-
-        /* ACCORDION (Configurações) */
-        .accordion-item { background: white; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; overflow: hidden; }
-        .accordion-header { padding: 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff; font-weight: bold; color: var(--texto); }
-        .accordion-content { display: none; padding: 15px; border-top: 1px solid #f0f0f0; background: #fafafa; }
-        .accordion-content.active { display: block; }
-
-        .card-gestao { padding: 15px; background: #fff; border-radius: 12px; margin-bottom:15px; border-left: 8px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .info-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; margin-top: 10px; }
-        .info-col { display: flex; flex-direction: column; color: #777; }
-        .info-col b { color: var(--texto); font-size: 15px; margin-top: 2px; }
-        
-        .btn-lapis { background: #f0f2f5; border: none; width: 32px; height: 32px; border-radius: 50%; color: var(--nubank); cursor: pointer; }
-        .painel-edit { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
-        .painel-edit.active { display: block; }
-
-        /* INPUTS */
-        .grid-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
-        label { font-size: 11px; color: #999; margin-bottom: 4px; display: block; }
-        .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; margin-top: 10px; cursor: pointer;}
-        .btn-del { color: var(--perigo); background: none; border: none; cursor: pointer; padding: 5px; }
-
-        /* ABA FATURAS (Estilo Nummo) */
-        .abas-superiores { display: flex; background: #1e272e; }
-        .tab-btn { flex: 1; background: none; border: none; padding: 15px; color: #7f8c8d; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; }
-        .tab-btn.active { color: white; border-bottom-color: var(--nubank); }
-
-        .fatura-bloco { background: white; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .fatura-resumo { padding: 18px; cursor: pointer; border-left: 6px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
-        .fatura-detalhes { display: none; padding: 10px 18px; background: #fafafa; border-top: 1px solid #eee; }
-        .fatura-detalhes.show { display: block; }
-        
-        .badge-status { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold; cursor: pointer; }
-        .badge-aberta { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        .badge-paga { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-
-        .item-linha { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 13px; }
-
-        /* LISTA ASSINATURAS */
-        .item-assinatura { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 13px; }
-
-        /* MENU INFERIOR */
-        .menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #eee; z-index: 2000; height: 65px; }
-        .menu-item { flex: 1; text-align: center; color: #bdc3c7; font-size: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
-        .menu-item.active { color: var(--nubank); font-weight: bold; }
-        .menu-item i { font-size: 20px; margin-bottom: 3px; }
-
-        .progress-bg { background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
-        .progress-fill { height: 100%; background: white; width: 0%; transition: 0.6s; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -98,191 +23,127 @@
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
                     <div class="card-resumo">
-                        <small>Uso da Meta Mensal (Cartões)</small>
+                        <small>Uso da Meta Mensal (Apenas Gastos Pessoais)</small>
                         <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
                         <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
                         <small id="meta-percentual">0% consumido</small>
                     </div>
                     
-                    <div class="grid-resumo">
+                    <div class="grid-resumo-6">
                         <div class="mini-card">
-                            <small>Receitas</small>
-                            <p id="dash-receitas" style="color: var(--sucesso);">R$ 0,00</p>
+                            <small>Receitas (Mês)</small>
+                            <p id="dash-receitas" class="txt-sucesso">R$ 0,00</p>
                         </div>
                         <div class="mini-card">
-                            <small>Faturas Abertas</small>
-                            <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
+                            <small>Despesas (Mês)</small>
+                            <p id="dash-despesas" class="txt-perigo">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <small>Fatura Aberta</small>
+                            <p id="dash-fat-aberta" class="txt-alerta">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <small>Fatura Fechada</small>
+                            <p id="dash-fat-fechada" class="txt-perigo">R$ 0,00</p>
                         </div>
                         <div class="mini-card">
                             <small>Saldo Livre</small>
-                            <p id="dash-saldo" style="color: var(--texto);">R$ 0,00</p>
+                            <p id="dash-saldo-livre" class="txt-texto">R$ 0,00</p>
                         </div>
                         <div class="mini-card">
-                            <small>Guardado / Investido</small>
-                            <p id="dash-guardado" style="color: var(--mercadopago);">R$ 0,00</p>
+                            <small>Investido</small>
+                            <p id="dash-investido" class="txt-azul">R$ 0,00</p>
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card card-lancamento">
                         <h3><i class="fas fa-bolt"></i> Lançamento Rápido</h3>
+                        
                         <div class="grid-inputs">
                             <input type="date" id="lanc-data">
-                            <select id="lanc-tipo" onchange="ajustarFormas()">
+                            <select id="lanc-tipo" onchange="atualizarRegrasLancamento()">
                                 <option value="despesa">🔴 Despesa</option>
                                 <option value="receita">🟢 Receita</option>
+                                <option value="emp_cartao">💳 Emprestei Cartão</option>
+                                <option value="emp_concedido">🤝 Emprestei Dinheiro</option>
+                                <option value="emp_pessoal">🏦 Tomei Emprestado</option>
+                                <option value="compensacao">✅ Recebi Pag. Empréstimo</option>
                             </select>
                         </div>
+
                         <div class="grid-inputs">
-                            <select id="lanc-cartao">
-                                <option value="nu">Nubank</option>
-                                <option value="mp">Mercado Pago</option>
-                            </select>
-                            <select id="lanc-forma"></select>
+                            <select id="lanc-conta" onchange="atualizarRegrasLancamento()">
+                                </select>
+                            <select id="lanc-forma">
+                                </select>
                         </div>
-                        <input type="text" id="lanc-desc" placeholder="Descrição (ex: Uber)">
+
+                        <input type="text" id="lanc-desc" placeholder="Descrição da movimentação">
+                        
                         <div class="grid-inputs" style="margin-top:10px;">
                             <input type="number" id="lanc-valor" placeholder="Valor R$">
                             <select id="lanc-cat">
                                 <option value="Alimentação">🛒 Alimentação</option>
                                 <option value="Transporte">🚗 Transporte</option>
-                                <option value="Lazer">🍿 Lazer</option>
+                                <option value="Moradia">🏠 Moradia</option>
                                 <option value="Salário">💰 Salário</option>
+                                <option value="Terceiros">👥 Terceiros</option>
+                                <option value="Outros">⚙️ Outros</option>
                             </select>
                         </div>
-                        <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
+                        <button class="btn-main" onclick="adicionarLancamento()">SALVAR</button>
                     </div>
                 </div>
             </section>
 
             <section id="aba-faturas" class="secao-app">
-                <div class="abas-superiores">
-                    <button class="tab-btn active" id="tab-nu-fat" onclick="mudarCartaoFatura('nu')">Nubank</button>
-                    <button class="tab-btn" id="tab-mp-fat" onclick="mudarCartaoFatura('mp')">Mercado Pago</button>
-                </div>
+                <div class="abas-superiores" id="abas-cartoes-fatura">
+                    </div>
                 <div class="container" id="lista-faturas-agrupadas">
                     </div>
             </section>
 
             <section id="aba-contas" class="secao-app">
-                <div class="container">
-                    <div class="card">
-                        <h3><i class="fas fa-wallet"></i> Saldo à Ordem (Livre)</h3>
-                        <div class="grid-inputs">
-                            <div><label>Nubank</label><input type="number" id="s-nu" onchange="saveS()"></div>
-                            <div><label>M. Pago</label><input type="number" id="s-mp" onchange="saveS()"></div>
-                        </div>
+                <div class="container" id="lista-contas-saldos">
                     </div>
-
-                    <div class="card">
-                        <h3><i class="fas fa-piggy-bank"></i> Caixinhas / Investimentos</h3>
-                        <div class="grid-inputs">
-                            <div><label>Nubank</label><input type="number" id="inv-nu" onchange="saveS()"></div>
-                            <div><label>M. Pago</label><input type="number" id="inv-mp" onchange="saveS()"></div>
-                        </div>
-                    </div>
-                </div>
             </section>
 
             <section id="aba-config" class="secao-app">
                 <div class="container">
                     
                     <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion('content-assinaturas')">
-                            <span><i class="fas fa-sync-alt"></i> Assinaturas & Fixas</span>
+                        <div class="accordion-header" onclick="toggleAccordion('content-contas-cad')">
+                            <span><i class="fas fa-plus-circle"></i> Gerenciar Contas e Cartões</span>
                             <i class="fas fa-chevron-down"></i>
                         </div>
-                        <div id="content-assinaturas" class="accordion-content">
-                            <p style="font-size:11px; color:#888; margin-bottom:10px;">Programe faturas de cartão, boletos ou débitos em conta.</p>
+                        <div id="content-contas-cad" class="accordion-content">
+                            <p style="font-size:11px; color:#888;">Crie novas contas informando o tipo correto.</p>
                             <div class="grid-inputs">
-                                <input type="text" id="ass-nome" placeholder="Nome (Ex: Netflix, Conta Luz)">
-                                <input type="number" id="ass-valor" placeholder="Valor R$">
+                                <input type="text" id="nova-conta-nome" placeholder="Nome (Ex: Nubank, C6)">
+                                <select id="nova-conta-tipo" onchange="toggleCamposCartao()">
+                                    <option value="movimentacao">Conta Movimentação (Corrente)</option>
+                                    <option value="investimento">Conta Investimento (Poupança)</option>
+                                    <option value="cartao">Cartão de Crédito</option>
+                                </select>
                             </div>
-                            <div class="grid-inputs">
-                                <div>
-                                    <label>Tipo de Débito</label>
-                                    <select id="ass-tipo">
-                                        <option value="cartao">💳 Cartão de Crédito</option>
-                                        <option value="conta">📄 Boleto / Conta</option>
-                                    </select>
+                            <div id="campos-cartao-add" style="display:none;">
+                                <div class="grid-inputs">
+                                    <input type="number" id="nova-conta-limite" placeholder="Limite Total">
+                                    <input type="number" id="nova-conta-meta" placeholder="Meta de Gasto">
                                 </div>
-                                <div>
-                                    <label>Qual Cartão/Conta?</label>
-                                    <select id="ass-fonte">
-                                        <option value="nu">Nubank</option>
-                                        <option value="mp">Mercado Pago</option>
-                                    </select>
+                                <div class="grid-inputs">
+                                    <input type="number" id="nova-conta-fecha" placeholder="Dia Fechamento">
+                                    <input type="number" id="nova-conta-venc" placeholder="Dia Vencimento">
                                 </div>
                             </div>
                             <div class="grid-inputs">
-                                <div>
-                                    <label>Dia do Vencimento</label>
-                                    <input type="number" id="ass-dia" placeholder="Dia (1 a 31)" min="1" max="31">
-                                </div>
+                                <label style="width:100%">Cor: <input type="color" id="nova-conta-cor" style="height:40px; padding:0;"></label>
                             </div>
-                            <button class="btn-main" onclick="adicionarAssinatura()" style="background:var(--mercadopago);">PROGRAMAR DESPESA</button>
+                            <button class="btn-main" onclick="criarConta()" style="background:var(--sucesso);">CRIAR CONTA</button>
                             
-                            <div id="lista-assinaturas" style="margin-top: 20px;"></div>
-                        </div>
-                    </div>
-
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion('content-cartoes')">
-                            <span><i class="fas fa-credit-card"></i> Ajuste de Cartão</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="content-cartoes" class="accordion-content">
-                            <div id="card-nu-box" class="card-gestao" style="border-left-color: var(--nubank);">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <strong id="label-nu" style="font-size:16px;">Nubank</strong>
-                                    <button class="btn-lapis" onclick="toggleEdit('nu')"><i class="fas fa-pencil-alt"></i></button>
-                                </div>
-                                <div class="info-corpo">
-                                    <div class="info-col"><span>Meta:</span><b id="v-meta-nu">R$ 0</b></div>
-                                    <div class="info-col"><span>Limite:</span><b id="v-limite-nu">R$ 0</b></div>
-                                    <div class="info-col"><span>Fecha:</span><b id="v-fecha-nu">dia 0</b></div>
-                                    <div class="info-col"><span>Vence:</span><b id="v-venc-nu">dia 0</b></div>
-                                </div>
-                                <div id="edit-nu" class="painel-edit">
-                                    <label>Nome do Cartão</label><input type="text" id="e-nome-nu">
-                                    <div class="grid-inputs" style="margin-top:8px;">
-                                        <div><label>Limite Total</label><input type="number" id="e-limite-nu"></div>
-                                        <div><label>Meta</label><input type="number" id="e-meta-nu"></div>
-                                    </div>
-                                    <div class="grid-inputs">
-                                        <div><label>Dia Fechamento</label><input type="number" id="e-fecha-nu"></div>
-                                        <div><label>Dia Vencimento</label><input type="number" id="e-venc-nu"></div>
-                                    </div>
-                                    <label>Cor</label>
-                                    <input type="color" id="e-cor-nu" style="height:44px; padding:0; border:none; border-radius:8px;">
-                                    <button class="btn-main" onclick="salvarCard('nu')" style="background:var(--sucesso);">APLICAR</button>
-                                </div>
-                            </div>
-                            <div id="card-mp-box" class="card-gestao" style="border-left-color: var(--mercadopago);">
-                                <div style="display:flex; justify-content:space-between; align-items:center;">
-                                    <strong id="label-mp" style="font-size:16px;">Mercado Pago</strong>
-                                    <button class="btn-lapis" onclick="toggleEdit('mp')"><i class="fas fa-pencil-alt"></i></button>
-                                </div>
-                                <div class="info-corpo">
-                                    <div class="info-col"><span>Meta:</span><b id="v-meta-mp">R$ 0</b></div>
-                                    <div class="info-col"><span>Limite:</span><b id="v-limite-mp">R$ 0</b></div>
-                                    <div class="info-col"><span>Fecha:</span><b id="v-fecha-mp">dia 0</b></div>
-                                    <div class="info-col"><span>Vence:</span><b id="v-venc-mp">dia 0</b></div>
-                                </div>
-                                <div id="edit-mp" class="painel-edit">
-                                    <label>Nome do Cartão</label><input type="text" id="e-nome-mp">
-                                    <div class="grid-inputs" style="margin-top:8px;">
-                                        <div><label>Limite Total</label><input type="number" id="e-limite-mp"></div>
-                                        <div><label>Meta</label><input type="number" id="e-meta-mp"></div>
-                                    </div>
-                                    <div class="grid-inputs">
-                                        <div><label>Dia Fechamento</label><input type="number" id="e-fecha-mp"></div>
-                                        <div><label>Dia Vencimento</label><input type="number" id="e-venc-mp"></div>
-                                    </div>
-                                    <label>Cor</label>
-                                    <input type="color" id="e-cor-mp" style="height:44px; padding:0; border:none; border-radius:8px;">
-                                    <button class="btn-main" onclick="salvarCard('mp')" style="background:var(--sucesso);">APLICAR</button>
-                                </div>
-                            </div>
+                            <hr style="margin:20px 0; border:1px solid #eee;">
+                            <h4>Contas Cadastradas</h4>
+                            <div id="lista-contas-edit"></div>
                         </div>
                     </div>
 
@@ -302,279 +163,6 @@
         </nav>
     </div>
 
-    <script>
-        let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v17')) || {};
-        let db = JSON.parse(localStorage.getItem('ecoDB_v18')) || {
-            nu: dbAntigo.nu || { nome: "Nubank", meta: 1100, limite: 5000, fecha: 13, venc: 20, cor: '#8a05be', gastos: [] },
-            mp: dbAntigo.mp || { nome: "Mercado Pago", meta: 800, limite: 2000, fecha: 10, venc: 17, cor: '#009ee3', gastos: [] },
-            sNu: dbAntigo.sNu || 0, sMp: dbAntigo.sMp || 0, receitas: dbAntigo.receitas || [],
-            invNu: dbAntigo.invNu || 0, invMp: dbAntigo.invMp || 0,
-            assinaturas: dbAntigo.assinaturas || [], historicoAssinaturas: dbAntigo.historicoAssinaturas || [],
-            faturasPagas: dbAntigo.faturasPagas || [] // Array crucial para a aba Faturas
-        };
-
-        let cartaoAtivoFatura = 'nu';
-
-        function navegar(id, el) {
-            document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
-            document.getElementById('aba-' + id).classList.add('active');
-            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-            el.classList.add('active');
-            document.getElementById('titulo-aba').innerText = el.querySelector('span').innerText;
-            render();
-        }
-
-        function mudarCartaoFatura(cartaoId) {
-            cartaoAtivoFatura = cartaoId;
-            document.getElementById('tab-nu-fat').classList.remove('active');
-            document.getElementById('tab-mp-fat').classList.remove('active');
-            document.getElementById('tab-' + cartaoId + '-fat').classList.add('active');
-            // Atualiza a cor da aba dinamicamente
-            document.getElementById('tab-' + cartaoId + '-fat').style.borderBottomColor = db[cartaoId].cor;
-            render();
-        }
-
-        function toggleAccordion(id) {
-            document.getElementById(id).classList.toggle('active');
-            const icon = event.currentTarget.querySelector('.fa-chevron-down');
-            if(icon) icon.style.transform = document.getElementById(id).classList.contains('active') ? 'rotate(180deg)' : 'rotate(0deg)';
-        }
-
-        function toggleEdit(id) { document.getElementById('edit-' + id).classList.toggle('active'); }
-
-        function toggleFatura(id) { document.getElementById(id).classList.toggle('show'); }
-
-        function ajustarFormas() {
-            const t = document.getElementById('lanc-tipo').value;
-            const f = document.getElementById('lanc-forma');
-            f.innerHTML = t === "despesa" ? 
-                `<option value="Crédito">💳 Crédito</option><option value="Débito">🏧 Débito</option><option value="Pix">📱 Pix</option>` :
-                `<option value="Salário">💵 Salário</option><option value="Pix">📱 Pix</option>`;
-        }
-
-        // --- SISTEMA DE ASSINATURAS E BOLETOS ---
-        function adicionarAssinatura() {
-            const nome = document.getElementById('ass-nome').value;
-            const valor = parseFloat(document.getElementById('ass-valor').value);
-            const dia = parseInt(document.getElementById('ass-dia').value);
-            const tipo = document.getElementById('ass-tipo').value; // cartao ou conta
-            const fonte = document.getElementById('ass-fonte').value; // nu ou mp
-
-            if(!nome || isNaN(valor) || isNaN(dia) || dia < 1 || dia > 31) return alert("Preenche todos os campos corretamente.");
-
-            db.assinaturas.push({ id: Date.now(), nome, valor, dia, tipo, fonte });
-            document.getElementById('ass-nome').value = "";
-            document.getElementById('ass-valor').value = "";
-            save();
-            alert("Despesa Fixa Programada!");
-        }
-
-        function apagarAssinatura(id) {
-            db.assinaturas = db.assinaturas.filter(a => a.id !== id);
-            save();
-        }
-
-        function processarAssinaturasAutomaticas() {
-            const hoje = new Date();
-            const diaAtual = hoje.getDate();
-            const strMes = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
-            let processouAlgo = false;
-
-            db.assinaturas.forEach(ass => {
-                if (diaAtual >= ass.dia) {
-                    const chaveLancamento = `${ass.id}-${strMes}`;
-                    if (!db.historicoAssinaturas.includes(chaveLancamento)) {
-                        const dataFixa = `${strMes}-${ass.dia.toString().padStart(2, '0')}`;
-                        
-                        if (ass.tipo === "cartao") {
-                            db[ass.fonte].gastos.push({ id: Date.now() + Math.random(), data: dataFixa, desc: ass.nome + " (Auto)", valor: ass.valor, cat: "Fixa", forma: "Crédito" });
-                        } else {
-                            // Se é Boleto/Conta, subtrai do saldo e lança uma notificação silenciosa (ou abate do saldo visual)
-                            if (ass.fonte === 'nu') db.sNu -= ass.valor;
-                            else db.sMp -= ass.valor;
-                        }
-                        
-                        db.historicoAssinaturas.push(chaveLancamento);
-                        processouAlgo = true;
-                    }
-                }
-            });
-            if(processouAlgo) save();
-        }
-
-        // --- GESTÃO TRADICIONAL ---
-        function adicionarGasto() {
-            const data = document.getElementById('lanc-data').value;
-            const valor = parseFloat(document.getElementById('lanc-valor').value);
-            const tipo = document.getElementById('lanc-tipo').value;
-            const desc = document.getElementById('lanc-desc').value;
-            const forma = document.getElementById('lanc-forma').value;
-            const cat = document.getElementById('lanc-cat').value;
-
-            if(!desc || isNaN(valor) || !data) return alert("Preenche todos os dados.");
-
-            if(tipo === "receita") db.receitas.push({ id: Date.now(), data, desc, valor, forma });
-            else {
-                const c = document.getElementById('lanc-cartao').value;
-                db[c].gastos.push({ id: Date.now(), data, desc, valor, forma, cat });
-            }
-            save();
-            alert("Lançamento Registado!");
-            document.getElementById('lanc-desc').value = "";
-            document.getElementById('lanc-valor').value = "";
-        }
-
-        function alternarPagamentoFatura(faturaID) {
-            const index = db.faturasPagas.indexOf(faturaID);
-            if(index > -1) db.faturasPagas.splice(index, 1); // Desmarcar
-            else db.faturasPagas.push(faturaID); // Marcar como paga
-            save();
-        }
-
-        function salvarCard(id) {
-            db[id].nome = document.getElementById('e-nome-' + id).value;
-            db[id].meta = parseFloat(document.getElementById('e-meta-' + id).value) || 0;
-            db[id].limite = parseFloat(document.getElementById('e-limite-' + id).value) || 0;
-            db[id].fecha = parseInt(document.getElementById('e-fecha-' + id).value) || 0;
-            db[id].venc = parseInt(document.getElementById('e-venc-' + id).value) || 0;
-            db[id].cor = document.getElementById('e-cor-' + id).value;
-            
-            document.documentElement.style.setProperty('--' + (id === 'nu' ? 'nubank' : 'mercadopago'), db[id].cor);
-            toggleEdit(id);
-            save();
-        }
-
-        function saveS() {
-            db.sNu = parseFloat(document.getElementById('s-nu').value) || 0;
-            db.sMp = parseFloat(document.getElementById('s-mp').value) || 0;
-            db.invNu = parseFloat(document.getElementById('inv-nu').value) || 0;
-            db.invMp = parseFloat(document.getElementById('inv-mp').value) || 0;
-            save();
-        }
-
-        function save() { localStorage.setItem('ecoDB_v18', JSON.stringify(db)); render(); }
-
-        function render() {
-            let fatAbertasGeral = 0;
-            const mT = db.nu.meta + db.mp.meta;
-            const rT = db.receitas.reduce((a,b)=>a+b.valor,0);
-            const guardado = db.invNu + db.invMp;
-
-            // Calcular o total de Faturas em Aberto para o Dashboard
-            ['nu','mp'].forEach(c => {
-                db[c].gastos.forEach(g => {
-                    const fID = `${c}-${g.data.substring(0,7)}`;
-                    if(!db.faturasPagas.includes(fID)) fatAbertasGeral += g.valor;
-                });
-            });
-
-            document.getElementById('uso-meta-texto').innerText = `R$ ${fatAbertasGeral.toFixed(2)} / R$ ${mT.toFixed(2)}`;
-            document.getElementById('meta-bar').style.width = Math.min((fatAbertasGeral/mT)*100, 100) + "%";
-            document.getElementById('meta-percentual').innerText = mT > 0 ? ((fatAbertasGeral/mT)*100).toFixed(1) + "% consumido" : "0%";
-            document.getElementById('dash-receitas').innerText = "R$ " + rT.toFixed(2);
-            document.getElementById('dash-faturas').innerText = "R$ " + fatAbertasGeral.toFixed(2);
-            document.getElementById('dash-saldo').innerText = "R$ " + (rT + db.sNu + db.sMp - fatAbertasGeral).toFixed(2);
-            document.getElementById('dash-guardado').innerText = "R$ " + guardado.toFixed(2);
-
-            // RENDERIZAR ABA FATURAS (Estilo Nummo)
-            const listaFat = document.getElementById('lista-faturas-agrupadas');
-            if(listaFat) {
-                listaFat.innerHTML = "";
-                const agrupFat = {};
-                
-                db[cartaoAtivoFatura].gastos.forEach(g => {
-                    const mes = g.data.substring(0,7);
-                    if(!agrupFat[mes]) agrupFat[mes] = { total: 0, itens: [] };
-                    agrupFat[mes].total += g.valor;
-                    agrupFat[mes].itens.push(g);
-                });
-
-                Object.keys(agrupFat).sort().reverse().forEach(mes => {
-                    const fatID = `${cartaoAtivoFatura}-${mes}`;
-                    const isPaga = db.faturasPagas.includes(fatID);
-                    const classBadge = isPaga ? 'badge-paga' : 'badge-aberta';
-                    const textoBadge = isPaga ? '<i class="fas fa-check"></i> PAGA' : 'EM ABERTO';
-                    
-                    listaFat.innerHTML += `
-                        <div class="fatura-bloco">
-                            <div class="fatura-resumo" style="border-left-color:${db[cartaoAtivoFatura].cor}" onclick="toggleFatura('det-${mes}')">
-                                <div>
-                                    <strong style="font-size:16px;">${mes}</strong>
-                                    <div style="margin-top:4px; font-size:11px; color:#888;">Vence dia ${db[cartaoAtivoFatura].venc}</div>
-                                </div>
-                                <div style="text-align:right;">
-                                    <b style="font-size:16px; display:block; margin-bottom:5px;">R$ ${agrupFat[mes].total.toFixed(2)}</b>
-                                    <span class="badge-status ${classBadge}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${textoBadge}</span>
-                                </div>
-                            </div>
-                            <div class="fatura-detalhes" id="det-${mes}">
-                                ${agrupFat[mes].itens.map(i => `
-                                    <div class="item-linha">
-                                        <span>${i.data.split('-')[2]} - ${i.desc}</span>
-                                        <b>R$ ${i.valor.toFixed(2)}</b>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>`;
-                });
-                
-                if(Object.keys(agrupFat).length === 0) {
-                    listaFat.innerHTML = `<div style="text-align:center; padding:30px; color:#999;"><i class="fas fa-receipt" style="font-size:40px; margin-bottom:10px;"></i><p>Nenhuma fatura registrada neste cartão.</p></div>`;
-                }
-            }
-
-            // Cards Info Configurações
-            ['nu','mp'].forEach(id => {
-                document.getElementById('label-'+id).innerText = db[id].nome;
-                document.getElementById('v-meta-'+id).innerText = "R$ " + db[id].meta.toFixed(2);
-                document.getElementById('v-limite-'+id).innerText = "R$ " + (db[id].limite ? db[id].limite.toFixed(2) : "0.00");
-                document.getElementById('v-fecha-'+id).innerText = "dia " + (db[id].fecha || 0);
-                document.getElementById('v-venc-'+id).innerText = "dia " + (db[id].venc || 0);
-                document.getElementById('card-'+id+'-box').style.borderLeftColor = db[id].cor;
-                
-                document.getElementById('e-nome-'+id).value = db[id].nome;
-                document.getElementById('e-meta-'+id).value = db[id].meta;
-                document.getElementById('e-limite-'+id).value = db[id].limite || 0;
-                document.getElementById('e-fecha-'+id).value = db[id].fecha || 0;
-                document.getElementById('e-venc-'+id).value = db[id].venc || 0;
-                document.getElementById('e-cor-'+id).value = db[id].cor;
-            });
-
-            // Renderizar Assinaturas
-            const listaAss = document.getElementById('lista-assinaturas');
-            if(db.assinaturas.length === 0) {
-                listaAss.innerHTML = "<p style='font-size:12px; color:#999; text-align:center;'>Nenhuma assinatura ativa.</p>";
-            } else {
-                listaAss.innerHTML = db.assinaturas.map(a => `
-                    <div class="item-assinatura">
-                        <span><i class="fas fa-sync-alt" style="color:#009ee3; font-size:10px; margin-right:5px;"></i> <b>${a.nome}</b> (${a.tipo === 'cartao' ? '💳 Cartão' : '📄 Conta'} - Dia ${a.dia})</span>
-                        <div>
-                            <b>R$ ${a.valor.toFixed(2)}</b>
-                            <button class="btn-del" onclick="apagarAssinatura(${a.id})"><i class="fas fa-trash"></i></button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        window.onload = () => {
-            document.getElementById('lanc-data').valueAsDate = new Date();
-            document.getElementById('s-nu').value = db.sNu;
-            document.getElementById('s-mp').value = db.sMp;
-            document.getElementById('inv-nu').value = db.invNu;
-            document.getElementById('inv-mp').value = db.invMp;
-            ajustarFormas();
-            processarAssinaturasAutomaticas();
-            render();
-            // Iniciar com a cor do Nubank na aba
-            document.getElementById('tab-nu-fat').style.borderBottomColor = db.nu.cor;
-        };
-
-        function exportarBackup() {
-            const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-            const a = document.createElement('a'); a.href = data; a.download = 'backup_v18.json'; a.click();
-        }
-        function confirmarReset() { if(confirm("Apagar todos os dados permanentemente?")) { localStorage.clear(); location.reload(); } }
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
