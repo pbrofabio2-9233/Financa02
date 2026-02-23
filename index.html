@@ -1,71 +1,312 @@
-<section id="aba-cartoes" class="secao-app">
-    <div class="container">
-        <div class="card">
-            <div class="header-sessao">
-                <h3><i class="fas fa-credit-card"></i> Meus Cartões</h3>
-            </div>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EcoFinance Pro v15.0</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --nubank: #8a05be; --mercadopago: #009ee3; --fundo: #f0f2f5;
+            --texto: #2d3436; --sucesso: #27ae60; --perigo: #e74c3c;
+        }
 
-            <div id="card-nu-display" class="card-item-gestao">
-                <div class="card-item-topo">
-                    <strong id="label-nome-nu">Nubank</strong>
-                    <button class="btn-circular" onclick="toggleEdicaoCartao('nu')">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
-                </div>
-                <div class="card-item-corpo">
-                    <div class="col-info"><span>Meta:</span> <b id="val-meta-nu">R$ 0,00</b></div>
-                    <div class="col-info"><span>Limite:</span> <b id="val-limite-nu">R$ 0,00</b></div>
-                    <div class="col-info"><span>Fecha:</span> dia <b id="val-fecha-nu">0</b></div>
-                    <div class="col-info"><span>Vence:</span> dia <b id="val-venc-nu">0</b></div>
-                </div>
+        body { font-family: -apple-system, sans-serif; background: var(--fundo); margin: 0; padding-bottom: 80px; color: var(--texto); overflow-x: hidden; }
 
-                <div id="form-edit-nu" class="painel-edicao">
-                    <label>Nome do Cartão</label>
-                    <input type="text" id="edit-nome-nu">
-                    <div class="grid-form">
-                        <div><label>Limite Total</label><input type="number" id="edit-limite-nu"></div>
-                        <div><label>Meta Limite</label><input type="number" id="edit-meta-nu"></div>
-                    </div>
-                    <div class="grid-form">
-                        <div><label>Dia Fechamento</label><input type="number" id="edit-fecha-nu"></div>
-                        <div><label>Dia Vencimento</label><input type="number" id="edit-venc-nu"></div>
-                    </div>
-                    <label>Cor da Identidade</label>
-                    <input type="color" id="edit-cor-nu" class="input-cor-grande">
-                    <button class="btn-sucesso" onclick="salvarAlteracoesCartao('nu')">APLICAR ALTERAÇÕES</button>
-                </div>
-            </div>
+        /* HEADER */
+        .header { background: #1e272e; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; height: 60px; box-sizing: border-box; }
+        
+        /* SEÇÕES */
+        .secao-app { display: none; width: 100%; }
+        .secao-app.active { display: block; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-            <div id="card-mp-display" class="card-item-gestao" style="margin-top:20px;">
-                <div class="card-item-topo">
-                    <strong id="label-nome-mp">Mercado Pago</strong>
-                    <button class="btn-circular" onclick="toggleEdicaoCartao('mp')">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
-                </div>
-                <div class="card-item-corpo">
-                    <div class="col-info"><span>Meta:</span> <b id="val-meta-mp">R$ 0,00</b></div>
-                    <div class="col-info"><span>Limite:</span> <b id="val-limite-mp">R$ 0,00</b></div>
-                    <div class="col-info"><span>Fecha:</span> dia <b id="val-fecha-mp">0</b></div>
-                    <div class="col-info"><span>Vence:</span> dia <b id="val-venc-mp">0</b></div>
-                </div>
+        .container { padding: 15px; }
+        .card { background: white; border-radius: 15px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 
-                <div id="form-edit-mp" class="painel-edicao">
-                    <label>Nome do Cartão</label>
-                    <input type="text" id="edit-nome-mp">
-                    <div class="grid-form">
-                        <div><label>Limite Total</label><input type="number" id="edit-limite-mp"></div>
-                        <div><label>Meta Limite</label><input type="number" id="edit-meta-mp"></div>
-                    </div>
-                    <div class="grid-form">
-                        <div><label>Dia Fechamento</label><input type="number" id="edit-fecha-mp"></div>
-                        <div><label>Dia Vencimento</label><input type="number" id="edit-venc-mp"></div>
-                    </div>
-                    <label>Cor da Identidade</label>
-                    <input type="color" id="edit-cor-mp" class="input-cor-grande">
-                    <button class="btn-sucesso" onclick="salvarAlteracoesCartao('mp')">APLICAR ALTERAÇÕES</button>
-                </div>
+        /* DASHBOARD */
+        .card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 22px; border-radius: 20px; text-align: center; }
+        .grid-resumo { display: flex; gap: 10px; margin: 20px 0; }
+        .mini-card { background: white; flex: 1; padding: 12px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .mini-card small { font-size: 11px; color: #888; }
+        .mini-card p { margin: 5px 0 0; font-weight: bold; font-size: 14px; }
+
+        /* CARTÕES ABA */
+        .card-gestao { border-left: 8px solid #ccc; margin-bottom: 20px; }
+        .card-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .btn-lapis { background: #f8f9fa; border: none; width: 35px; height: 35px; border-radius: 50%; color: var(--nubank); cursor: pointer; }
+        .info-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; }
+        .info-col { display: flex; flex-direction: column; color: #777; }
+        .info-col b { color: var(--texto); font-size: 15px; margin-top: 2px; }
+        
+        /* FORMULÁRIO EDIÇÃO */
+        .painel-edit { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed #eee; }
+        .painel-edit.active { display: block; }
+
+        /* INPUTS */
+        .grid-inputs { display: flex; gap: 10px; margin-bottom: 12px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
+        label { font-size: 11px; color: #999; margin-bottom: 4px; display: block; }
+        .btn-main { width: 100%; padding: 16px; background: #1e272e; color: white; border: none; border-radius: 12px; font-weight: bold; }
+
+        /* MENU INFERIOR */
+        .menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #eee; z-index: 2000; height: 65px; box-sizing: border-box; }
+        .menu-item { flex: 1; text-align: center; color: #bdc3c7; font-size: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; }
+        .menu-item.active { color: var(--nubank); font-weight: bold; }
+        .menu-item i { font-size: 20px; margin-bottom: 3px; }
+
+        /* PROGRESS BAR */
+        .progress-bg { background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: white; width: 0%; transition: 0.6s; }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <div class="header">
+            <span id="titulo-aba">Início</span>
+            <div class="header-icons">
+                <i class="fas fa-file-download" onclick="exportarBackup()"></i>
+                <i class="fas fa-sync" onclick="location.reload()"></i>
             </div>
         </div>
+
+        <section id="aba-dashboard" class="secao-app active">
+            <div class="container">
+                <div class="card-resumo">
+                    <small>Uso da Meta Mensal (Cartões)</small>
+                    <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
+                    <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
+                    <small id="meta-percentual">0% consumido</small>
+                </div>
+                
+                <div class="grid-resumo">
+                    <div class="mini-card">
+                        <small>Receitas</small>
+                        <p id="dash-receitas" style="color: var(--sucesso);">R$ 0,00</p>
+                    </div>
+                    <div class="mini-card">
+                        <small>Faturas</small>
+                        <p id="dash-faturas" style="color: var(--perigo);">R$ 0,00</p>
+                    </div>
+                    <div class="mini-card">
+                        <small>Saldo</small>
+                        <p id="dash-saldo" style="color: var(--mercadopago);">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3><i class="fas fa-bolt"></i> Lançamento Rápido</h3>
+                    <div class="grid-inputs">
+                        <input type="date" id="lanc-data">
+                        <select id="lanc-tipo" onchange="ajustarFormas()">
+                            <option value="despesa">🔴 Despesa</option>
+                            <option value="receita">🟢 Receita</option>
+                        </select>
+                    </div>
+                    <div class="grid-inputs">
+                        <select id="lanc-cartao">
+                            <option value="Nubank">Nubank</option>
+                            <option value="MercadoPago">Mercado Pago</option>
+                        </select>
+                        <select id="lanc-forma"></select>
+                    </div>
+                    <input type="text" id="lanc-desc" placeholder="Descrição">
+                    <div class="grid-inputs" style="margin-top:10px;">
+                        <input type="number" id="lanc-valor" placeholder="Valor R$">
+                        <select id="lanc-cat">
+                            <option value="Alimentação">🛒 Alimentação</option>
+                            <option value="Transporte">🚗 Transporte</option>
+                            <option value="Lazer">🍿 Lazer</option>
+                            <option value="Salário">💰 Salário</option>
+                        </select>
+                    </div>
+                    <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="aba-cartoes" class="secao-app">
+            <div class="container">
+                <div class="card">
+                    <h3><i class="fas fa-credit-card"></i> Gestão de Cartões</h3>
+                    
+                    <div id="card-nu-box" class="card-gestao" style="border-left-color: var(--nubank); padding: 15px; background: #fff; border-radius: 12px; margin-bottom:15px;">
+                        <div class="card-topo">
+                            <strong id="label-nu">Nubank</strong>
+                            <button class="btn-lapis" onclick="toggleEdit('nu')"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <div class="info-corpo">
+                            <div class="info-col"><span>Meta:</span><b id="v-meta-nu">R$ 0,00</b></div>
+                            <div class="info-col"><span>Limite:</span><b id="v-limite-nu">R$ 0,00</b></div>
+                            <div class="info-col"><span>Fecha:</span><b id="v-fecha-nu">dia 0</b></div>
+                            <div class="info-col"><span>Vence:</span><b id="v-venc-nu">dia 0</b></div>
+                        </div>
+                        <div id="edit-nu" class="painel-edit">
+                            <label>Nome</label><input type="text" id="e-nome-nu">
+                            <div class="grid-inputs">
+                                <div><label>Meta</label><input type="number" id="e-meta-nu"></div>
+                                <div><label>Limite</label><input type="number" id="e-limite-nu"></div>
+                            </div>
+                            <div class="grid-inputs">
+                                <div><label>Fechamento</label><input type="number" id="e-fecha-nu"></div>
+                                <div><label>Vencimento</label><input type="number" id="e-venc-nu"></div>
+                            </div>
+                            <label>Cor</label><input type="color" id="e-cor-nu" style="height:40px;">
+                            <button class="btn-main" onclick="salvarCard('nu')" style="background:var(--sucesso); margin-top:10px;">SALVAR</button>
+                        </div>
+                    </div>
+
+                    <div id="card-mp-box" class="card-gestao" style="border-left-color: var(--mercadopago); padding: 15px; background: #fff; border-radius: 12px;">
+                        <div class="card-topo">
+                            <strong id="label-mp">Mercado Pago</strong>
+                            <button class="btn-lapis" onclick="toggleEdit('mp')"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <div class="info-corpo">
+                            <div class="info-col"><span>Meta:</span><b id="v-meta-mp">R$ 0,00</b></div>
+                            <div class="info-col"><span>Limite:</span><b id="v-limite-mp">R$ 0,00</b></div>
+                            <div class="info-col"><span>Fecha:</span><b id="v-fecha-mp">dia 0</b></div>
+                            <div class="info-col"><span>Vence:</span><b id="v-venc-mp">dia 0</b></div>
+                        </div>
+                        <div id="edit-mp" class="painel-edit">
+                            <label>Nome</label><input type="text" id="e-nome-mp">
+                            <div class="grid-inputs">
+                                <div><label>Meta</label><input type="number" id="e-meta-mp"></div>
+                                <div><label>Limite</label><input type="number" id="e-limite-mp"></div>
+                            </div>
+                            <div class="grid-inputs">
+                                <div><label>Fechamento</label><input type="number" id="e-fecha-mp"></div>
+                                <div><label>Vencimento</label><input type="number" id="e-venc-mp"></div>
+                            </div>
+                            <label>Cor</label><input type="color" id="e-cor-mp" style="height:40px;">
+                            <button class="btn-main" onclick="salvarCard('mp')" style="background:var(--sucesso); margin-top:10px;">SALVAR</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="aba-faturas" class="secao-app"><div class="container"><div class="card"><h3>Em breve: Faturas</h3></div></div></section>
+        <section id="aba-contas" class="secao-app">
+            <div class="container">
+                <div class="card">
+                    <h3>Saldos</h3>
+                    <label>Nubank (Conta)</label><input type="number" id="s-nu" onchange="saveS()">
+                    <label>M. Pago (Conta)</label><input type="number" id="s-mp" onchange="saveS()">
+                </div>
+            </div>
+        </section>
+
+        <nav class="menu-inferior">
+            <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-home"></i><span>Início</span></div>
+            <div class="menu-item" onclick="navegar('cartoes', this)"><i class="fas fa-credit-card"></i><span>Cartões</span></div>
+            <div class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-file-invoice-dollar"></i><span>Faturas</span></div>
+            <div class="menu-item" onclick="navegar('contas', this)"><i class="fas fa-wallet"></i><span>Contas</span></div>
+        </nav>
     </div>
-</section>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('ecoDB_v15')) || {
+            nu: { nome: "Nubank", meta: 1100, limite: 5000, fecha: 13, venc: 20, cor: '#8a05be', gastos: [] },
+            mp: { nome: "Mercado Pago", meta: 800, limite: 2000, fecha: 10, venc: 17, cor: '#009ee3', gastos: [] },
+            sNu: 0, sMp: 0, receitas: []
+        };
+
+        function navegar(id, el) {
+            document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
+            document.getElementById('aba-' + id).classList.add('active');
+            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('titulo-aba').innerText = el.querySelector('span').innerText;
+            render();
+        }
+
+        function toggleEdit(id) { document.getElementById('edit-' + id).classList.toggle('active'); }
+
+        function ajustarFormas() {
+            const t = document.getElementById('lanc-tipo').value;
+            const f = document.getElementById('lanc-forma');
+            f.innerHTML = t === "despesa" ? 
+                `<option value="Crédito">💳 Crédito</option><option value="Débito">🏧 Débito</option><option value="Pix">📱 Pix</option>` :
+                `<option value="Salário">💵 Salário</option><option value="Pix">📱 Pix</option>`;
+        }
+
+        function adicionarGasto() {
+            const data = document.getElementById('lanc-data').value;
+            const tipo = document.getElementById('lanc-tipo').value;
+            const valor = parseFloat(document.getElementById('lanc-valor').value);
+            const desc = document.getElementById('lanc-desc').value;
+            if(!desc || isNaN(valor)) return alert("Preencha tudo!");
+
+            if(tipo === "receita") db.receitas.push({ valor });
+            else {
+                const c = document.getElementById('lanc-cartao').value === "Nubank" ? 'nu' : 'mp';
+                db[c].gastos.push({ valor });
+            }
+            save();
+            alert("Lançado!");
+        }
+
+        function salvarCard(id) {
+            db[id].nome = document.getElementById('e-nome-' + id).value;
+            db[id].meta = parseFloat(document.getElementById('e-meta-' + id).value);
+            db[id].limite = parseFloat(document.getElementById('e-limite-' + id).value);
+            db[id].fecha = parseInt(document.getElementById('e-fecha-' + id).value);
+            db[id].venc = parseInt(document.getElementById('e-venc-' + id).value);
+            db[id].cor = document.getElementById('e-cor-' + id).value;
+            toggleEdit(id);
+            save();
+        }
+
+        function saveS() {
+            db.sNu = parseFloat(document.getElementById('s-nu').value) || 0;
+            db.sMp = parseFloat(document.getElementById('s-mp').value) || 0;
+            save();
+        }
+
+        function save() { localStorage.setItem('ecoDB_v15', JSON.stringify(db)); render(); }
+
+        function render() {
+            const gNu = db.nu.gastos.reduce((a,b)=>a+b.valor,0);
+            const gMp = db.mp.gastos.reduce((a,b)=>a+b.valor,0);
+            const gT = gNu + gMp;
+            const mT = db.nu.meta + db.mp.meta;
+            const rT = db.receitas.reduce((a,b)=>a+b.valor,0);
+
+            // Dashboard
+            document.getElementById('uso-meta-texto').innerText = `R$ ${gT.toFixed(2)} / R$ ${mT.toFixed(2)}`;
+            document.getElementById('meta-bar').style.width = Math.min((gT/mT)*100, 100) + "%";
+            document.getElementById('meta-percentual').innerText = ((gT/mT)*100).toFixed(1) + "% consumido";
+            document.getElementById('dash-receitas').innerText = "R$ " + rT.toFixed(2);
+            document.getElementById('dash-faturas').innerText = "R$ " + gT.toFixed(2);
+            document.getElementById('dash-saldo').innerText = "R$ " + (rT + db.sNu + db.sMp - gT).toFixed(2);
+
+            // Cards Info
+            ['nu','mp'].forEach(id => {
+                document.getElementById('label-'+id).innerText = db[id].nome;
+                document.getElementById('v-meta-'+id).innerText = "R$ " + db[id].meta.toFixed(2);
+                document.getElementById('v-limite-'+id).innerText = "R$ " + db[id].limite.toFixed(2);
+                document.getElementById('v-fecha-'+id).innerText = "dia " + db[id].fecha;
+                document.getElementById('v-venc-'+id).innerText = "dia " + db[id].venc;
+                document.getElementById('card-'+id+'-box').style.borderLeftColor = db[id].cor;
+                
+                // Preencher inputs de edição
+                document.getElementById('e-nome-'+id).value = db[id].nome;
+                document.getElementById('e-meta-'+id).value = db[id].meta;
+                document.getElementById('e-limite-'+id).value = db[id].limite;
+                document.getElementById('e-fecha-'+id).value = db[id].fecha;
+                document.getElementById('e-venc-'+id).value = db[id].venc;
+                document.getElementById('e-cor-'+id).value = db[id].cor;
+            });
+        }
+
+        window.onload = () => {
+            document.getElementById('lanc-data').valueAsDate = new Date();
+            document.getElementById('s-nu').value = db.sNu;
+            document.getElementById('s-mp').value = db.sMp;
+            ajustarFormas();
+            render();
+        };
+    </script>
+</body>
+</html>
