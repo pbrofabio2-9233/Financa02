@@ -1,5 +1,5 @@
-let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v20')) || {};
-let db = JSON.parse(localStorage.getItem('ecoDB_v21')) || {
+let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v21')) || {};
+let db = JSON.parse(localStorage.getItem('ecoDB_v22')) || {
     contas: dbAntigo.contas || [
         { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' },
         { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' },
@@ -10,20 +10,49 @@ let db = JSON.parse(localStorage.getItem('ecoDB_v21')) || {
 };
 
 let cartaoAtivoFatura = null;
+let meuGrafico = null; // Instância do Chart.js
 
 window.onload = () => {
-    document.getElementById('lanc-data').valueAsDate = new Date();
+    // Configura Tema
+    if (localStorage.getItem('ecoTheme') === 'dark') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('btn-theme').classList.replace('fa-moon', 'fa-sun');
+    }
+    
+    // Configura Data Filtro e Lançamento
+    const hoje = new Date();
+    const mesAtualStr = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+    document.getElementById('lanc-data').valueAsDate = hoje;
+    document.getElementById('filtro-mes').value = mesAtualStr;
+
     populaSelectContas();
     atualizarRegrasLancamento();
     render();
 };
 
+// --- DARK MODE ---
+function toggleDarkMode() {
+    const body = document.body;
+    const icone = document.getElementById('btn-theme');
+    body.classList.toggle('dark-mode');
+    if (body.classList.contains('dark-mode')) {
+        localStorage.setItem('ecoTheme', 'dark');
+        icone.classList.replace('fa-moon', 'fa-sun');
+    } else {
+        localStorage.setItem('ecoTheme', 'light');
+        icone.classList.replace('fa-sun', 'fa-moon');
+    }
+    renderGrafico(); // Redesenha para ajustar cor da fonte
+}
+
+// --- NAVEGAÇÃO ---
 function navegar(idAba, el) {
     document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
     document.getElementById('aba-' + idAba).classList.add('active');
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     el.classList.add('active');
     document.getElementById('titulo-aba').innerText = el.querySelector('span').innerText;
+    if(idAba === 'historico') renderHistorico();
     render();
 }
 
@@ -63,46 +92,26 @@ function atualizarRegrasLancamento() {
     let contaSelect = document.getElementById('lanc-conta');
     let contaId = contaSelect.value;
     let conta = db.contas.find(c => c.id === contaId);
-
     if(!conta) return;
 
-    // Lógica inteligente de troca silenciosa
-    let precisaTrocar = false;
-    let tipoAlvo = null;
-
-    if (conta.tipo === 'cartao' && !['despesa', 'emp_cartao'].includes(tipoLancamento)) {
-        precisaTrocar = true; tipoAlvo = 'movimentacao';
-    } else if (conta.tipo !== 'cartao' && tipoLancamento === 'emp_cartao') {
-        precisaTrocar = true; tipoAlvo = 'cartao';
-    }
+    let precisaTrocar = false; let tipoAlvo = null;
+    if (conta.tipo === 'cartao' && !['despesa', 'emp_cartao'].includes(tipoLancamento)) { precisaTrocar = true; tipoAlvo = 'movimentacao'; } 
+    else if (conta.tipo !== 'cartao' && tipoLancamento === 'emp_cartao') { precisaTrocar = true; tipoAlvo = 'cartao'; }
 
     if (precisaTrocar) {
         let novaConta = db.contas.find(c => c.tipo === tipoAlvo);
         if (!novaConta && tipoAlvo === 'movimentacao') novaConta = db.contas.find(c => c.tipo !== 'cartao');
-        
-        if (novaConta) {
-            contaSelect.value = novaConta.id;
-            conta = novaConta; 
-        } else {
-            document.getElementById('lanc-tipo').value = 'despesa';
-            return atualizarRegrasLancamento();
-        }
+        if (novaConta) { contaSelect.value = novaConta.id; conta = novaConta; } 
+        else { document.getElementById('lanc-tipo').value = 'despesa'; return atualizarRegrasLancamento(); }
     }
 
     const formaSelect = document.getElementById('lanc-forma');
     formaSelect.innerHTML = "";
-
-    if (conta.tipo === 'cartao') {
-        formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`;
-    } else if (conta.tipo === 'movimentacao') {
-        if (['despesa', 'emp_concedido'].includes(tipoLancamento)) {
-            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
-        } else {
-            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Salário">💵 Salário</option><option value="Boleto">📄 Boleto</option>`;
-        }
-    } else if (conta.tipo === 'investimento') {
-        formaSelect.innerHTML = `<option value="Transferencia">🔄 Transferência / Rendimento</option>`;
-    }
+    if (conta.tipo === 'cartao') { formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`; } 
+    else if (conta.tipo === 'movimentacao') {
+        if (['despesa', 'emp_concedido'].includes(tipoLancamento)) formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
+        else formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Salário">💵 Salário</option><option value="Boleto">📄 Boleto</option>`;
+    } else if (conta.tipo === 'investimento') { formaSelect.innerHTML = `<option value="Transferencia">🔄 Transferência / Rendimento</option>`; }
 }
 
 function adicionarLancamento() {
@@ -125,6 +134,24 @@ function adicionarLancamento() {
     db.lancamentos.push({ id: Date.now(), data, tipo, contaId, forma, desc, valor, cat });
     save(); alert("Lançamento Registrado!");
     document.getElementById('lanc-desc').value = ""; document.getElementById('lanc-valor').value = "";
+}
+
+// --- NOVO: EXCLUSÃO DE LANÇAMENTOS E REAJUSTE DE SALDO ---
+function excluirLancamento(idLancamento) {
+    if(!confirm("Tem certeza que deseja apagar este lançamento? O saldo da conta será recalculado automaticamente.")) return;
+
+    const lancamento = db.lancamentos.find(l => l.id === idLancamento);
+    if(!lancamento) return;
+
+    const conta = db.contas.find(c => c.id === lancamento.contaId);
+    if(conta && conta.tipo !== 'cartao') {
+        // Faz a operação inversa para restaurar o saldo
+        if (['receita', 'emp_pessoal', 'compensacao'].includes(lancamento.tipo)) conta.saldo -= lancamento.valor;
+        if (['despesa', 'emp_concedido'].includes(lancamento.tipo)) conta.saldo += lancamento.valor;
+    }
+
+    db.lancamentos = db.lancamentos.filter(l => l.id !== idLancamento);
+    save(); renderHistorico(); alert("Lançamento excluído e saldo restaurado!");
 }
 
 function criarConta() {
@@ -174,7 +201,7 @@ function alternarPagamentoFatura(faturaID) {
     save();
 }
 
-function save() { localStorage.setItem('ecoDB_v21', JSON.stringify(db)); render(); }
+function save() { localStorage.setItem('ecoDB_v22', JSON.stringify(db)); render(); }
 
 function render() {
     const hoje = new Date();
@@ -207,7 +234,6 @@ function render() {
                 if (isFechada) calc.fatFechada += l.valor;
                 else calc.fatAberta += l.valor;
             }
-
             if (mesFatura === getMesFatura(hoje.toISOString().split('T')[0], conta.fechamento) && l.tipo === 'despesa') {
                 calc.usoMetaCartao += l.valor;
             }
@@ -228,7 +254,109 @@ function render() {
     bar.style.background = pMeta > 100 ? "var(--perigo)" : (pMeta > 80 ? "var(--alerta)" : "var(--sucesso)");
     document.getElementById('meta-percentual').innerText = `${pMeta.toFixed(1)}% consumido`;
 
+    renderGrafico();
     renderAbaContas(); renderAbaConfig(); renderAbaFaturas();
+}
+
+// --- NOVO: ABA HISTÓRICO ---
+function renderHistorico() {
+    const lista = document.getElementById('lista-historico-filtros');
+    if(!lista) return;
+
+    const mesFiltro = document.getElementById('filtro-mes').value;
+    const catFiltro = document.getElementById('filtro-cat').value;
+
+    let lancamentosFiltrados = db.lancamentos.filter(l => {
+        let condMes = l.data.substring(0,7) === mesFiltro;
+        let condCat = catFiltro === 'todas' ? true : l.cat === catFiltro;
+        return condMes && condCat;
+    });
+
+    // Ordenar do mais recente para o mais antigo
+    lancamentosFiltrados.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    if(lancamentosFiltrados.length === 0) {
+        lista.innerHTML = "<div class='card' style='text-align:center; color:var(--texto-sec);'>Nenhum lançamento encontrado para estes filtros.</div>";
+        return;
+    }
+
+    lista.innerHTML = lancamentosFiltrados.map(l => {
+        const conta = db.contas.find(c => c.id === l.contaId);
+        const nomeConta = conta ? conta.nome : 'Conta Removida';
+        const corValor = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? 'var(--perigo)' : 'var(--sucesso)';
+        const sinal = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? '-' : '+';
+
+        return `
+        <div class="card" style="margin-bottom: 10px; padding: 15px; border-left: 4px solid ${conta ? conta.cor : '#ccc'};">
+            <div class="item-linha" style="border:none; padding:0;">
+                <div class="hist-info">
+                    <b>${l.desc}</b>
+                    <small>${l.data.split('-').reverse().join('/')} • ${nomeConta} • ${l.cat || 'Sem Categoria'}</small>
+                </div>
+                <div style="text-align: right;">
+                    <b style="color: ${corValor}; display:block;">${sinal} R$ ${l.valor.toFixed(2)}</b>
+                    <button class="btn-del" onclick="excluirLancamento(${l.id})" style="font-size:10px; margin-top:5px;"><i class="fas fa-trash"></i> APAGAR</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// --- NOVO: GRÁFICO (Chart.js) ---
+function renderGrafico() {
+    const ctx = document.getElementById('graficoCategorias');
+    if(!ctx) return;
+
+    const hoje = new Date();
+    const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    // Agrupar apenas DESPESAS do mês atual
+    const dadosGasto = {};
+    db.lancamentos.forEach(l => {
+        if(l.data.substring(0,7) === mesCorrente && l.tipo === 'despesa') {
+            const cat = l.cat || 'Outros';
+            if(!dadosGasto[cat]) dadosGasto[cat] = 0;
+            dadosGasto[cat] += l.valor;
+        }
+    });
+
+    const labels = Object.keys(dadosGasto);
+    const data = Object.values(dadosGasto);
+    const corTexto = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#2d3436';
+
+    if(meuGrafico) meuGrafico.destroy(); // Destroi o antigo para não bugar o hover
+
+    if(labels.length === 0) {
+        // Se não houver dados, desenha um gráfico cinza vazio
+        meuGrafico = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: ['Sem gastos'], datasets: [{ data: [1], backgroundColor: ['#cccccc'] }] },
+            options: { plugins: { legend: { display: false } }, responsive: true, maintainAspectRatio: false }
+        });
+        return;
+    }
+
+    // Cores padronizadas e bonitas
+    const cores = ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fdcb6e', '#e17055', '#00b894'];
+
+    meuGrafico = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: cores.slice(0, labels.length),
+                borderWidth: document.body.classList.contains('dark-mode') ? 0 : 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: corTexto, font: { size: 11 } } }
+            }
+        }
+    });
 }
 
 function renderAbaContas() {
@@ -256,7 +384,7 @@ function renderAbaConfig() {
             lista.innerHTML += `
             <div class="conta-edit-box" style="border-left: 5px solid ${c.cor};">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <strong>${c.nome} <small style="color:#888;">(${c.tipo})</small></strong>
+                    <strong style="color:var(--texto-main);">${c.nome} <small style="color:var(--texto-sec);">(${c.tipo})</small></strong>
                     <div><button class="btn-lapis" onclick="toggleEditConta('${c.id}')"><i class="fas fa-pencil-alt"></i></button>
                     <button class="btn-del" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button></div>
                 </div>
@@ -270,12 +398,11 @@ function renderAbaConfig() {
         });
     }
 
-    // Renderizar Histórico de Backups
     const listaBackups = document.getElementById('lista-backups');
     if(listaBackups) {
         let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
         if(historico.length === 0) {
-            listaBackups.innerHTML = "<p style='font-size:12px; color:#999;'>Nenhum backup gerado ainda.</p>";
+            listaBackups.innerHTML = "<p style='font-size:12px; color:var(--texto-sec);'>Nenhum backup gerado ainda.</p>";
         } else {
             listaBackups.innerHTML = historico.map(b => `
                 <div class="item-backup">
@@ -283,7 +410,7 @@ function renderAbaConfig() {
                         <strong>${b.nome}</strong>
                         <small>${b.data} | ${b.versao} | ${b.size}</small>
                     </div>
-                    <button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i> RESTAURAR</button>
+                    <button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button>
                 </div>
             `).join('');
         }
@@ -296,7 +423,7 @@ function renderAbaFaturas() {
     const container = document.getElementById('lista-faturas-agrupadas');
     
     if(cartoes.length === 0) {
-        abas.innerHTML = ""; container.innerHTML = "<p style='text-align:center; padding:20px; color:#999;'>Nenhum cartão cadastrado.</p>";
+        abas.innerHTML = ""; container.innerHTML = "<p style='text-align:center; padding:20px; color:var(--texto-sec);'>Nenhum cartão cadastrado.</p>";
         return;
     }
     if(!cartaoAtivoFatura || !cartoes.find(c => c.id === cartaoAtivoFatura)) cartaoAtivoFatura = cartoes[0].id;
@@ -329,18 +456,17 @@ function renderAbaFaturas() {
         container.innerHTML += `
         <div class="fatura-bloco">
             <div class="fatura-resumo" style="border-left-color:${cartao.cor}" onclick="toggleFatura('det-${mes}')">
-                <div><strong style="font-size:16px;">${mes}</strong><div style="font-size:11px; color:#888;">Vence dia ${cartao.vencimento}</div></div>
-                <div style="text-align:right;"><b style="font-size:16px; display:block; margin-bottom:5px;">R$ ${agrupado[mes].total.toFixed(2)}</b>
+                <div><strong style="font-size:16px; color:var(--texto-main);">${mes}</strong><div style="font-size:11px; color:var(--texto-sec);">Vence dia ${cartao.vencimento}</div></div>
+                <div style="text-align:right;"><b style="font-size:16px; display:block; margin-bottom:5px; color:var(--texto-main);">R$ ${agrupado[mes].total.toFixed(2)}</b>
                 <span class="badge-status ${statusClass}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${statusTxt}</span></div>
             </div>
             <div class="fatura-detalhes" id="det-${mes}">
-                ${agrupado[mes].itens.map(i => `<div class="item-linha"><span>${i.data.split('-')[2]} - ${i.desc} <br><small style="color:#aaa;">${i.tipo === 'emp_cartao' ? '(Empréstimo de Cartão)' : ''}</small></span><b>R$ ${i.valor.toFixed(2)}</b></div>`).join('')}
+                ${agrupado[mes].itens.map(i => `<div class="item-linha"><span style="color:var(--texto-main);">${i.data.split('-')[2]} - ${i.desc} <br><small style="color:var(--texto-sec);">${i.tipo === 'emp_cartao' ? '(Empréstimo)' : ''}</small></span><b style="color:var(--texto-main);">R$ ${i.valor.toFixed(2)}</b></div>`).join('')}
             </div>
         </div>`;
     });
 }
 
-// --- SISTEMA DE BACKUP E SEGURANÇA ---
 function exportarBackup() { 
     const dataStr = JSON.stringify(db);
     const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB";
@@ -348,68 +474,49 @@ function exportarBackup() {
     const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
     const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`;
 
-    // Salvar na memória interna (Histórico)
     let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    historico.unshift({ id: Date.now(), nome: nomeArquivo, data: dateStr, size: sizeKB, versao: "v21.0", payload: dataStr });
-    if(historico.length > 5) historico.pop(); // Mantém só os últimos 5 para não estourar a memória
+    historico.unshift({ id: Date.now(), nome: nomeArquivo, data: dateStr, size: sizeKB, versao: "v22.0", payload: dataStr });
+    if(historico.length > 5) historico.pop();
     localStorage.setItem('ecoDB_backups', JSON.stringify(historico));
 
-    // Download do arquivo .json
     const a = document.createElement('a'); 
     a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); 
-    a.download = nomeArquivo; 
-    a.click(); 
-    
-    renderAbaConfig();
-    alert("Backup gerado e salvo no histórico local!");
+    a.download = nomeArquivo; a.click(); 
+    renderAbaConfig(); alert("Backup gerado e salvo no histórico local!");
 }
 
 function restaurarBackupLocal(id) {
-    if(confirm("ATENÇÃO: Isso vai substituir os seus dados atuais por este backup. Deseja continuar?")) {
+    if(confirm("ATENÇÃO: Substituir os seus dados atuais por este backup?")) {
         let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
         let bkp = historico.find(b => b.id === id);
-        if(bkp) {
-            localStorage.setItem('ecoDB_v21', bkp.payload);
-            alert("Backup restaurado com sucesso!");
-            location.reload();
-        }
+        if(bkp) { localStorage.setItem('ecoDB_v22', bkp.payload); alert("Restaurado com sucesso!"); location.reload(); }
     }
 }
 
 function importarArquivoJSON(event) {
-    const file = event.target.files[0];
-    if(!file) return;
+    const file = event.target.files[0]; if(!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
             const json = JSON.parse(e.target.result);
-            if(json && json.contas) {
-                localStorage.setItem('ecoDB_v21', JSON.stringify(json));
-                alert("Dados importados com sucesso a partir do arquivo!");
-                location.reload();
-            } else { alert("O arquivo JSON selecionado não é válido para este aplicativo."); }
-        } catch(err) { alert("Erro na leitura do arquivo."); }
+            if(json && json.contas) { localStorage.setItem('ecoDB_v22', JSON.stringify(json)); alert("Importado com sucesso!"); location.reload(); } 
+            else { alert("Arquivo JSON inválido."); }
+        } catch(err) { alert("Erro na leitura."); }
     };
     reader.readAsText(file);
 }
 
 function confirmarReset() { 
-    const palavra = prompt("⚠️ ZONA DE PERIGO\nPara apagar todos os dados e restaurar as contas padrão, digite a palavra: excluir");
+    const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite a palavra: excluir");
     if (palavra && palavra.toLowerCase() === "excluir") {
         const defaultDB = {
             contas: [
                 { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' },
                 { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' },
                 { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }
-            ],
-            lancamentos: [],
-            faturasPagas: []
+            ], lancamentos: [], faturasPagas: []
         };
-        // O histórico de backups não é apagado de propósito, caso haja arrependimento.
-        localStorage.setItem('ecoDB_v21', JSON.stringify(defaultDB));
-        alert("Dados limpos! Contas padrão (Conta Padrão, Poupança e Cartão Padrão) foram recriadas.");
-        location.reload();
-    } else if (palavra !== null) {
-        alert("Palavra incorreta. Limpeza cancelada para sua segurança.");
-    }
+        localStorage.setItem('ecoDB_v22', JSON.stringify(defaultDB));
+        alert("Dados limpos!"); location.reload();
+    } else if (palavra !== null) { alert("Cancelado."); }
 }
