@@ -1,38 +1,33 @@
-/* Estilos Aba Cartões v13.0 */
-.header-sessao { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-.card-detalhe-limpo {
-    background: #ffffff;
-    padding: 18px;
-    border-radius: 14px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-    border: 1px solid #f0f0f0;
+// Funções Aba Cartões v13.0
+function toggleEdicaoCartao(id) {
+    const form = document.getElementById(`form-edit-${id}`);
+    form.classList.toggle('active');
+    
+    if(form.classList.contains('active')) {
+        const cartao = id === 'nu' ? db.Nubank : db.MercadoPago;
+        document.getElementById(`edit-nome-${id}`).value = cartao.nome || (id === 'nu' ? "Nubank" : "Mercado Pago");
+        document.getElementById(`edit-limite-${id}`).value = cartao.limite || 0;
+        document.getElementById(`edit-meta-${id}`).value = cartao.meta || 0;
+        document.getElementById(`edit-fecha-${id}`).value = cartao.fechamento || 0;
+        document.getElementById(`edit-venc-${id}`).value = cartao.vencimento || 0;
+        document.getElementById(`edit-cor-${id}`).value = cartao.cor;
+    }
 }
 
-.card-topo-edit { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+function salvarAlteracoesCartao(id) {
+    const cartao = id === 'nu' ? db.Nubank : db.MercadoPago;
+    
+    cartao.nome = document.getElementById(`edit-nome-${id}`).value;
+    cartao.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value) || 0;
+    cartao.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value) || 0;
+    cartao.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 0;
+    cartao.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 0;
+    cartao.cor = document.getElementById(`edit-cor-${id}`).value;
 
-.btn-lapis {
-    background: #f4f7f6;
-    border: none;
-    color: var(--nubank);
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: 0.3s;
+    if(id === 'nu') document.documentElement.style.setProperty('--nubank', cartao.cor);
+    else document.documentElement.style.setProperty('--mercadopago', cartao.cor);
+
+    document.getElementById(`form-edit-${id}`).classList.remove('active');
+    salvar(); // Chama a função de salvar no LocalStorage e atualizar UI
+    alert("Configurações aplicadas!");
 }
-
-.info-corpo-cartao { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.info-linha { font-size: 13px; color: #666; display: flex; flex-direction: column; }
-.info-linha b { color: var(--texto); font-size: 15px; margin-top: 2px; }
-
-.form-edicao-oculto {
-    display: none;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px dashed #eee;
-}
-
-.form-edicao-oculto.active { display: block; }
-
-.input-color { height: 45px; cursor: pointer; border: 1px solid #ddd; padding: 4px; }
