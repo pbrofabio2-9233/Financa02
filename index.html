@@ -7,6 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 
@@ -14,7 +16,7 @@
         <div class="header">
             <span id="titulo-aba">Dashboard</span>
             <div class="header-icons">
-                <i class="fas fa-file-export" onclick="exportarBackup()" title="Exportar Backup"></i>
+                <i class="fas fa-file-export" onclick="exportarBackup()"></i>
                 <i class="fas fa-sync" onclick="location.reload()"></i>
             </div>
         </div>
@@ -30,25 +32,31 @@
                 <div class="grid-resumo">
                     <div class="mini-card">
                         <small>Gasto Total</small>
-                        <p id="dash-total" class="valor-positivo">R$ 0,00</p>
+                        <p id="dash-total" style="color: #d63031;">R$ 0,00</p>
                     </div>
                     <div class="mini-card">
                         <small>Meta Real</small>
-                        <p id="dash-meta" class="valor-meta">R$ 0,00</p>
+                        <p id="dash-meta" style="color: #0984e3;">R$ 0,00</p>
                     </div>
                 </div>
-                
+
+                <div class="card">
+                    <h3><i class="fas fa-bullseye"></i> Metas por Categoria</h3>
+                    <div id="lista-metas-categorias">
+                        </div>
+                </div>
+
                 <div class="card">
                     <h3><i class="fas fa-plus-circle"></i> Lançamento Rápido</h3>
-                    <input type="text" id="desc" placeholder="Descrição (ex: Uber)">
-                    <input type="number" id="valor" placeholder="Valor R$">
+                    <input type="text" id="desc" placeholder="Descrição">
+                    <input type="number" id="valor" placeholder="Valor R$" step="0.01">
                     <select id="cat">
                         <option value="Alimentação">🛒 Alimentação</option>
                         <option value="Transporte">🚗 Transporte</option>
                         <option value="Lazer">🍿 Lazer</option>
                         <option value="Serviços">⚙️ Serviços</option>
                     </select>
-                    <button class="btn-main" onclick="adicionarGasto()">SALVAR NO CARTÃO ATUAL</button>
+                    <button class="btn-main" onclick="adicionarGasto()">SALVAR</button>
                 </div>
             </div>
         </section>
@@ -63,22 +71,28 @@
                 <div id="cartao-visual" class="card card-fatura">
                     <div class="fatura-header">
                         <span id="nome-cartao">Nubank</span>
-                        <span class="status-badge">Aberta</span>
+                        <span class="status-badge">Fatura Aberta</span>
                     </div>
                     <h1 id="fatura-valor-oficial">R$ 0,00</h1>
                     <p id="fatura-meta-ajustada">Meta Real: R$ 0,00</p>
                 </div>
 
                 <div class="card">
-                    <h3><i class="fas fa-file-import"></i> Importar Fatura (Texto)</h3>
-                    <textarea id="textoImportacao" placeholder="Cole o texto da fatura aqui..."></textarea>
-                    <button class="btn-main" style="background:#2ecc71;" onclick="processarTexto()">PROCESSAR TEXTO</button>
-                </div>
-
-                <div class="card">
                     <h3>Histórico da Fatura</h3>
                     <div id="lista-lancamentos-fatura"></div>
                 </div>
+            </div>
+        </section>
+
+        <section id="aba-historico" class="aba-conteudo">
+            <div class="container">
+                <div class="card">
+                    <h3><i class="fas fa-calendar-alt"></i> Comparativo Mensal</h3>
+                    <p style="font-size: 12px; color: #666;">Total gasto por mês (Todos os cartões)</p>
+                    <div id="lista-historico-meses">
+                        </div>
+                </div>
+                <button class="btn-main" style="background: #636e72;" onclick="confirmarReset()">Resetar Todos os Dados</button>
             </div>
         </section>
 
@@ -91,9 +105,9 @@
                 <i class="fas fa-credit-card"></i>
                 <span>Cartões</span>
             </div>
-            <div class="menu-item" onclick="confirmarReset()">
-                <i class="fas fa-trash-alt"></i>
-                <span>Reset</span>
+            <div class="menu-item" onclick="navegar('historico', this)">
+                <i class="fas fa-history"></i>
+                <span>Histórico</span>
             </div>
         </nav>
     </div>
