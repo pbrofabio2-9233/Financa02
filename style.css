@@ -1,48 +1,46 @@
 :root {
     --nubank: #8a05be; --mercadopago: #009ee3; --fundo: #f4f7f6;
-    --texto: #2d3436; --sucesso: #00b894; --alerta: #fdcb6e;
-    --perigo: #d63031; --card-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    --texto: #2d3436; --sucesso: #00b894; --perigo: #d63031;
 }
 
-body { font-family: -apple-system, system-ui, sans-serif; background: var(--fundo); margin: 0; color: var(--texto); }
-
+body { font-family: -apple-system, sans-serif; background: var(--fundo); margin: 0; color: var(--texto); }
 .header { background: #1e272e; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-.header-icons i { margin-left: 18px; font-size: 18px; cursor: pointer; }
+.header-icons i { margin-left: 15px; cursor: pointer; }
 
-.aba-conteudo { display: none; padding-bottom: 100px; }
-.aba-conteudo.active { display: block; animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.aba-conteudo { display: none; padding-bottom: 80px; }
+.aba-conteudo.active { display: block; }
 
 .container { padding: 15px; }
-.card { background: white; border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: var(--card-shadow); }
-.card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 22px; border-radius: 20px; }
+.card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 20px; border-radius: 18px; }
 
-.grid-resumo { display: flex; gap: 10px; margin-top: 15px; }
-.mini-card { background: white; flex: 1; padding: 12px; border-radius: 12px; box-shadow: var(--card-shadow); }
-.mini-card p { margin: 5px 0 0; font-weight: bold; font-size: 16px; }
+.grid-resumo { display: flex; gap: 8px; margin-top: 10px; }
+.mini-card { background: white; flex: 1; padding: 10px; border-radius: 10px; text-align: center; }
 
-/* Gráfico de Pizza em Barras Horizontais (UX Mobile) */
-.pie-container { display: flex; height: 25px; border-radius: 5px; overflow: hidden; margin: 15px 0; background: #eee; }
-.pie-slice { height: 100%; transition: 0.5s; }
-.legendas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; }
-.leg-item { display: flex; align-items: center; gap: 5px; }
-.dot { height: 8px; width: 8px; border-radius: 50%; }
+.card-fatura { border-left: 6px solid var(--nubank); }
+.config-card summary { font-size: 13px; font-weight: bold; color: #666; cursor: pointer; }
+.grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.grid-inputs label { font-size: 11px; color: #888; }
 
-/* Menu Inferior */
-.menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 12px 0; box-shadow: 0 -3px 15px rgba(0,0,0,0.1); }
-.menu-item { flex: 1; display: flex; flex-direction: column; align-items: center; color: #b2bec3; font-size: 11px; }
+.menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 10px 0; border-top: 1px solid #eee; }
+.menu-item { flex: 1; text-align: center; color: #b2bec3; font-size: 11px; display: flex; flex-direction: column; }
 .menu-item.active { color: var(--nubank); }
-.menu-item i { font-size: 20px; margin-bottom: 3px; }
+.menu-item i { font-size: 20px; }
 
-/* UI Progress */
-.progress-bg { background: rgba(0,0,0,0.05); height: 8px; border-radius: 10px; margin: 8px 0; overflow: hidden; }
-.progress-fill { height: 100%; transition: 0.6s; }
+.progress-bg { background: rgba(0,0,0,0.1); height: 6px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
+.progress-fill { height: 100%; background: white; transition: 0.5s; }
 
-input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-.btn-main { width: 100%; padding: 15px; background: #1e272e; color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; }
-.btn-danger { width: 100%; padding: 12px; background: none; color: var(--perigo); border: 1px solid var(--perigo); border-radius: 10px; font-size: 12px; margin-top: 20px; }
+input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px; box-sizing: border-box; }
+.input-inline { width: 100px; padding: 5px; text-align: right; }
+.btn-main { width: 100%; padding: 12px; background: #1e272e; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
 
-.item-gasto { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-.pill { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #ddd; background: white; font-weight: bold; font-size: 12px; }
-.pill.active { background: var(--nubank); color: white; border-color: var(--nubank); }
-.btn-delete { color: var(--perigo); margin-left: 10px; padding: 5px; }
+.item-gasto { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
+.btn-del { color: var(--perigo); margin-left: 10px; cursor: pointer; }
+
+.pie-container { display: flex; height: 15px; border-radius: 4px; overflow: hidden; margin: 10px 0; background: #eee; }
+.pie-slice { height: 100%; }
+.legendas { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 10px; }
+
+.pill { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid #ddd; background: white; font-size: 12px; }
+.pill.active { background: var(--nubank); color: white; }
+.selector-pills { display: flex; gap: 5px; margin-bottom: 10px; }
