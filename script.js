@@ -1,9 +1,9 @@
-let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v19')) || {};
-let db = JSON.parse(localStorage.getItem('ecoDB_v20')) || {
+let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v20')) || {};
+let db = JSON.parse(localStorage.getItem('ecoDB_v21')) || {
     contas: dbAntigo.contas || [
-        { id: 'c_nu_mov', nome: 'Nubank (Conta)', tipo: 'movimentacao', saldo: 0, cor: '#8a05be' },
-        { id: 'c_nu_cred', nome: 'Nubank (Crédito)', tipo: 'cartao', meta: 1100, limite: 5000, fechamento: 5, vencimento: 10, cor: '#8a05be' },
-        { id: 'c_mp_inv', nome: 'Caixinha Nubank', tipo: 'investimento', saldo: 0, cor: '#8a05be' }
+        { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' },
+        { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' },
+        { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }
     ],
     lancamentos: dbAntigo.lancamentos || [],
     faturasPagas: dbAntigo.faturasPagas || []
@@ -66,33 +66,28 @@ function atualizarRegrasLancamento() {
 
     if(!conta) return;
 
-    // --- NOVA LÓGICA DE TROCA AUTOMÁTICA (Sem Alertas Chatos) ---
+    // Lógica inteligente de troca silenciosa
     let precisaTrocar = false;
     let tipoAlvo = null;
 
     if (conta.tipo === 'cartao' && !['despesa', 'emp_cartao'].includes(tipoLancamento)) {
-        precisaTrocar = true;
-        tipoAlvo = 'movimentacao'; // Se for receita/empréstimo, muda para conta corrente
+        precisaTrocar = true; tipoAlvo = 'movimentacao';
     } else if (conta.tipo !== 'cartao' && tipoLancamento === 'emp_cartao') {
-        precisaTrocar = true;
-        tipoAlvo = 'cartao'; // Se for empréstimo de cartão, muda para um cartão
+        precisaTrocar = true; tipoAlvo = 'cartao';
     }
 
     if (precisaTrocar) {
         let novaConta = db.contas.find(c => c.tipo === tipoAlvo);
-        // Se não achar conta corrente, tenta qualquer uma que não seja cartão
         if (!novaConta && tipoAlvo === 'movimentacao') novaConta = db.contas.find(c => c.tipo !== 'cartao');
         
         if (novaConta) {
             contaSelect.value = novaConta.id;
-            conta = novaConta; // Atualiza a variável local para continuar a lógica
+            conta = novaConta; 
         } else {
-            alert("Você não possui uma conta compatível criada para este tipo de lançamento.");
             document.getElementById('lanc-tipo').value = 'despesa';
             return atualizarRegrasLancamento();
         }
     }
-    // ------------------------------------------------------------
 
     const formaSelect = document.getElementById('lanc-forma');
     formaSelect.innerHTML = "";
@@ -179,7 +174,7 @@ function alternarPagamentoFatura(faturaID) {
     save();
 }
 
-function save() { localStorage.setItem('ecoDB_v20', JSON.stringify(db)); render(); }
+function save() { localStorage.setItem('ecoDB_v21', JSON.stringify(db)); render(); }
 
 function render() {
     const hoje = new Date();
@@ -251,47 +246,48 @@ function renderAbaContas() {
 
 function renderAbaConfig() {
     const lista = document.getElementById('lista-contas-edit');
-    if(!lista) return;
-    lista.innerHTML = "";
-    db.contas.forEach(c => {
-        let camposExtras = '';
-        if(c.tipo === 'cartao') {
-            camposExtras = `
-                <div class="grid-inputs" style="margin-top:10px;">
-                    <div><label>Limite Total</label><input type="number" id="edit-limite-${c.id}" value="${c.limite}"></div>
-                    <div><label>Meta Limite</label><input type="number" id="edit-meta-${c.id}" value="${c.meta}"></div>
-                </div>
-                <div class="grid-inputs">
-                    <div><label>Dia Fechamento</label><input type="number" id="edit-fecha-${c.id}" value="${c.fechamento}"></div>
-                    <div><label>Dia Vencimento</label><input type="number" id="edit-venc-${c.id}" value="${c.vencimento}"></div>
-                </div>
-            `;
-        } else {
-            camposExtras = `
-                <div class="grid-inputs" style="margin-top:10px;">
-                    <div><label>Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" value="${c.saldo}"></div>
-                </div>
-            `;
-        }
+    if(lista) {
+        lista.innerHTML = "";
+        db.contas.forEach(c => {
+            let camposExtras = c.tipo === 'cartao' 
+                ? `<div class="grid-inputs" style="margin-top:10px;"><div><label>Limite</label><input type="number" id="edit-limite-${c.id}" value="${c.limite}"></div><div><label>Meta</label><input type="number" id="edit-meta-${c.id}" value="${c.meta}"></div></div><div class="grid-inputs"><div><label>Fecha</label><input type="number" id="edit-fecha-${c.id}" value="${c.fechamento}"></div><div><label>Vence</label><input type="number" id="edit-venc-${c.id}" value="${c.vencimento}"></div></div>` 
+                : `<div class="grid-inputs" style="margin-top:10px;"><div><label>Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" value="${c.saldo}"></div></div>`;
 
-        lista.innerHTML += `
-        <div class="conta-edit-box" style="border-left: 5px solid ${c.cor};">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>${c.nome} <small style="color:#888;">(${c.tipo})</small></strong>
-                <div>
-                    <button class="btn-lapis" onclick="toggleEditConta('${c.id}')"><i class="fas fa-pencil-alt"></i></button>
-                    <button class="btn-del" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
+            lista.innerHTML += `
+            <div class="conta-edit-box" style="border-left: 5px solid ${c.cor};">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong>${c.nome} <small style="color:#888;">(${c.tipo})</small></strong>
+                    <div><button class="btn-lapis" onclick="toggleEditConta('${c.id}')"><i class="fas fa-pencil-alt"></i></button>
+                    <button class="btn-del" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button></div>
                 </div>
-            </div>
-            <div id="form-edit-${c.id}" class="painel-edit">
-                <label>Nome da Conta</label><input type="text" id="edit-nome-${c.id}" value="${c.nome}">
-                ${camposExtras}
-                <label style="margin-top:10px;">Cor</label>
-                <input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="height:40px; padding:0; border:none; border-radius:8px;">
-                <button class="btn-main" onclick="salvarEdicaoConta('${c.id}')" style="background:var(--sucesso); margin-top:10px;">SALVAR ALTERAÇÕES</button>
-            </div>
-        </div>`;
-    });
+                <div id="form-edit-${c.id}" class="painel-edit">
+                    <label>Nome</label><input type="text" id="edit-nome-${c.id}" value="${c.nome}">
+                    ${camposExtras}
+                    <label style="margin-top:10px;">Cor</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="height:40px; padding:0; border:none; border-radius:8px;">
+                    <button class="btn-main" onclick="salvarEdicaoConta('${c.id}')" style="background:var(--sucesso); margin-top:10px;">SALVAR ALTERAÇÕES</button>
+                </div>
+            </div>`;
+        });
+    }
+
+    // Renderizar Histórico de Backups
+    const listaBackups = document.getElementById('lista-backups');
+    if(listaBackups) {
+        let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+        if(historico.length === 0) {
+            listaBackups.innerHTML = "<p style='font-size:12px; color:#999;'>Nenhum backup gerado ainda.</p>";
+        } else {
+            listaBackups.innerHTML = historico.map(b => `
+                <div class="item-backup">
+                    <div class="item-backup-info">
+                        <strong>${b.nome}</strong>
+                        <small>${b.data} | ${b.versao} | ${b.size}</small>
+                    </div>
+                    <button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i> RESTAURAR</button>
+                </div>
+            `).join('');
+        }
+    }
 }
 
 function renderAbaFaturas() {
@@ -303,7 +299,6 @@ function renderAbaFaturas() {
         abas.innerHTML = ""; container.innerHTML = "<p style='text-align:center; padding:20px; color:#999;'>Nenhum cartão cadastrado.</p>";
         return;
     }
-
     if(!cartaoAtivoFatura || !cartoes.find(c => c.id === cartaoAtivoFatura)) cartaoAtivoFatura = cartoes[0].id;
 
     abas.innerHTML = cartoes.map(c => `
@@ -328,7 +323,6 @@ function renderAbaFaturas() {
         const fatID = `${cartao.id}-${mes}`;
         const isPaga = db.faturasPagas.includes(fatID);
         const isFechada = verificaFaturaFechada(mes, cartao.fechamento);
-        
         let statusClass = isPaga ? 'badge-paga' : (isFechada ? 'badge-fechada' : 'badge-aberta');
         let statusTxt = isPaga ? '<i class="fas fa-check"></i> PAGA' : (isFechada ? 'FECHADA' : 'ABERTA');
 
@@ -346,5 +340,76 @@ function renderAbaFaturas() {
     });
 }
 
-function exportarBackup() { const data = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db)); const a = document.createElement('a'); a.href = data; a.download = 'backup_v20.json'; a.click(); }
-function confirmarReset() { if(confirm("Apagar tudo?")) { localStorage.clear(); location.reload(); } }
+// --- SISTEMA DE BACKUP E SEGURANÇA ---
+function exportarBackup() { 
+    const dataStr = JSON.stringify(db);
+    const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+    const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`;
+
+    // Salvar na memória interna (Histórico)
+    let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+    historico.unshift({ id: Date.now(), nome: nomeArquivo, data: dateStr, size: sizeKB, versao: "v21.0", payload: dataStr });
+    if(historico.length > 5) historico.pop(); // Mantém só os últimos 5 para não estourar a memória
+    localStorage.setItem('ecoDB_backups', JSON.stringify(historico));
+
+    // Download do arquivo .json
+    const a = document.createElement('a'); 
+    a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); 
+    a.download = nomeArquivo; 
+    a.click(); 
+    
+    renderAbaConfig();
+    alert("Backup gerado e salvo no histórico local!");
+}
+
+function restaurarBackupLocal(id) {
+    if(confirm("ATENÇÃO: Isso vai substituir os seus dados atuais por este backup. Deseja continuar?")) {
+        let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+        let bkp = historico.find(b => b.id === id);
+        if(bkp) {
+            localStorage.setItem('ecoDB_v21', bkp.payload);
+            alert("Backup restaurado com sucesso!");
+            location.reload();
+        }
+    }
+}
+
+function importarArquivoJSON(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const json = JSON.parse(e.target.result);
+            if(json && json.contas) {
+                localStorage.setItem('ecoDB_v21', JSON.stringify(json));
+                alert("Dados importados com sucesso a partir do arquivo!");
+                location.reload();
+            } else { alert("O arquivo JSON selecionado não é válido para este aplicativo."); }
+        } catch(err) { alert("Erro na leitura do arquivo."); }
+    };
+    reader.readAsText(file);
+}
+
+function confirmarReset() { 
+    const palavra = prompt("⚠️ ZONA DE PERIGO\nPara apagar todos os dados e restaurar as contas padrão, digite a palavra: excluir");
+    if (palavra && palavra.toLowerCase() === "excluir") {
+        const defaultDB = {
+            contas: [
+                { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' },
+                { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' },
+                { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }
+            ],
+            lancamentos: [],
+            faturasPagas: []
+        };
+        // O histórico de backups não é apagado de propósito, caso haja arrependimento.
+        localStorage.setItem('ecoDB_v21', JSON.stringify(defaultDB));
+        alert("Dados limpos! Contas padrão (Conta Padrão, Poupança e Cartão Padrão) foram recriadas.");
+        location.reload();
+    } else if (palavra !== null) {
+        alert("Palavra incorreta. Limpeza cancelada para sua segurança.");
+    }
+}
