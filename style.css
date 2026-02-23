@@ -3,44 +3,39 @@
     --texto: #2d3436; --sucesso: #00b894; --perigo: #d63031;
 }
 
-body { font-family: -apple-system, sans-serif; background: var(--fundo); margin: 0; color: var(--texto); }
+body { font-family: -apple-system, sans-serif; background: var(--fundo); margin: 0; padding-bottom: 70px; }
 .header { background: #1e272e; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
-.header-icons i { margin-left: 15px; cursor: pointer; }
 
-.aba-conteudo { display: none; padding-bottom: 80px; }
-.aba-conteudo.active { display: block; }
+/* Abas Superiores */
+.tabs-cartoes { display: flex; background: #1e272e; border-bottom: 2px solid #34495e; }
+.tab-item { flex: 1; text-align: center; padding: 12px; color: #888; font-weight: bold; font-size: 13px; cursor: pointer; }
+.tab-item.active { color: white; border-bottom: 3px solid var(--nubank); }
+#tab-mp.active { border-bottom-color: var(--mercadopago); }
 
+/* Bloco de Fatura (Accordion) */
+.fatura-bloco { background: white; border-radius: 12px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+.fatura-resumo { padding: 15px; display: flex; flex-direction: column; cursor: pointer; border-left: 6px solid #ccc; }
+.fatura-topo { display: flex; justify-content: space-between; align-items: center; }
+.fatura-detalhes { display: none; padding: 10px 15px; background: #fafafa; border-top: 1px solid #eee; }
+.fatura-detalhes.show { display: block; }
+
+.status-pago { color: var(--sucesso); font-size: 10px; font-weight: bold; }
+.status-aberto { color: var(--perigo); font-size: 10px; font-weight: bold; }
+
+/* Dashboard UI */
 .container { padding: 15px; }
-.card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 .card-resumo { background: linear-gradient(135deg, #6c5ce7, #8a05be); color: white; padding: 20px; border-radius: 18px; }
-
 .grid-resumo { display: flex; gap: 8px; margin-top: 10px; }
-.mini-card { background: white; flex: 1; padding: 10px; border-radius: 10px; text-align: center; }
+.mini-card { background: white; flex: 1; padding: 12px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
 
-.card-fatura { border-left: 6px solid var(--nubank); }
-.config-card summary { font-size: 13px; font-weight: bold; color: #666; cursor: pointer; }
-.grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-.grid-inputs label { font-size: 11px; color: #888; }
-
-.menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 10px 0; border-top: 1px solid #eee; }
+/* Menu Inferior */
+.menu-inferior { position: fixed; bottom: 0; width: 100%; background: white; display: flex; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
 .menu-item { flex: 1; text-align: center; color: #b2bec3; font-size: 11px; display: flex; flex-direction: column; }
 .menu-item.active { color: var(--nubank); }
 .menu-item i { font-size: 20px; }
 
-.progress-bg { background: rgba(0,0,0,0.1); height: 6px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
-.progress-fill { height: 100%; background: white; transition: 0.5s; }
+input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+.btn-main { width: 100%; padding: 15px; background: #1e272e; color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; }
+.btn-danger { width: 100%; background: none; color: var(--perigo); border: 1px solid var(--perigo); padding: 10px; margin-top: 20px; border-radius: 8px; }
 
-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-top: 4px; box-sizing: border-box; }
-.input-inline { width: 100px; padding: 5px; text-align: right; }
-.btn-main { width: 100%; padding: 12px; background: #1e272e; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
-
-.item-gasto { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-.btn-del { color: var(--perigo); margin-left: 10px; cursor: pointer; }
-
-.pie-container { display: flex; height: 15px; border-radius: 4px; overflow: hidden; margin: 10px 0; background: #eee; }
-.pie-slice { height: 100%; }
-.legendas { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 10px; }
-
-.pill { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid #ddd; background: white; font-size: 12px; }
-.pill.active { background: var(--nubank); color: white; }
-.selector-pills { display: flex; gap: 5px; margin-bottom: 10px; }
+.item-lancamento { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
