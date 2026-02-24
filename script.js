@@ -1,15 +1,17 @@
 // Registra o plugin de texto no Gráfico
 Chart.register(ChartDataLabels);
 
-let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v22')) || {};
-let db = JSON.parse(localStorage.getItem('ecoDB_v23')) || {
+// Migra os dados da versão 23 para a 25 e adiciona a nova tabela "recorrencias"
+let dbAntigo = JSON.parse(localStorage.getItem('ecoDB_v23')) || {};
+let db = JSON.parse(localStorage.getItem('ecoDB_v25')) || {
     contas: dbAntigo.contas || [
         { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' },
         { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' },
         { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }
     ],
     lancamentos: dbAntigo.lancamentos || [],
-    faturasPagas: dbAntigo.faturasPagas || []
+    faturasPagas: dbAntigo.faturasPagas || [],
+    recorrencias: dbAntigo.recorrencias || [] // NOVA TABELA DE GASTOS FIXOS
 };
 
 let cartaoAtivoFatura = null;
@@ -29,21 +31,90 @@ window.onload = () => {
     const hoje = new Date();
     document.getElementById('lanc-data').valueAsDate = hoje;
     document.getElementById('filtro-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+    
     populaSelectContas();
     atualizarRegrasLancamento();
+    
+    // RODA O MOTOR DE LANÇAMENTOS FIXOS
+    processarRecorrencias();
+    
     render();
 };
+
+// ==========================================
+// MOTOR DE RECORRÊNCIA (NOVO)
+// ==========================================
+
+function processarRecorrencias() {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1;
+    let gerouNovo = false;
+
+    db.recorrencias.forEach(rec => {
+        let [anoUltimo, mesUltimo] = rec.ultimoMesGerado.split('-').map(Number);
+        
+        // Se o mês gerado estiver atrás do mês atual, ele gera para os meses faltantes
+        while (anoUltimo < anoAtual || (anoUltimo === anoAtual && mesUltimo < mesAtual)) {
+            mesUltimo++;
+            if (mesUltimo > 12) { mesUltimo = 1; anoUltimo++; }
+            
+            const mesStr = mesUltimo.toString().padStart(2, '0');
+            const dataLancamento = ajustarDataDia(anoUltimo, mesUltimo, rec.diaVencimento);
+            
+            const novoLancamento = {
+                id: Date.now() + Math.random(),
+                data: dataLancamento,
+                tipo: rec.tipo,
+                contaId: rec.contaId,
+                forma: rec.forma,
+                desc: rec.desc + " (Fixo)", // Etiqueta para o histórico
+                valor: rec.valor,
+                cat: rec.cat
+            };
+            
+            db.lancamentos.push(novoLancamento);
+            
+            // Atualiza Saldo
+            const conta = db.contas.find(c => c.id === rec.contaId);
+            if (conta && conta.tipo !== 'cartao') {
+                if (['receita', 'emp_pessoal', 'compensacao'].includes(rec.tipo)) conta.saldo += rec.valor;
+                if (['despesa', 'emp_concedido'].includes(rec.tipo)) conta.saldo -= rec.valor;
+            }
+            
+            rec.ultimoMesGerado = `${anoUltimo}-${mesStr}`;
+            gerouNovo = true;
+        }
+    });
+
+    if (gerouNovo) save(); // Se gerou lançamentos novos, salva no banco.
+}
+
+function ajustarDataDia(ano, mes, diaVencimentoOriginal) {
+    const ultimoDiaDoMes = new Date(ano, mes, 0).getDate();
+    const diaReal = diaVencimentoOriginal > ultimoDiaDoMes ? ultimoDiaDoMes : diaVencimentoOriginal;
+    return `${ano}-${mes.toString().padStart(2, '0')}-${diaReal.toString().padStart(2, '0')}`;
+}
+
+function excluirRecorrencia(idRecorrencia) {
+    if(!confirm("Cancelar este lançamento fixo? (Os lançamentos passados continuarão no histórico)")) return;
+    db.recorrencias = db.recorrencias.filter(r => r.id !== idRecorrencia);
+    save();
+    alert("Lançamento fixo cancelado!");
+}
+
+// ==========================================
+// FUNÇÕES GERAIS E INTERFACE
+// ==========================================
 
 function toggleDarkMode() {
     const body = document.body;
     const icone = document.getElementById('btn-theme');
     body.classList.toggle('dark-mode');
     if (body.classList.contains('dark-mode')) {
-        localStorage.setItem('ecoTheme', 'dark'); 
-        icone.classList.replace('fa-moon', 'fa-sun');
+        localStorage.setItem('ecoTheme', 'dark'); icone.classList.replace('fa-moon', 'fa-sun');
     } else {
-        localStorage.setItem('ecoTheme', 'light'); 
-        icone.classList.replace('fa-sun', 'fa-moon');
+        localStorage.setItem('ecoTheme', 'light'); icone.classList.replace('fa-sun', 'fa-moon');
     }
     renderGrafico();
 }
@@ -116,6 +187,7 @@ function atualizarRegrasLancamento() {
     }
 }
 
+// MODIFICADA: Adicionada lógica para salvar Recorrência
 function adicionarLancamento() {
     const data = document.getElementById('lanc-data').value;
     const tipo = document.getElementById('lanc-tipo').value;
@@ -124,18 +196,37 @@ function adicionarLancamento() {
     const desc = document.getElementById('lanc-desc').value;
     const valor = parseFloat(document.getElementById('lanc-valor').value);
     const cat = document.getElementById('lanc-cat').value;
+    const isFixo = document.getElementById('lanc-fixo').checked;
 
     if(!desc || isNaN(valor) || !data) return alert("Preencha todos os dados.");
 
     const conta = db.contas.find(c => c.id === contaId);
+    
+    // 1. Salva o Lançamento Normal
     if (conta.tipo !== 'cartao') {
         if (['receita', 'emp_pessoal', 'compensacao'].includes(tipo)) conta.saldo += valor;
         if (['despesa', 'emp_concedido'].includes(tipo)) conta.saldo -= valor;
     }
-
     db.lancamentos.push({ id: Date.now(), data, tipo, contaId, forma, desc, valor, cat });
-    save(); alert("Lançamento Registrado!");
-    document.getElementById('lanc-desc').value = ""; document.getElementById('lanc-valor').value = "";
+
+    // 2. Salva na Tabela de Recorrências (Se o checkbox foi marcado)
+    if (isFixo) {
+        const [anoStr, mesStr, diaStr] = data.split('-');
+        db.recorrencias.push({
+            id: Date.now() + 1,
+            diaVencimento: parseInt(diaStr),
+            tipo, contaId, forma, desc, valor, cat,
+            ultimoMesGerado: `${anoStr}-${mesStr}` // Salva o mês atual como "já gerado"
+        });
+    }
+
+    save(); 
+    alert(isFixo ? "Lançamento e Recorrência Salvos!" : "Lançamento Registrado!");
+    
+    // Reseta Form
+    document.getElementById('lanc-desc').value = ""; 
+    document.getElementById('lanc-valor').value = "";
+    document.getElementById('lanc-fixo').checked = false;
 }
 
 function excluirLancamento(idLancamento) {
@@ -172,8 +263,6 @@ function salvarEdicaoLancamento(idLancamento) {
     save(); renderHistorico(); alert("Lançamento atualizado e saldos corrigidos!");
 }
 
-// === AS FUNÇÕES QUE ESTAVAM FALTANDO VOLTARAM AQUI ===
-
 function criarConta() {
     const nome = document.getElementById('nova-conta-nome').value;
     const tipo = document.getElementById('nova-conta-tipo').value;
@@ -191,8 +280,6 @@ function criarConta() {
     save(); 
     populaSelectContas(); 
     alert("Conta criada com sucesso!");
-    
-    // Limpar os campos após criar
     document.getElementById('nova-conta-nome').value = "";
 }
 
@@ -209,31 +296,28 @@ function salvarEdicaoConta(id) {
     } else {
         conta.saldo = parseFloat(document.getElementById(`edit-saldo-${id}`).value) || 0;
     }
-    toggleEditConta(id); 
-    save(); 
-    populaSelectContas(); 
-    alert("Conta atualizada!");
+    toggleEditConta(id); save(); populaSelectContas(); alert("Conta atualizada!");
 }
 
 function excluirConta(id) {
     if(confirm("Excluir esta conta e todos os seus lançamentos permanentemente?")) {
         db.contas = db.contas.filter(c => c.id !== id);
         db.lancamentos = db.lancamentos.filter(l => l.contaId !== id);
-        save(); 
-        populaSelectContas();
+        save(); populaSelectContas();
     }
 }
 
 function alternarPagamentoFatura(faturaID) {
     const idx = db.faturasPagas.indexOf(faturaID);
-    if(idx > -1) db.faturasPagas.splice(idx, 1);
-    else db.faturasPagas.push(faturaID);
+    if(idx > -1) db.faturasPagas.splice(idx, 1); else db.faturasPagas.push(faturaID);
     save();
 }
 
-// =======================================================
+function save() { localStorage.setItem('ecoDB_v25', JSON.stringify(db)); render(); }
 
-function save() { localStorage.setItem('ecoDB_v23', JSON.stringify(db)); render(); }
+// ==========================================
+// RENDERIZAÇÃO
+// ==========================================
 
 function render() {
     const hoje = new Date();
@@ -263,8 +347,7 @@ function render() {
             const isFechada = verificaFaturaFechada(mesFatura, conta.fechamento);
 
             if (!isPaga && (l.tipo === 'despesa' || l.tipo === 'emp_cartao')) {
-                if (isFechada) calc.fatFechada += l.valor;
-                else calc.fatAberta += l.valor;
+                if (isFechada) calc.fatFechada += l.valor; else calc.fatAberta += l.valor;
             }
             if (mesFatura === getMesFatura(hoje.toISOString().split('T')[0], conta.fechamento) && l.tipo === 'despesa') {
                 calc.usoMetaCartao += l.valor;
@@ -299,23 +382,17 @@ function renderGrafico() {
     db.lancamentos.forEach(l => {
         if(l.data.substring(0,7) === mesCorrente && l.tipo === 'despesa') {
             const cat = l.cat || 'Outros';
-            if(!dadosGasto[cat]) dadosGasto[cat] = 0;
-            dadosGasto[cat] += l.valor;
+            if(!dadosGasto[cat]) dadosGasto[cat] = 0; dadosGasto[cat] += l.valor;
         }
     });
 
-    const labels = Object.keys(dadosGasto);
-    const data = Object.values(dadosGasto);
+    const labels = Object.keys(dadosGasto); const data = Object.values(dadosGasto);
     const corTexto = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#2d3436';
 
     if(meuGrafico) meuGrafico.destroy();
 
     if(labels.length === 0) {
-        meuGrafico = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: ['Sem gastos'], datasets: [{ data: [1], backgroundColor: ['#cccccc'] }] },
-            options: { plugins: { legend: { display: false }, datalabels: { display: false } }, responsive: true, maintainAspectRatio: false }
-        });
+        meuGrafico = new Chart(ctx, { type: 'doughnut', data: { labels: ['Sem gastos'], datasets: [{ data: [1], backgroundColor: ['#cccccc'] }] }, options: { plugins: { legend: { display: false }, datalabels: { display: false } }, responsive: true, maintainAspectRatio: false } });
         return;
     }
 
@@ -323,28 +400,8 @@ function renderGrafico() {
 
     meuGrafico = new Chart(ctx, {
         type: 'doughnut',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: cores.slice(0, labels.length),
-                borderWidth: document.body.classList.contains('dark-mode') ? 0 : 2
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            layout: { padding: 20 },
-            plugins: {
-                legend: { position: 'right', labels: { color: corTexto, font: { size: 11 } } },
-                datalabels: {
-                    color: '#fff',
-                    font: { weight: 'bold', size: 10 },
-                    formatter: (value) => 'R$ ' + value.toFixed(2).replace('.', ','),
-                    align: 'center', anchor: 'center',
-                    textStrokeColor: 'rgba(0,0,0,0.5)', textStrokeWidth: 2
-                }
-            }
-        }
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: cores.slice(0, labels.length), borderWidth: document.body.classList.contains('dark-mode') ? 0 : 2 }] },
+        options: { responsive: true, maintainAspectRatio: false, layout: { padding: 20 }, plugins: { legend: { position: 'right', labels: { color: corTexto, font: { size: 11 } } }, datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: (value) => 'R$ ' + value.toFixed(2).replace('.', ','), align: 'center', anchor: 'center', textStrokeColor: 'rgba(0,0,0,0.5)', textStrokeWidth: 2 } } }
     });
 }
 
@@ -376,7 +433,7 @@ function renderHistorico() {
             <div class="item-linha" style="border:none; padding:0;">
                 <div class="hist-info">
                     <b style="color:var(--texto-main); font-size:14px;">${l.desc}</b>
-                    <small style="color:var(--texto-sec);">${l.data.split('-').reverse().join('/')} • ${conta ? conta.nome : 'Conta Excluída'} • ${l.cat || 'Sem Categoria'}</small>
+                    <small style="color:var(--texto-sec);">${l.data.split('-').reverse().join('/')} • ${conta ? conta.nome : 'Excluída'} • ${l.cat || 'Sem Categoria'}</small>
                 </div>
                 <div style="text-align: right;">
                     <b style="color: ${corValor}; display:block;">${sinal} R$ ${l.valor.toFixed(2)}</b>
@@ -387,10 +444,7 @@ function renderHistorico() {
                 </div>
             </div>
             <div id="edit-lanc-${l.id}" class="edit-lanc-box">
-                <div class="grid-inputs">
-                    <input type="date" id="e-lanc-data-${l.id}" value="${l.data}">
-                    <input type="number" id="e-lanc-val-${l.id}" value="${l.valor}">
-                </div>
+                <div class="grid-inputs"><input type="date" id="e-lanc-data-${l.id}" value="${l.data}"><input type="number" id="e-lanc-val-${l.id}" value="${l.valor}"></div>
                 <input type="text" id="e-lanc-desc-${l.id}" value="${l.desc}" style="margin-bottom:10px;">
                 <select id="e-lanc-cat-${l.id}">
                     <option value="${l.cat}">${l.cat} (Atual)</option>
@@ -409,36 +463,19 @@ function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos');
     if(!lista) return;
 
-    lista.innerHTML = `<h3><i class="fas fa-exchange-alt"></i> Contas de Movimentação e Investimento</h3>
-    <p style="font-size:11px; color:var(--texto-sec); margin-bottom:15px;">Clique em uma conta para ver as movimentações recentes.</p>`;
+    lista.innerHTML = `<h3><i class="fas fa-exchange-alt"></i> Contas de Movimentação e Investimento</h3>`;
 
     db.contas.filter(c => c.tipo !== 'cartao').forEach(c => {
         const lancConta = db.lancamentos.filter(l => l.contaId === c.id).sort((a,b) => new Date(b.data) - new Date(a.data));
-        
         lista.innerHTML += `
         <div class="conta-bloco">
             <div class="conta-resumo" style="border-left-color:${c.cor}" onclick="toggleFatura('det-conta-${c.id}')">
-                <div>
-                    <strong style="font-size:16px; color:var(--texto-main);">${c.nome}</strong>
-                    <div style="font-size:11px; color:var(--texto-sec);">${c.tipo === 'movimentacao' ? 'Conta Corrente' : 'Poupança/Investimento'}</div>
-                </div>
-                <div style="text-align:right;">
-                    <b style="font-size:16px; color:${c.tipo === 'movimentacao' ? 'var(--texto-main)' : 'var(--azul)'};">R$ ${c.saldo.toFixed(2)}</b>
-                </div>
+                <div><strong style="font-size:16px; color:var(--texto-main);">${c.nome}</strong><div style="font-size:11px; color:var(--texto-sec);">${c.tipo}</div></div>
+                <div style="text-align:right;"><b style="font-size:16px; color:${c.tipo === 'movimentacao' ? 'var(--texto-main)' : 'var(--azul)'};">R$ ${c.saldo.toFixed(2)}</b></div>
             </div>
             <div class="conta-detalhes" id="det-conta-${c.id}">
                 ${lancConta.length === 0 ? `<div style="text-align:center; padding:10px; color:var(--texto-sec); font-size:12px;">Sem lançamentos</div>` : 
-                lancConta.map(l => {
-                    const sinal = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? '-' : '+';
-                    const cor = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? 'var(--perigo)' : 'var(--sucesso)';
-                    return `<div class="item-linha">
-                                <div style="display:flex; flex-direction:column;">
-                                    <span style="color:var(--texto-main); font-weight: bold;">${l.desc}</span>
-                                    <small style="color:var(--texto-sec); font-size: 11px;">${l.data.split('-').reverse().join('/')} • ${l.cat || 'Sem Categoria'}</small>
-                                </div>
-                                <b style="color:${cor};">${sinal} R$ ${l.valor.toFixed(2)}</b>
-                            </div>`
-                }).join('')}
+                lancConta.map(l => `<div class="item-linha"><div style="display:flex; flex-direction:column;"><span style="color:var(--texto-main); font-weight: bold;">${l.desc}</span><small style="color:var(--texto-sec); font-size: 11px;">${l.data.split('-').reverse().join('/')}</small></div><b style="color:${(l.tipo==='despesa'||l.tipo==='emp_concedido')?'var(--perigo)':'var(--sucesso)'};">${(l.tipo==='despesa'||l.tipo==='emp_concedido')?'-':'+'} R$ ${l.valor.toFixed(2)}</b></div>`).join('')}
             </div>
         </div>`;
     });
@@ -449,17 +486,10 @@ function renderAbaFaturas() {
     const abas = document.getElementById('abas-cartoes-fatura');
     const container = document.getElementById('lista-faturas-agrupadas');
     
-    if(cartoes.length === 0) {
-        abas.innerHTML = ""; container.innerHTML = "<p style='text-align:center; padding:20px; color:var(--texto-sec);'>Nenhum cartão cadastrado.</p>";
-        return;
-    }
+    if(cartoes.length === 0) { abas.innerHTML = ""; container.innerHTML = "<p style='text-align:center; padding:20px; color:var(--texto-sec);'>Nenhum cartão cadastrado.</p>"; return; }
     if(!cartaoAtivoFatura || !cartoes.find(c => c.id === cartaoAtivoFatura)) cartaoAtivoFatura = cartoes[0].id;
 
-    abas.innerHTML = cartoes.map(c => `
-        <button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" 
-        style="${c.id === cartaoAtivoFatura ? 'border-top: 4px solid '+c.cor+';' : ''}" 
-        onclick="cartaoAtivoFatura='${c.id}'; render();">${c.nome}</button>
-    `).join('');
+    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" style="${c.id === cartaoAtivoFatura ? 'border-top: 4px solid '+c.cor+';' : ''}" onclick="cartaoAtivoFatura='${c.id}'; render();">${c.nome}</button>`).join('');
 
     const cartao = cartoes.find(c => c.id === cartaoAtivoFatura);
     const lancCartao = db.lancamentos.filter(l => l.contaId === cartao.id);
@@ -468,8 +498,7 @@ function renderAbaFaturas() {
     lancCartao.forEach(l => {
         const mesFatura = getMesFatura(l.data, cartao.fechamento);
         if(!agrupado[mesFatura]) agrupado[mesFatura] = { total: 0, itens: [] };
-        agrupado[mesFatura].total += l.valor;
-        agrupado[mesFatura].itens.push(l);
+        agrupado[mesFatura].total += l.valor; agrupado[mesFatura].itens.push(l);
     });
 
     container.innerHTML = "";
@@ -480,30 +509,44 @@ function renderAbaFaturas() {
         let statusClass = isPaga ? 'badge-paga' : (isFechada ? 'badge-fechada' : 'badge-aberta');
         let statusTxt = isPaga ? '<i class="fas fa-check"></i> PAGA' : (isFechada ? 'FECHADA' : 'ABERTA');
         
-        let tituloFatura = formatarMesFatura(mes); 
-
         container.innerHTML += `
         <div class="fatura-bloco">
             <div class="fatura-resumo" style="border-left-color:${cartao.cor}" onclick="toggleFatura('det-${mes}')">
-                <div><strong style="font-size:16px; color:var(--texto-main); text-transform: capitalize;">${tituloFatura}</strong><div style="font-size:11px; color:var(--texto-sec);">Vence dia ${cartao.vencimento}</div></div>
+                <div><strong style="font-size:16px; color:var(--texto-main); text-transform: capitalize;">${formatarMesFatura(mes)}</strong><div style="font-size:11px; color:var(--texto-sec);">Vence dia ${cartao.vencimento}</div></div>
                 <div style="text-align:right;"><b style="font-size:16px; display:block; margin-bottom:5px; color:var(--texto-main);">R$ ${agrupado[mes].total.toFixed(2)}</b>
                 <span class="badge-status ${statusClass}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${statusTxt}</span></div>
             </div>
             <div class="fatura-detalhes" id="det-${mes}">
-                ${agrupado[mes].itens.map(i => `
-                <div class="item-linha">
-                    <div style="display:flex; flex-direction:column;">
-                        <span style="color:var(--texto-main); font-weight: bold;">${i.desc}</span>
-                        <small style="color:var(--texto-sec); font-size: 11px;">${i.data.split('-').reverse().join('/')} • ${i.cat || 'Sem Categoria'} ${i.tipo === 'emp_cartao' ? '<br>(Empréstimo de Cartão)' : ''}</small>
-                    </div>
-                    <b style="color:var(--texto-main);">R$ ${i.valor.toFixed(2)}</b>
-                </div>`).join('')}
+                ${agrupado[mes].itens.map(i => `<div class="item-linha"><div style="display:flex; flex-direction:column;"><span style="color:var(--texto-main); font-weight: bold;">${i.desc}</span><small style="color:var(--texto-sec); font-size: 11px;">${i.data.split('-').reverse().join('/')}</small></div><b style="color:var(--texto-main);">R$ ${i.valor.toFixed(2)}</b></div>`).join('')}
             </div>
         </div>`;
     });
 }
 
 function renderAbaConfig() {
+    // Renderiza Lista de Recorrências
+    const listaRec = document.getElementById('lista-recorrencias-edit');
+    if(listaRec) {
+        if(db.recorrencias.length === 0) {
+            listaRec.innerHTML = "<p style='text-align:center; font-size:12px; color:var(--texto-sec); padding: 10px;'>Nenhum lançamento fixo cadastrado.</p>";
+        } else {
+            listaRec.innerHTML = db.recorrencias.map(r => {
+                const cor = (r.tipo === 'despesa') ? 'var(--perigo)' : 'var(--sucesso)';
+                return `
+                <div class="item-recorrencia">
+                    <div class="info">
+                        <b>${r.desc} <span class="badge-recorrencia">Todo dia ${r.diaVencimento}</span></b>
+                        <small>Gerado até: ${formatarMesFatura(r.ultimoMesGerado)}</small>
+                    </div>
+                    <div>
+                        <div class="valor" style="color:${cor}; margin-bottom: 5px;">R$ ${r.valor.toFixed(2)}</div>
+                        <button class="btn-del" onclick="excluirRecorrencia(${r.id})" style="float: right; font-size: 12px;"><i class="fas fa-trash"></i> Cancelar Fixo</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+
     const lista = document.getElementById('lista-contas-edit');
     if(lista) {
         lista.innerHTML = "";
@@ -531,108 +574,34 @@ function renderAbaConfig() {
     const listaBackups = document.getElementById('lista-backups');
     if(listaBackups) {
         let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-        if(historico.length === 0) {
-            listaBackups.innerHTML = "<p style='font-size:12px; color:var(--texto-sec);'>Nenhum backup gerado ainda.</p>";
-        } else {
+        if(historico.length === 0) { listaBackups.innerHTML = "<p style='font-size:12px; color:var(--texto-sec);'>Nenhum backup gerado ainda.</p>"; } 
+        else {
             listaBackups.innerHTML = historico.map(b => `
                 <div class="item-backup">
-                    <div class="item-backup-info">
-                        <strong>${b.nome}</strong>
-                        <small>${b.data} | ${b.versao} | ${b.size}</small>
-                    </div>
-                    <div>
-                        <button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})" title="Restaurar"><i class="fas fa-undo"></i></button>
-                        <button class="btn-excluir-bkp" onclick="excluirBackupLocal(${b.id})" title="Apagar do Histórico"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('');
+                    <div class="item-backup-info"><strong>${b.nome}</strong><small>${b.data} | ${b.versao} | ${b.size}</small></div>
+                    <div><button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})" title="Restaurar"><i class="fas fa-undo"></i></button><button class="btn-excluir-bkp" onclick="excluirBackupLocal(${b.id})" title="Apagar"><i class="fas fa-trash"></i></button></div>
+                </div>`).join('');
         }
     }
 }
 
 function excluirBackupLocal(id) {
-    if(confirm("Tem certeza que deseja apagar este backup do histórico do app? (Lembre-se de apagá-lo também da sua pasta de Downloads do celular se não for mais usá-lo)")) {
+    if(confirm("Tem certeza que deseja apagar este backup do histórico local?")) {
         let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
         historico = historico.filter(b => b.id !== id);
-        localStorage.setItem('ecoDB_backups', JSON.stringify(historico));
-        renderAbaConfig();
+        localStorage.setItem('ecoDB_backups', JSON.stringify(historico)); renderAbaConfig();
     }
 }
 
 function exportarBackup() { 
-    const dataStr = JSON.stringify(db); 
-    const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB";
-    const now = new Date(); 
-    const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`;
-    
+    const dataStr = JSON.stringify(db); const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB";
+    const now = new Date(); const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`;
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    hist.unshift({ 
-        id: Date.now(), 
-        nome: nomeArquivo, 
-        data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), 
-        size: sizeKB, 
-        versao: "v23.3", 
-        payload: dataStr 
-    });
-    
-    if(hist.length > 5) hist.pop(); 
-    localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
-    
-    const a = document.createElement('a'); 
-    a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); 
-    a.download = nomeArquivo; 
-    a.click(); 
-    
-    renderAbaConfig(); 
-    alert("Backup gerado!");
+    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.0", payload: dataStr });
+    if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
+    const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); 
+    renderAbaConfig(); alert("Backup gerado!");
 }
-
-function restaurarBackupLocal(id) { 
-    if(confirm("Substituir dados atuais?")) { 
-        let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
-        let bkp = hist.find(b => b.id === id); 
-        if(bkp) { 
-            localStorage.setItem('ecoDB_v23', bkp.payload); 
-            location.reload(); 
-        } 
-    } 
-}
-
-function importarArquivoJSON(event) { 
-    const file = event.target.files[0]; 
-    if(!file) return; 
-    const reader = new FileReader(); 
-    reader.onload = function(e) { 
-        try { 
-            const json = JSON.parse(e.target.result); 
-            if(json && json.contas) { 
-                localStorage.setItem('ecoDB_v23', JSON.stringify(json)); 
-                location.reload(); 
-            } else {
-                alert("Arquivo inválido."); 
-            }
-        } catch(err) { 
-            alert("Erro de leitura."); 
-        } 
-    }; 
-    reader.readAsText(file); 
-}
-
-function confirmarReset() { 
-    const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite: excluir"); 
-    if (palavra && palavra.toLowerCase() === "excluir") { 
-        const dbPadrao = {
-            contas: [
-                { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' }, 
-                { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' }, 
-                { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }
-            ], 
-            lancamentos: [], 
-            faturasPagas: []
-        };
-        localStorage.setItem('ecoDB_v23', JSON.stringify(dbPadrao)); 
-        location.reload(); 
-    } else if (palavra !== null) {
-        alert("Cancelado."); 
-    } 
-}
+function restaurarBackupLocal(id) { if(confirm("Substituir dados atuais?")) { let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; let bkp = hist.find(b => b.id === id); if(bkp) { localStorage.setItem('ecoDB_v25', bkp.payload); location.reload(); } } }
+function importarArquivoJSON(event) { const file = event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const json = JSON.parse(e.target.result); if(json && json.contas) { localStorage.setItem('ecoDB_v25', JSON.stringify(json)); location.reload(); } else alert("Arquivo inválido."); } catch(err) { alert("Erro de leitura."); } }; reader.readAsText(file); }
+function confirmarReset() { const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite: excluir"); if (palavra && palavra.toLowerCase() === "excluir") { localStorage.setItem('ecoDB_v25', JSON.stringify({contas: [{ id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2980b9' }, { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' }, { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }], lancamentos: [], faturasPagas: [], recorrencias: []})); location.reload(); } }
