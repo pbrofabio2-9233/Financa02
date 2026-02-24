@@ -64,8 +64,7 @@ function confirmarPagamento(idLancamento) {
         if (['despesa', 'emp_concedido'].includes(l.tipo)) c.saldo -= l.valor;
     }
     
-    save(); 
-    alert("Lançamento efetivado com sucesso! O saldo foi atualizado.");
+    save(); // O save chama render(), que agora chama renderHistorico(), atualizando a tela na hora!
 }
 
 // ==========================================
@@ -115,7 +114,7 @@ function ajustarDataDia(ano, mes, diaVencimentoOriginal) {
 
 function excluirRecorrencia(idRecorrencia) {
     if(!confirm("Cancelar lançamento fixo? (Os passados não serão apagados)")) return;
-    db.recorrencias = db.recorrencias.filter(r => r.id !== idRecorrencia); save(); alert("Cancelado!");
+    db.recorrencias = db.recorrencias.filter(r => r.id !== idRecorrencia); save();
 }
 
 // ==========================================
@@ -135,11 +134,9 @@ function navegar(idAba, el) {
     document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
     document.getElementById('aba-' + idAba).classList.add('active');
     
-    // Atualiza menu inferior
     document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
     if(el) el.classList.add('active');
     else {
-        // Fallback caso venha por botão direto
         const mapaId = {'dashboard':0, 'faturas':1, 'historico':2, 'contas':3, 'config':4};
         document.querySelectorAll('.menu-item')[mapaId[idAba]].classList.add('active');
     }
@@ -147,7 +144,6 @@ function navegar(idAba, el) {
     const itemAtivo = document.querySelector('.menu-item.active span');
     if(itemAtivo) document.getElementById('titulo-aba').innerText = itemAtivo.innerText;
     
-    if(idAba === 'historico') renderHistorico(); 
     render();
 }
 
@@ -237,7 +233,7 @@ function excluirLancamento(idLancamento) {
         if (['despesa', 'emp_concedido'].includes(lancamento.tipo)) conta.saldo += lancamento.valor;
     }
     db.lancamentos = db.lancamentos.filter(l => l.id !== idLancamento);
-    save(); renderHistorico(); alert("Excluído!");
+    save();
 }
 
 function salvarEdicaoLancamento(idLancamento) {
@@ -256,14 +252,19 @@ function salvarEdicaoLancamento(idLancamento) {
     }
 
     l.valor = novoValor; l.data = novaData; l.desc = novaDesc; l.cat = document.getElementById(`e-lanc-cat-${idLancamento}`).value;
-    save(); renderHistorico(); alert("Atualizado!");
+    save(); alert("Atualizado!");
 }
 
-// ... Contas (criar, salvar, excluir) ...
 function criarConta() { const n = document.getElementById('nova-conta-nome').value; const t = document.getElementById('nova-conta-tipo').value; if(!n) return; const nc = {id: 'c_'+Date.now(), nome: n, tipo: t, cor: document.getElementById('nova-conta-cor').value, saldo: 0}; if(t === 'cartao'){ nc.limite = parseFloat(document.getElementById('nova-conta-limite').value)||0; nc.meta = parseFloat(document.getElementById('nova-conta-meta').value)||0; nc.fechamento = parseInt(document.getElementById('nova-conta-fecha').value)||1; nc.vencimento = parseInt(document.getElementById('nova-conta-venc').value)||1; } db.contas.push(nc); save(); populaSelectContas(); document.getElementById('nova-conta-nome').value=""; }
 function salvarEdicaoConta(id) { const c = db.contas.find(x=>x.id===id); c.nome = document.getElementById(`edit-nome-${id}`).value; c.cor = document.getElementById(`edit-cor-${id}`).value; if(c.tipo === 'cartao'){ c.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value)||0; c.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value)||0; c.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value)||1; c.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value)||1; } else { c.saldo = parseFloat(document.getElementById(`edit-saldo-${id}`).value)||0; } toggleEditConta(id); save(); populaSelectContas(); }
 function excluirConta(id) { if(confirm("Excluir conta?")){ db.contas = db.contas.filter(c=>c.id!==id); db.lancamentos = db.lancamentos.filter(l=>l.contaId!==id); save(); populaSelectContas(); } }
-function alternarPagamentoFatura(id) { const i = db.faturasPagas.indexOf(id); if(i > -1) db.faturasPagas.splice(i,1); else db.faturasPagas.push(id); save(); }
+
+function alternarPagamentoFatura(id) { 
+    const i = db.faturasPagas.indexOf(id); 
+    if(i > -1) db.faturasPagas.splice(i,1); else db.faturasPagas.push(id); 
+    save(); // O save chama render(), que agora chama o Histórico para atualizar as tags!
+}
+
 function save() { localStorage.setItem('ecoDB_v25', JSON.stringify(db)); render(); }
 
 // ==========================================
@@ -311,7 +312,13 @@ function render() {
     const pMeta = calc.metaTotalCartao > 0 ? (calc.usoMetaCartao / calc.metaTotalCartao) * 100 : 0;
     document.getElementById('meta-bar').style.width = Math.min(pMeta, 100) + "%";
     
-    renderGrafico(); renderAbaContas(); renderAbaConfig(); renderAbaFaturas(); renderRecorrencias();
+    // TODAS AS ABAS AGORA SÃO ATUALIZADAS PARA GARANTIR SINCRONIA VISUAL
+    renderGrafico(); 
+    renderAbaContas(); 
+    renderAbaConfig(); 
+    renderAbaFaturas(); 
+    renderHistorico(); 
+    renderRecorrencias();
 }
 
 function renderGrafico() {
@@ -348,7 +355,6 @@ function renderHistorico() {
         const corValor = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? 'var(--perigo)' : 'var(--sucesso)';
         const sinal = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? '-' : '+';
         
-        // INTELIGÊNCIA DE STATUS (Pendente, Pago, Atrasado)
         let isPendente = false; let isAtrasado = false;
         
         if (c && c.tipo === 'cartao') {
@@ -360,13 +366,13 @@ function renderHistorico() {
                 isPendente = true;
                 const [anoF, mesF] = mesFatura.split('-');
                 const dataVenc = new Date(parseInt(anoF), parseInt(mesF) - 1, c.vencimento);
-                if (hoje > dataVenc) isAtrasado = true; // Se não pagou e já passou o vencimento
+                if (hoje > dataVenc) isAtrasado = true;
             }
         } else {
             if (l.efetivado === false) {
                 isPendente = true;
                 const dtLanc = new Date(l.data + 'T00:00:00');
-                if (dtLanc < hoje) isAtrasado = true; // Se era pra pagar ontem e não clicou em Efetivar
+                if (dtLanc < hoje) isAtrasado = true; 
             }
         }
 
@@ -378,7 +384,6 @@ function renderHistorico() {
         if (isPendente && c && c.tipo !== 'cartao') {
             btnPagar = `<button class="btn-confirmar" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Pagar Agora</button>`;
         } else if (isPendente && c && c.tipo === 'cartao') {
-            // Cartão joga o usuário para a aba faturas
             btnPagar = `<button class="btn-confirmar" style="background:var(--azul);" onclick="navegar('faturas')"><i class="fas fa-file-invoice"></i> Pagar Fatura</button>`;
         }
 
@@ -417,7 +422,6 @@ function renderHistorico() {
 function renderAbaContas() { 
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return; 
     
-    // FILTRO DE MÊS ATIVADO AQUI NA ABA CONTAS TAMBÉM
     const mesFiltro = document.getElementById('filtro-mes').value;
     const mesFormatado = mesFiltro.split('-').reverse().join('/');
     
@@ -465,7 +469,6 @@ function renderAbaFaturas() {
         const isPaga = db.faturasPagas.includes(fatID);
         const isFechada = verificaFaturaFechada(mes, cartao.fechamento);
         
-        // INTELIGÊNCIA: Verifica se a fatura não foi paga e a data de vencimento já passou
         const [anoF, mesF] = mes.split('-');
         const dataVenc = new Date(parseInt(anoF), parseInt(mesF) - 1, cartao.vencimento);
         const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -489,11 +492,37 @@ function renderAbaFaturas() {
 }
 
 function renderRecorrencias() {
+    const containerResumo = document.getElementById('resumo-recorrencias');
     const listaRec = document.getElementById('lista-recorrencias-edit');
-    if(!listaRec) return;
+    if(!listaRec || !containerResumo) return;
+
+    let totalDespesa = 0;
+    let totalReceita = 0;
+
     if(db.recorrencias.length === 0) {
+        containerResumo.innerHTML = "";
         listaRec.innerHTML = "<p style='text-align:center; font-size:12px; color:var(--texto-sec); padding: 10px;'>Nenhum lançamento fixo cadastrado.</p>";
     } else {
+        
+        // MOTOR DE SOMATÓRIO (NOVO)
+        db.recorrencias.forEach(r => {
+            if(r.tipo === 'despesa' || r.tipo === 'emp_concedido') totalDespesa += r.valor;
+            if(r.tipo === 'receita' || r.tipo === 'emp_pessoal' || r.tipo === 'compensacao') totalReceita += r.valor;
+        });
+
+        containerResumo.innerHTML = `
+            <div class="resumo-fixos">
+                <div class="box-resumo-fixo" style="border-color: rgba(39, 174, 96, 0.3);">
+                    <small>Receitas Fixas</small>
+                    <strong class="txt-sucesso">R$ ${totalReceita.toFixed(2)}</strong>
+                </div>
+                <div class="box-resumo-fixo" style="border-color: rgba(231, 76, 60, 0.3);">
+                    <small>Despesas Fixas</small>
+                    <strong class="txt-perigo">R$ ${totalDespesa.toFixed(2)}</strong>
+                </div>
+            </div>
+        `;
+
         listaRec.innerHTML = db.recorrencias.map(r => {
             const cor = (r.tipo === 'despesa') ? 'var(--perigo)' : 'var(--sucesso)';
             return `
@@ -552,6 +581,6 @@ function renderAbaConfig() {
 
 function excluirBackupLocal(id) { if(confirm("Apagar este backup?")) { let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; historico = historico.filter(b => b.id !== id); localStorage.setItem('ecoDB_backups', JSON.stringify(historico)); renderAbaConfig(); } }
 function restaurarBackupLocal(id) { if(confirm("Substituir dados atuais?")) { let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; let bkp = hist.find(b => b.id === id); if(bkp) { localStorage.setItem('ecoDB_v25', bkp.payload); location.reload(); } } }
-function exportarBackup() { const dataStr = JSON.stringify(db); const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB"; const now = new Date(); const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`; let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.2", payload: dataStr }); if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist)); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); renderAbaConfig(); alert("Backup gerado!"); }
+function exportarBackup() { const dataStr = JSON.stringify(db); const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB"; const now = new Date(); const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`; let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.3", payload: dataStr }); if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist)); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); renderAbaConfig(); alert("Backup gerado!"); }
 function importarArquivoJSON(event) { const file = event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const json = JSON.parse(e.target.result); if(json && json.contas) { localStorage.setItem('ecoDB_v25', JSON.stringify(json)); location.reload(); } else alert("Arquivo inválido."); } catch(err) { alert("Erro de leitura."); } }; reader.readAsText(file); }
 function confirmarReset() { const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite: excluir"); if (palavra && palavra.toLowerCase() === "excluir") { localStorage.removeItem('ecoDB_v25'); location.reload(); } }
