@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.3</title>
+    <title>EcoFinance Pro v25.4</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
-    <link rel="stylesheet" href="style.css?v=25.3">
+    <link rel="stylesheet" href="style.css?v=25.4">
 </head>
 <body>
 
@@ -23,6 +23,19 @@
             
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
+                    
+                    <div class="card" id="painel-analista" style="background: var(--header-bg); color: white; border: none;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                            <i class="fas fa-robot" style="font-size: 24px; color: var(--azul);"></i>
+                            <h3 style="margin: 0; font-size: 16px;">Copiloto Financeiro</h3>
+                        </div>
+                        <p id="insight-comparativo" style="font-size: 13px; margin-bottom: 8px; line-height: 1.4; opacity: 0.9;">Analisando seus dados...</p>
+                        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border-left: 3px solid var(--sucesso);">
+                            <small style="opacity: 0.8; display: block; margin-bottom: 4px;">Ritmo Seguro (Pode gastar por dia):</small>
+                            <strong id="insight-ritmo" style="font-size: 16px; color: var(--sucesso);">Calculando...</strong>
+                        </div>
+                    </div>
+
                     <div class="card-resumo">
                         <small>Uso da Meta Mensal (Apenas Gastos Pessoais)</small>
                         <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
@@ -39,10 +52,29 @@
                         <div class="mini-card"><small>Investido</small><p id="dash-investido" class="txt-azul">R$ 0,00</p></div>
                     </div>
 
+                    <div class="card" style="text-align: center; border-left: 4px solid var(--azul);">
+                        <small style="color: var(--texto-sec); display: block; margin-bottom: 5px;"><i class="fas fa-crystal-ball"></i> Projeção para o Fim do Mês</small>
+                        <h3 id="dash-projecao" style="margin: 0; font-size: 20px; color: var(--texto-main);">Calculando...</h3>
+                    </div>
+
                     <div class="card">
                         <h3><i class="fas fa-chart-pie"></i> Gastos por Categoria (Efetivados)</h3>
                         <div style="position: relative; height: 250px; width: 100%; display: flex; justify-content: center; align-items: center;">
                             <canvas id="graficoCategorias"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3 style="margin-bottom: 12px; color: var(--alerta);"><i class="fas fa-exclamation-triangle"></i> Radar de Vencimentos (7 dias)</h3>
+                        <div id="lista-radar-vencimentos">
+                            <p style="text-align: center; font-size: 12px; color: var(--texto-sec);">Tudo tranquilo por aqui.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3><i class="fas fa-chart-line"></i> Evolução de Gastos (Últimos 3 Meses)</h3>
+                        <div style="position: relative; height: 150px; width: 100%;">
+                            <canvas id="graficoEvolucao"></canvas>
                         </div>
                     </div>
 
@@ -106,9 +138,7 @@
                         </div>
                         <div id="content-recorrencias" class="accordion-content">
                             <p style="font-size:11px; color:#888; margin-bottom: 10px;">Estes lançamentos são gerados automaticamente todos os meses.</p>
-                            
                             <div id="resumo-recorrencias" style="margin-bottom: 15px;"></div>
-                            
                             <div id="lista-recorrencias-edit"></div>
                         </div>
                     </div>
@@ -221,6 +251,6 @@
         </nav>
     </div>
 
-    <script src="script.js?v=25.3"></script>
+    <script src="script.js?v=25.4"></script>
 </body>
 </html>
