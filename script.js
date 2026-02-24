@@ -9,7 +9,7 @@ let db = {
         { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#27ae60' },
         { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#8a05be' }
     ],
-    // Migração: Garante que lançamentos antigos nasçam como "efetivados" para não bugar o saldo
+    // Migração: Garante que lançamentos antigos nasçam como "efetivados"
     lancamentos: (dbAntigo.lancamentos || []).map(l => ({...l, efetivado: l.efetivado !== false})),
     faturasPagas: dbAntigo.faturasPagas || [],
     recorrencias: dbAntigo.recorrencias || [] 
@@ -38,7 +38,7 @@ window.onload = () => {
 };
 
 // ==========================================
-// MOTOR DE STATUS E DATA (NOVO)
+// MOTOR DE STATUS E DATA
 // ==========================================
 
 function verificarDataFutura() {
@@ -49,7 +49,6 @@ function verificarDataFutura() {
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     
     const checkboxEfetivado = document.getElementById('lanc-efetivado');
-    // Se a data for no futuro, desmarca automaticamente. Se for hoje ou passado, marca.
     if (dtLanc > hoje) { checkboxEfetivado.checked = false; } 
     else { checkboxEfetivado.checked = true; }
 }
@@ -58,9 +57,8 @@ function confirmarPagamento(idLancamento) {
     const l = db.lancamentos.find(x => x.id === idLancamento);
     if(!l) return;
     
-    l.efetivado = true; // Muda o status
+    l.efetivado = true;
     
-    // Agora sim, o dinheiro sai (ou entra) da conta real
     const c = db.contas.find(x => x.id === l.contaId);
     if(c && c.tipo !== 'cartao') {
         if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) c.saldo += l.valor;
@@ -89,7 +87,6 @@ function processarRecorrencias() {
             const mesStr = mesUltimo.toString().padStart(2, '0');
             const dataLancamento = ajustarDataDia(anoUltimo, mesUltimo, rec.diaVencimento);
             
-            // Recorrências passadas/atuais já nascem efetivadas. No futuro, pendentes.
             const dtLanc = new Date(dataLancamento + 'T00:00:00');
             const isEfetivado = dtLanc <= hoje;
 
@@ -116,8 +113,9 @@ function ajustarDataDia(ano, mes, diaVencimentoOriginal) {
     const diaReal = diaVencimentoOriginal > ultimoDiaDoMes ? ultimoDiaDoMes : diaVencimentoOriginal;
     return `${ano}-${mes.toString().padStart(2, '0')}-${diaReal.toString().padStart(2, '0')}`;
 }
+
 function excluirRecorrencia(idRecorrencia) {
-    if(!confirm("Cancelar lançamento fixo?")) return;
+    if(!confirm("Cancelar lançamento fixo? (Os passados não serão apagados)")) return;
     db.recorrencias = db.recorrencias.filter(r => r.id !== idRecorrencia); save(); alert("Cancelado!");
 }
 
@@ -195,13 +193,12 @@ function adicionarLancamento() {
     const valor = parseFloat(document.getElementById('lanc-valor').value);
     const cat = document.getElementById('lanc-cat').value;
     const isFixo = document.getElementById('lanc-fixo').checked;
-    const efetivado = document.getElementById('lanc-efetivado').checked; // Lê o status
+    const efetivado = document.getElementById('lanc-efetivado').checked; 
 
     if(!desc || isNaN(valor) || !data) return alert("Preencha todos os dados.");
 
     const conta = db.contas.find(c => c.id === contaId);
     
-    // ATUALIZA O SALDO APENAS SE ESTIVER EFETIVADO
     if (conta.tipo !== 'cartao' && efetivado) {
         if (['receita', 'emp_pessoal', 'compensacao'].includes(tipo)) conta.saldo += valor;
         if (['despesa', 'emp_concedido'].includes(tipo)) conta.saldo -= valor;
@@ -214,7 +211,7 @@ function adicionarLancamento() {
         db.recorrencias.push({ id: Date.now() + 1, diaVencimento: parseInt(diaStr), tipo, contaId, forma: document.getElementById('lanc-forma').value, desc, valor, cat, ultimoMesGerado: `${anoStr}-${mesStr}` });
     }
 
-    save(); alert(efetivado ? "Lançamento Registrado!" : "Lançamento Pendente Salvo com Sucesso!");
+    save(); alert(efetivado ? "Lançamento Registrado!" : "Lançamento Pendente Salvo!");
     document.getElementById('lanc-desc').value = ""; document.getElementById('lanc-valor').value = ""; document.getElementById('lanc-fixo').checked = false; verificarDataFutura();
 }
 
@@ -223,7 +220,6 @@ function excluirLancamento(idLancamento) {
     const lancamento = db.lancamentos.find(l => l.id === idLancamento);
     if(!lancamento) return;
     
-    // SÓ DEVOLVE O SALDO SE ELE TIROU/COLOCOU DINHEIRO (ESTAVA EFETIVADO)
     const conta = db.contas.find(c => c.id === lancamento.contaId);
     if(conta && conta.tipo !== 'cartao' && lancamento.efetivado) {
         if (['receita', 'emp_pessoal', 'compensacao'].includes(lancamento.tipo)) conta.saldo -= lancamento.valor;
@@ -242,7 +238,6 @@ function salvarEdicaoLancamento(idLancamento) {
     if(!novaDesc || isNaN(novoValor) || !novaData) return alert("Preencha todos os dados.");
 
     const c = db.contas.find(x => x.id === l.contaId);
-    // SÓ RECALCULA A DIFERENÇA DE SALDO SE O LANÇAMENTO JÁ FOI PAGO
     if(c && c.tipo !== 'cartao' && l.efetivado) {
         const diferenca = novoValor - l.valor;
         if(['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) c.saldo += diferenca;
@@ -253,11 +248,49 @@ function salvarEdicaoLancamento(idLancamento) {
     save(); renderHistorico(); alert("Atualizado!");
 }
 
-// ... Funções de Conta (criar, salvar, excluir) omitidas para brevidade, mantêm-se iguais
-function criarConta() { /* Igual v25 etapa 1 */ const n=document.getElementById('nova-conta-nome').value,t=document.getElementById('nova-conta-tipo').value; if(!n)return; const nc={id:'c_'+Date.now(),nome:n,tipo:t,cor:document.getElementById('nova-conta-cor').value,saldo:0}; if(t==='cartao'){nc.limite=parseFloat(document.getElementById('nova-conta-limite').value)||0;nc.meta=parseFloat(document.getElementById('nova-conta-meta').value)||0;nc.fechamento=parseInt(document.getElementById('nova-conta-fecha').value)||1;nc.vencimento=parseInt(document.getElementById('nova-conta-venc').value)||1;} db.contas.push(nc); save(); populaSelectContas(); document.getElementById('nova-conta-nome').value="";}
-function salvarEdicaoConta(id) { const c=db.contas.find(x=>x.id===id); c.nome=document.getElementById(`edit-nome-${id}`).value; c.cor=document.getElementById(`edit-cor-${id}`).value; if(c.tipo==='cartao'){c.limite=parseFloat(document.getElementById(`edit-limite-${id}`).value)||0; c.meta=parseFloat(document.getElementById(`edit-meta-${id}`).value)||0; c.fechamento=parseInt(document.getElementById(`edit-fecha-${id}`).value)||1; c.vencimento=parseInt(document.getElementById(`edit-venc-${id}`).value)||1;} else {c.saldo=parseFloat(document.getElementById(`edit-saldo-${id}`).value)||0;} toggleEditConta(id); save(); populaSelectContas();}
-function excluirConta(id) { if(confirm("Excluir conta?")){ db.contas=db.contas.filter(c=>c.id!==id); db.lancamentos=db.lancamentos.filter(l=>l.contaId!==id); save(); populaSelectContas();} }
-function alternarPagamentoFatura(id) { const i=db.faturasPagas.indexOf(id); if(i>-1)db.faturasPagas.splice(i,1); else db.faturasPagas.push(id); save(); }
+function criarConta() { 
+    const n = document.getElementById('nova-conta-nome').value;
+    const t = document.getElementById('nova-conta-tipo').value; 
+    if(!n) return; 
+    const nc = {id: 'c_'+Date.now(), nome: n, tipo: t, cor: document.getElementById('nova-conta-cor').value, saldo: 0}; 
+    if(t === 'cartao'){
+        nc.limite = parseFloat(document.getElementById('nova-conta-limite').value)||0;
+        nc.meta = parseFloat(document.getElementById('nova-conta-meta').value)||0;
+        nc.fechamento = parseInt(document.getElementById('nova-conta-fecha').value)||1;
+        nc.vencimento = parseInt(document.getElementById('nova-conta-venc').value)||1;
+    } 
+    db.contas.push(nc); save(); populaSelectContas(); document.getElementById('nova-conta-nome').value="";
+}
+
+function salvarEdicaoConta(id) { 
+    const c = db.contas.find(x=>x.id===id); 
+    c.nome = document.getElementById(`edit-nome-${id}`).value; 
+    c.cor = document.getElementById(`edit-cor-${id}`).value; 
+    if(c.tipo === 'cartao'){
+        c.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value)||0; 
+        c.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value)||0; 
+        c.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value)||1; 
+        c.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value)||1;
+    } else {
+        c.saldo = parseFloat(document.getElementById(`edit-saldo-${id}`).value)||0;
+    } 
+    toggleEditConta(id); save(); populaSelectContas();
+}
+
+function excluirConta(id) { 
+    if(confirm("Excluir conta?")){ 
+        db.contas = db.contas.filter(c=>c.id!==id); 
+        db.lancamentos = db.lancamentos.filter(l=>l.contaId!==id); 
+        save(); populaSelectContas();
+    } 
+}
+
+function alternarPagamentoFatura(id) { 
+    const i = db.faturasPagas.indexOf(id); 
+    if(i > -1) db.faturasPagas.splice(i,1); else db.faturasPagas.push(id); 
+    save(); 
+}
+
 function save() { localStorage.setItem('ecoDB_v25', JSON.stringify(db)); render(); }
 
 // ==========================================
@@ -279,7 +312,6 @@ function render() {
         const conta = db.contas.find(c => c.id === l.contaId);
         if(!conta) return;
 
-        // GRÁFICOS E DASHBOARD SÓ COMPUTAM O QUE FOI EFETIVADO (PAGO)
         if (l.efetivado !== false && l.data.substring(0,7) === mesCorrente) {
             if (l.tipo === 'despesa') calc.despesas += l.valor;
             if (l.tipo === 'receita') calc.receitas += l.valor;
@@ -305,6 +337,7 @@ function render() {
     
     const pMeta = calc.metaTotalCartao > 0 ? (calc.usoMetaCartao / calc.metaTotalCartao) * 100 : 0;
     document.getElementById('meta-bar').style.width = Math.min(pMeta, 100) + "%";
+    
     renderGrafico(); renderAbaContas(); renderAbaConfig(); renderAbaFaturas();
 }
 
@@ -312,8 +345,8 @@ function renderGrafico() {
     const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
     const mesCorrente = document.getElementById('filtro-mes').value || new Date().toISOString().substring(0,7);
     const dadosGasto = {};
+    const corTexto = document.body.classList.contains('dark-mode') ? '#e0e0e0' : '#2d3436';
     
-    // GERA GRÁFICO APENAS DE DESPESAS EFETIVADAS
     db.lancamentos.forEach(l => {
         if(l.efetivado !== false && l.data.substring(0,7) === mesCorrente && l.tipo === 'despesa') {
             const cat = l.cat || 'Outros'; if(!dadosGasto[cat]) dadosGasto[cat] = 0; dadosGasto[cat] += l.valor;
@@ -322,10 +355,35 @@ function renderGrafico() {
 
     const labels = Object.keys(dadosGasto); const data = Object.values(dadosGasto);
     if(meuGrafico) meuGrafico.destroy();
-    if(labels.length === 0) { meuGrafico = new Chart(ctx, { type: 'doughnut', data: { labels: ['Sem gastos pagos'], datasets: [{ data: [1], backgroundColor: ['#cccccc'] }] }, options: { plugins: { legend: { display: false }, datalabels: { display: false } } } }); return; }
+    
+    if(labels.length === 0) { 
+        meuGrafico = new Chart(ctx, { 
+            type: 'doughnut', 
+            data: { labels: ['Sem gastos pagos'], datasets: [{ data: [1], backgroundColor: ['#cccccc'] }] }, 
+            options: { plugins: { legend: { display: false }, datalabels: { display: false } } } 
+        }); 
+        return; 
+    }
 
     const cores = ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fdcb6e', '#e17055', '#00b894'];
-    meuGrafico = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: cores.slice(0, labels.length) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { color: '#fff', font: { weight: 'bold', size: 10 }, formatter: (value) => 'R$ ' + value.toFixed(2).replace('.', ',') } } } });
+    
+    meuGrafico = new Chart(ctx, { 
+        type: 'doughnut', 
+        data: { labels, datasets: [{ data, backgroundColor: cores.slice(0, labels.length), borderWidth: document.body.classList.contains('dark-mode') ? 0 : 2 }] }, 
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            layout: { padding: 20 },
+            plugins: { 
+                legend: { position: 'right', labels: { color: corTexto, font: { size: 11 } } },
+                datalabels: { 
+                    color: '#fff', font: { weight: 'bold', size: 10 }, 
+                    formatter: (value) => 'R$ ' + value.toFixed(2).replace('.', ','),
+                    align: 'center', anchor: 'center', textStrokeColor: 'rgba(0,0,0,0.5)', textStrokeWidth: 2
+                } 
+            } 
+        } 
+    });
 }
 
 function renderHistorico() {
@@ -339,7 +397,7 @@ function renderHistorico() {
         const c = db.contas.find(x => x.id === l.contaId);
         const corValor = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? 'var(--perigo)' : 'var(--sucesso)';
         const sinal = (l.tipo === 'despesa' || l.tipo === 'emp_concedido') ? '-' : '+';
-        const isPendente = l.efetivado === false; // Checa o status
+        const isPendente = l.efetivado === false; 
 
         return `
         <div class="card ${isPendente ? 'lanc-pendente' : ''}" style="margin-bottom: 10px; padding: 15px; border-left: 4px solid ${c ? c.cor : '#ccc'};">
@@ -360,17 +418,153 @@ function renderHistorico() {
             <div id="edit-lanc-${l.id}" class="edit-lanc-box">
                 <div class="grid-inputs"><input type="date" id="e-lanc-data-${l.id}" value="${l.data}"><input type="number" id="e-lanc-val-${l.id}" value="${l.valor}"></div>
                 <input type="text" id="e-lanc-desc-${l.id}" value="${l.desc}" style="margin-bottom:10px;">
-                <button class="btn-main" onclick="salvarEdicaoLancamento(${l.id})" style="background:var(--sucesso);">SALVAR EDIÇÃO</button>
+                <select id="e-lanc-cat-${l.id}">
+                    <option value="${l.cat}">${l.cat} (Atual)</option>
+                    <option value="Alimentação">🛒 Alimentação</option><option value="Transporte">🚗 Transporte</option>
+                    <option value="Moradia">🏠 Moradia</option><option value="Salário">💰 Salário</option>
+                    <option value="Lazer">🍿 Lazer</option><option value="Saúde">💊 Saúde</option>
+                    <option value="Terceiros">👥 Terceiros</option><option value="Outros">⚙️ Outros</option>
+                </select>
+                <button class="btn-main" onclick="salvarEdicaoLancamento(${l.id})" style="background:var(--sucesso); margin-top:10px;">SALVAR EDIÇÃO</button>
             </div>
         </div>`;
     }).join('');
 }
 
-function renderAbaContas() { /* Mantida para brevidade (exibe saldo corretamente pois o c.saldo já é isolado do que é pendente) */ 
-    const l=document.getElementById('lista-contas-saldos'); if(!l)return; l.innerHTML=`<h3><i class="fas fa-exchange-alt"></i> Contas de Movimentação e Investimento</h3>`; db.contas.filter(c=>c.tipo!=='cartao').forEach(c=>{ l.innerHTML+=`<div class="conta-bloco"><div class="conta-resumo" style="border-left-color:${c.cor}" onclick="toggleFatura('det-conta-${c.id}')"><div><strong style="font-size:16px;">${c.nome}</strong><div style="font-size:11px;">${c.tipo}</div></div><div style="text-align:right;"><b>R$ ${c.saldo.toFixed(2)}</b></div></div><div class="conta-detalhes" id="det-conta-${c.id}"><small>Clique no Histórico para ver movimentações</small></div></div>`;});
+function renderAbaContas() { 
+    const lista = document.getElementById('lista-contas-saldos'); 
+    if(!lista) return; 
+    
+    lista.innerHTML = `<h3><i class="fas fa-exchange-alt"></i> Contas de Movimentação e Investimento</h3>`; 
+    
+    db.contas.filter(c => c.tipo !== 'cartao').forEach(c => { 
+        const lancConta = db.lancamentos.filter(l => l.contaId === c.id).sort((a,b) => new Date(b.data) - new Date(a.data));
+        lista.innerHTML += `
+        <div class="conta-bloco">
+            <div class="conta-resumo" style="border-left-color:${c.cor}" onclick="toggleFatura('det-conta-${c.id}')">
+                <div><strong style="font-size:16px; color:var(--texto-main);">${c.nome}</strong><div style="font-size:11px; color:var(--texto-sec);">${c.tipo}</div></div>
+                <div style="text-align:right;"><b style="font-size:16px; color:${c.tipo === 'movimentacao' ? 'var(--texto-main)' : 'var(--azul)'};">R$ ${c.saldo.toFixed(2)}</b></div>
+            </div>
+            <div class="conta-detalhes" id="det-conta-${c.id}">
+                ${lancConta.length === 0 ? `<div style="text-align:center; padding:10px; color:var(--texto-sec); font-size:12px;">Sem lançamentos</div>` : 
+                lancConta.map(l => `<div class="item-linha"><div style="display:flex; flex-direction:column;"><span style="color:var(--texto-main); font-weight: bold;">${l.desc}</span><small style="color:var(--texto-sec); font-size: 11px;">${l.data.split('-').reverse().join('/')}</small></div><b style="color:${(l.tipo==='despesa'||l.tipo==='emp_concedido')?'var(--perigo)':'var(--sucesso)'};">${(l.tipo==='despesa'||l.tipo==='emp_concedido')?'-':'+'} R$ ${l.valor.toFixed(2)}</b></div>`).join('')}
+            </div>
+        </div>`;
+    });
 }
-function renderAbaFaturas() { /* Mantida idêntica à etapa 1 */ }
-function renderAbaConfig() { /* Mantida idêntica à etapa 1 */ }
-function exportarBackup() { /* Mantida idêntica */ const dataStr = JSON.stringify(db); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = `Backup_Eco_${Date.now()}.json`; a.click(); alert("Backup gerado!"); }
-function importarArquivoJSON(event) { const file = event.target.files[0]; const reader = new FileReader(); reader.onload=function(e){ try { localStorage.setItem('ecoDB_v25', e.target.result); location.reload(); } catch(err){} }; reader.readAsText(file); }
-function confirmarReset() { if(prompt("Digite: excluir")==="excluir") { localStorage.removeItem('ecoDB_v25'); location.reload(); } }
+
+function renderAbaFaturas() {
+    const cartoes = db.contas.filter(c => c.tipo === 'cartao');
+    const abas = document.getElementById('abas-cartoes-fatura');
+    const container = document.getElementById('lista-faturas-agrupadas');
+    
+    if(cartoes.length === 0) { abas.innerHTML = ""; container.innerHTML = "<p style='text-align:center; padding:20px; color:var(--texto-sec);'>Nenhum cartão cadastrado.</p>"; return; }
+    if(!cartaoAtivoFatura || !cartoes.find(c => c.id === cartaoAtivoFatura)) cartaoAtivoFatura = cartoes[0].id;
+
+    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" style="${c.id === cartaoAtivoFatura ? 'border-top: 4px solid '+c.cor+';' : ''}" onclick="cartaoAtivoFatura='${c.id}'; render();">${c.nome}</button>`).join('');
+
+    const cartao = cartoes.find(c => c.id === cartaoAtivoFatura);
+    const lancCartao = db.lancamentos.filter(l => l.contaId === cartao.id);
+    const agrupado = {};
+
+    lancCartao.forEach(l => {
+        const mesFatura = getMesFatura(l.data, cartao.fechamento);
+        if(!agrupado[mesFatura]) agrupado[mesFatura] = { total: 0, itens: [] };
+        agrupado[mesFatura].total += l.valor; agrupado[mesFatura].itens.push(l);
+    });
+
+    container.innerHTML = "";
+    Object.keys(agrupado).sort().reverse().forEach(mes => {
+        const fatID = `${cartao.id}-${mes}`;
+        const isPaga = db.faturasPagas.includes(fatID);
+        const isFechada = verificaFaturaFechada(mes, cartao.fechamento);
+        let statusClass = isPaga ? 'badge-paga' : (isFechada ? 'badge-fechada' : 'badge-aberta');
+        let statusTxt = isPaga ? '<i class="fas fa-check"></i> PAGA' : (isFechada ? 'FECHADA' : 'ABERTA');
+        
+        container.innerHTML += `
+        <div class="fatura-bloco">
+            <div class="fatura-resumo" style="border-left-color:${cartao.cor}" onclick="toggleFatura('det-${mes}')">
+                <div><strong style="font-size:16px; color:var(--texto-main); text-transform: capitalize;">${formatarMesFatura(mes)}</strong><div style="font-size:11px; color:var(--texto-sec);">Vence dia ${cartao.vencimento}</div></div>
+                <div style="text-align:right;"><b style="font-size:16px; display:block; margin-bottom:5px; color:var(--texto-main);">R$ ${agrupado[mes].total.toFixed(2)}</b>
+                <span class="badge-status ${statusClass}" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${statusTxt}</span></div>
+            </div>
+            <div class="fatura-detalhes" id="det-${mes}">
+                ${agrupado[mes].itens.map(i => `<div class="item-linha"><div style="display:flex; flex-direction:column;"><span style="color:var(--texto-main); font-weight: bold;">${i.desc}</span><small style="color:var(--texto-sec); font-size: 11px;">${i.data.split('-').reverse().join('/')}</small></div><b style="color:var(--texto-main);">R$ ${i.valor.toFixed(2)}</b></div>`).join('')}
+            </div>
+        </div>`;
+    });
+}
+
+function renderAbaConfig() {
+    const listaRec = document.getElementById('lista-recorrencias-edit');
+    if(listaRec) {
+        if(db.recorrencias.length === 0) {
+            listaRec.innerHTML = "<p style='text-align:center; font-size:12px; color:var(--texto-sec); padding: 10px;'>Nenhum lançamento fixo cadastrado.</p>";
+        } else {
+            listaRec.innerHTML = db.recorrencias.map(r => {
+                const cor = (r.tipo === 'despesa') ? 'var(--perigo)' : 'var(--sucesso)';
+                return `
+                <div class="item-recorrencia">
+                    <div class="info">
+                        <b>${r.desc} <span class="badge-recorrencia">Todo dia ${r.diaVencimento}</span></b>
+                        <small>Gerado até: ${formatarMesFatura(r.ultimoMesGerado)}</small>
+                    </div>
+                    <div>
+                        <div class="valor" style="color:${cor}; margin-bottom: 5px;">R$ ${r.valor.toFixed(2)}</div>
+                        <button class="btn-del" onclick="excluirRecorrencia(${r.id})" style="float: right; font-size: 12px;"><i class="fas fa-trash"></i> Cancelar Fixo</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    const lista = document.getElementById('lista-contas-edit');
+    if(lista) {
+        lista.innerHTML = "";
+        db.contas.forEach(c => {
+            let camposExtras = c.tipo === 'cartao' 
+                ? `<div class="grid-inputs" style="margin-top:10px;"><div><label>Limite</label><input type="number" id="edit-limite-${c.id}" value="${c.limite}"></div><div><label>Meta</label><input type="number" id="edit-meta-${c.id}" value="${c.meta}"></div></div><div class="grid-inputs"><div><label>Fecha</label><input type="number" id="edit-fecha-${c.id}" value="${c.fechamento}"></div><div><label>Vence</label><input type="number" id="edit-venc-${c.id}" value="${c.vencimento}"></div></div>` 
+                : `<div class="grid-inputs" style="margin-top:10px;"><div><label>Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" value="${c.saldo}"></div></div>`;
+
+            lista.innerHTML += `
+            <div class="conta-edit-box" style="border-left: 5px solid ${c.cor};">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <strong style="color:var(--texto-main);">${c.nome} <small style="color:var(--texto-sec);">(${c.tipo})</small></strong>
+                    <div><button class="btn-lapis" onclick="toggleEditConta('${c.id}')"><i class="fas fa-pencil-alt"></i></button><button class="btn-del" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button></div>
+                </div>
+                <div id="form-edit-${c.id}" class="painel-edit">
+                    <label>Nome</label><input type="text" id="edit-nome-${c.id}" value="${c.nome}">
+                    ${camposExtras}
+                    <label style="margin-top:10px;">Cor</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="height:40px; padding:0; border:none; border-radius:8px;">
+                    <button class="btn-main" onclick="salvarEdicaoConta('${c.id}')" style="background:var(--sucesso); margin-top:10px;">SALVAR ALTERAÇÕES</button>
+                </div>
+            </div>`;
+        });
+    }
+
+    const listaBackups = document.getElementById('lista-backups');
+    if(listaBackups) {
+        let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+        if(historico.length === 0) { listaBackups.innerHTML = "<p style='font-size:12px; color:var(--texto-sec);'>Nenhum backup gerado ainda.</p>"; } 
+        else {
+            listaBackups.innerHTML = historico.map(b => `
+                <div class="item-backup">
+                    <div class="item-backup-info"><strong>${b.nome}</strong><small>${b.data} | ${b.versao} | ${b.size}</small></div>
+                    <div><button class="btn-restaurar" onclick="restaurarBackupLocal(${b.id})" title="Restaurar"><i class="fas fa-undo"></i></button><button class="btn-excluir-bkp" onclick="excluirBackupLocal(${b.id})" title="Apagar"><i class="fas fa-trash"></i></button></div>
+                </div>`).join('');
+        }
+    }
+}
+
+function excluirBackupLocal(id) {
+    if(confirm("Tem certeza que deseja apagar este backup do histórico local?")) {
+        let historico = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+        historico = historico.filter(b => b.id !== id);
+        localStorage.setItem('ecoDB_backups', JSON.stringify(historico)); renderAbaConfig();
+    }
+}
+
+function restaurarBackupLocal(id) { if(confirm("Substituir dados atuais?")) { let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; let bkp = hist.find(b => b.id === id); if(bkp) { localStorage.setItem('ecoDB_v25', bkp.payload); location.reload(); } } }
+function exportarBackup() { const dataStr = JSON.stringify(db); const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB"; const now = new Date(); const nomeArquivo = `Backup_Eco_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`; let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.0", payload: dataStr }); if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist)); const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); renderAbaConfig(); alert("Backup gerado!"); }
+function importarArquivoJSON(event) { const file = event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const json = JSON.parse(e.target.result); if(json && json.contas) { localStorage.setItem('ecoDB_v25', JSON.stringify(json)); location.reload(); } else alert("Arquivo inválido."); } catch(err) { alert("Erro de leitura."); } }; reader.readAsText(file); }
+function confirmarReset() { const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite: excluir"); if (palavra && palavra.toLowerCase() === "excluir") { localStorage.removeItem('ecoDB_v25'); location.reload(); } }
