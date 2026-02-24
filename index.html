@@ -3,160 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.4</title>
+    <title>EcoFinance Pro v25.5</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
-    <link rel="stylesheet" href="style.css?v=25.4">
+    <link rel="stylesheet" href="style.css?v=25.5">
 </head>
 <body>
 
     <div id="app">
-        <div class="header-modern">
-            <h1 id="titulo-aba">Início</h1>
-            <i class="fas fa-moon" id="btn-theme" onclick="toggleDarkMode()" style="cursor: pointer; font-size: 20px;"></i>
-        </div>
+        <header class="header-modern">
+            <div>
+                <h1 id="titulo-aba">Visão Geral</h1>
+                <small id="subtitulo-header">O seu copiloto financeiro</small>
+            </div>
+            <button class="btn-icon" onclick="toggleDarkMode()" aria-label="Mudar Tema">
+                <i class="fas fa-moon" id="btn-theme"></i>
+            </button>
+        </header>
 
         <main id="conteudo-principal">
             
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
                     
-                    <div class="card" id="painel-analista" style="background: var(--header-bg); color: white; border: none;">
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                            <i class="fas fa-robot" style="font-size: 24px; color: var(--azul);"></i>
-                            <h3 style="margin: 0; font-size: 16px;">Copiloto Financeiro</h3>
+                    <div class="executive-panel">
+                        <div class="exec-card saldo-destaque">
+                            <small>Saldo Livre Disponível</small>
+                            <h2 id="dash-saldo-livre">R$ 0,00</h2>
                         </div>
-                        <p id="insight-comparativo" style="font-size: 13px; margin-bottom: 8px; line-height: 1.4; opacity: 0.9;">Analisando seus dados...</p>
-                        <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border-left: 3px solid var(--sucesso);">
-                            <small style="opacity: 0.8; display: block; margin-bottom: 4px;">Ritmo Seguro (Pode gastar por dia):</small>
-                            <strong id="insight-ritmo" style="font-size: 16px; color: var(--sucesso);">Calculando...</strong>
+                        <div class="exec-card">
+                            <small>Total Investido</small>
+                            <h3 id="dash-investido" class="txt-azul">R$ 0,00</h3>
                         </div>
                     </div>
 
-                    <div class="card-resumo">
-                        <small>Uso da Meta Mensal (Apenas Gastos Pessoais)</small>
-                        <h2 id="uso-meta-texto">R$ 0,00 / R$ 0,00</h2>
+                    <div class="grid-resumo-4">
+                        <div class="mini-card">
+                            <div class="card-icon sucesso"><i class="fas fa-arrow-down"></i></div>
+                            <small>Receitas Pagas</small>
+                            <p id="dash-receitas" class="txt-sucesso">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <div class="card-icon prev-sucesso"><i class="fas fa-hourglass-half"></i></div>
+                            <small>Prev. Receitas</small>
+                            <p id="dash-prev-receitas" class="txt-esmeralda">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <div class="card-icon perigo"><i class="fas fa-arrow-up"></i></div>
+                            <small>Despesas Pagas</small>
+                            <p id="dash-despesas" class="txt-perigo">R$ 0,00</p>
+                        </div>
+                        <div class="mini-card">
+                            <div class="card-icon alerta"><i class="fas fa-file-invoice"></i></div>
+                            <small>Prev. Gastos</small>
+                            <p id="dash-prev-gastos" class="txt-alerta">R$ 0,00</p>
+                        </div>
+                    </div>
+
+                    <div class="grid-resumo-2" style="margin-top: 15px;">
+                        <div class="card-simples">
+                            <small>Faturas Abertas</small>
+                            <h3 id="dash-faturas" class="txt-perigo">R$ 0,00</h3>
+                        </div>
+                        <div class="card-simples destaque-borda">
+                            <small>Projeção Mês</small>
+                            <h3 id="dash-projecao">R$ 0,00</h3>
+                        </div>
+                    </div>
+
+                    <div class="card mt-15">
+                        <div class="flex-between mb-10">
+                            <strong class="titulo-sessao">Consumo de Meta</strong>
+                            <span id="meta-percentual" class="badge-neutro">0%</span>
+                        </div>
+                        <h3 id="uso-meta-texto" class="valor-menor">R$ 0,00 / R$ 0,00</h3>
                         <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
-                        <small id="meta-percentual">0% consumido</small>
-                    </div>
-                    
-                    <div class="grid-resumo-6">
-                        <div class="mini-card"><small>Receitas</small><p id="dash-receitas" class="txt-sucesso">R$ 0,00</p></div>
-                        <div class="mini-card"><small>Despesas</small><p id="dash-despesas" class="txt-perigo">R$ 0,00</p></div>
-                        <div class="mini-card"><small>Fatura Aberta</small><p id="dash-fat-aberta" class="txt-alerta">R$ 0,00</p></div>
-                        <div class="mini-card"><small>Fatura Fechada</small><p id="dash-fat-fechada" class="txt-perigo">R$ 0,00</p></div>
-                        <div class="mini-card"><small>Saldo Livre</small><p id="dash-saldo-livre" class="txt-texto">R$ 0,00</p></div>
-                        <div class="mini-card"><small>Investido</small><p id="dash-investido" class="txt-azul">R$ 0,00</p></div>
-                    </div>
-
-                    <div class="card" style="text-align: center; border-left: 4px solid var(--azul);">
-                        <small style="color: var(--texto-sec); display: block; margin-bottom: 5px;"><i class="fas fa-crystal-ball"></i> Projeção para o Fim do Mês</small>
-                        <h3 id="dash-projecao" style="margin: 0; font-size: 20px; color: var(--texto-main);">Calculando...</h3>
                     </div>
 
                     <div class="card">
-                        <h3><i class="fas fa-chart-pie"></i> Gastos por Categoria (Efetivados)</h3>
-                        <div style="position: relative; height: 250px; width: 100%; display: flex; justify-content: center; align-items: center;">
-                            <canvas id="graficoCategorias"></canvas>
+                        <strong class="titulo-sessao txt-alerta"><i class="fas fa-bell"></i> Radar de Vencimentos (7 dias)</strong>
+                        <div id="lista-radar-vencimentos" class="mt-15">
+                            <p class="texto-vazio">Tudo tranquilo por aqui.</p>
                         </div>
                     </div>
 
                     <div class="card">
-                        <h3 style="margin-bottom: 12px; color: var(--alerta);"><i class="fas fa-exclamation-triangle"></i> Radar de Vencimentos (7 dias)</h3>
-                        <div id="lista-radar-vencimentos">
-                            <p style="text-align: center; font-size: 12px; color: var(--texto-sec);">Tudo tranquilo por aqui.</p>
-                        </div>
+                        <strong class="titulo-sessao">Gastos por Categoria</strong>
+                        <div class="chart-container"><canvas id="graficoCategorias"></canvas></div>
                     </div>
 
                     <div class="card">
-                        <h3><i class="fas fa-chart-line"></i> Evolução de Gastos (Últimos 3 Meses)</h3>
-                        <div style="position: relative; height: 150px; width: 100%;">
-                            <canvas id="graficoEvolucao"></canvas>
-                        </div>
+                        <strong class="titulo-sessao">Evolução (3 Meses)</strong>
+                        <div class="chart-container"><canvas id="graficoEvolucao"></canvas></div>
                     </div>
 
-                    <div class="card card-lancamento">
-                        <h3><i class="fas fa-bolt"></i> Lançamento Rápido</h3>
+                    <div class="card card-lancamento mt-20">
+                        <strong class="titulo-sessao"><i class="fas fa-plus-circle"></i> Novo Lançamento</strong>
                         
-                        <div class="grid-inputs">
-                            <input type="date" id="lanc-data" onchange="verificarDataFutura()">
-                            <select id="lanc-tipo" onchange="atualizarRegrasLancamento()">
-                                <option value="despesa">🔴 Despesa</option>
-                                <option value="receita">🟢 Receita</option>
-                                <option value="emp_cartao">💳 Emprestei Cartão</option>
-                                <option value="emp_concedido">🤝 Emprestei Dinheiro</option>
-                                <option value="emp_pessoal">🏦 Tomei Emprestado</option>
-                                <option value="compensacao">✅ Recebi Pag. Empréstimo</option>
+                        <div class="grid-inputs mt-15">
+                            <input type="date" id="lanc-data" class="input-moderno">
+                            <select id="lanc-tipo" class="input-moderno">
+                                <option value="despesa">Saída (Despesa)</option>
+                                <option value="receita">Entrada (Receita)</option>
+                                <option value="emp_cartao">Emprestei Cartão</option>
+                                <option value="emp_concedido">Emprestei Dinheiro</option>
+                                <option value="emp_pessoal">Tomei Emprestado</option>
+                                <option value="compensacao">Recebimento (Compensação)</option>
                             </select>
                         </div>
                         <div class="grid-inputs">
-                            <select id="lanc-conta" onchange="atualizarRegrasLancamento()"></select>
-                            <select id="lanc-forma"></select>
+                            <select id="lanc-conta" class="input-moderno"></select>
+                            <select id="lanc-forma" class="input-moderno"></select>
                         </div>
-                        <input type="text" id="lanc-desc" placeholder="Descrição da movimentação">
-                        <div class="grid-inputs" style="margin-top:10px;">
-                            <input type="number" id="lanc-valor" placeholder="Valor R$">
-                            <select id="lanc-cat">
-                                <option value="Alimentação">🛒 Alimentação</option>
-                                <option value="Transporte">🚗 Transporte</option>
-                                <option value="Moradia">🏠 Moradia</option>
-                                <option value="Salário">💰 Salário</option>
-                                <option value="Lazer">🍿 Lazer</option>
-                                <option value="Saúde">💊 Saúde</option>
-                                <option value="Terceiros">👥 Terceiros</option>
-                                <option value="Outros">⚙️ Outros</option>
-                            </select>
+                        <input type="text" id="lanc-desc" class="input-moderno" placeholder="Descrição da movimentação">
+                        <div class="grid-inputs mt-10">
+                            <input type="number" id="lanc-valor" class="input-moderno" placeholder="Valor R$">
+                            <select id="lanc-cat" class="input-moderno">
+                                </select>
                         </div>
                         
-                        <div style="background: var(--fundo-app); padding: 10px; border-radius: 8px; margin: 12px 0; border: 1px dashed var(--linha);">
-                            <div id="box-recorrencia" style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <input type="checkbox" id="lanc-fixo" style="width: 18px; height: 18px; cursor: pointer;">
-                                <label for="lanc-fixo" style="font-size: 13px; color: var(--texto-main); cursor: pointer;">Repetir mensalmente (Lançamento Fixo)</label>
-                            </div>
-                            
-                            <div id="box-efetivado" style="display: flex; align-items: center; gap: 8px;">
-                                <input type="checkbox" id="lanc-efetivado" checked style="width: 18px; height: 18px; cursor: pointer;">
-                                <label for="lanc-efetivado" id="label-efetivado" style="font-size: 13px; color: var(--texto-main); cursor: pointer;">Efetivado (Já pago/recebido)</label>
-                            </div>
+                        <div class="opcoes-lancamento mt-15">
+                            <label class="checkbox-moderno"><input type="checkbox" id="lanc-fixo"><span>Repetir Mensalmente</span></label>
+                            <label class="checkbox-moderno"><input type="checkbox" id="lanc-efetivado" checked><span>Efetivado (Pago/Recebido)</span></label>
                         </div>
 
-                        <button class="btn-main" onclick="adicionarLancamento()">SALVAR LANÇAMENTO</button>
+                        <button class="btn-primary mt-15" onclick="adicionarLancamento()">Registrar Movimentação</button>
                     </div>
                 </div>
             </section>
 
             <section id="aba-historico" class="secao-app">
                 <div class="container">
-                    
-                    <div class="accordion-item" style="margin-bottom: 15px;">
-                        <div class="accordion-header" onclick="toggleAccordion('content-recorrencias')">
-                            <span><i class="fas fa-sync-alt"></i> Gerenciar Lançamentos Fixos</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="content-recorrencias" class="accordion-content">
-                            <p style="font-size:11px; color:#888; margin-bottom: 10px;">Estes lançamentos são gerados automaticamente todos os meses.</p>
-                            <div id="resumo-recorrencias" style="margin-bottom: 15px;"></div>
-                            <div id="lista-recorrencias-edit"></div>
-                        </div>
-                    </div>
-
                     <div class="card">
-                        <h3 style="margin-bottom: 10px;"><i class="fas fa-filter"></i> Filtros de Pesquisa</h3>
                         <div class="grid-inputs">
-                            <input type="month" id="filtro-mes" onchange="renderHistorico(); renderAbaContas();">
-                            <select id="filtro-cat" onchange="renderHistorico()">
+                            <input type="month" id="filtro-mes" class="input-moderno">
+                            <select id="filtro-cat" class="input-moderno">
                                 <option value="todas">Todas as Categorias</option>
-                                <option value="Alimentação">🛒 Alimentação</option>
-                                <option value="Transporte">🚗 Transporte</option>
-                                <option value="Moradia">🏠 Moradia</option>
-                                <option value="Salário">💰 Salário</option>
-                                <option value="Lazer">🍿 Lazer</option>
-                                <option value="Saúde">💊 Saúde</option>
-                                <option value="Terceiros">👥 Terceiros</option>
-                                <option value="Outros">⚙️ Outros</option>
                             </select>
                         </div>
                     </div>
@@ -175,82 +161,54 @@
 
             <section id="aba-config" class="secao-app">
                 <div class="container">
+                    <div class="card">
+                        <strong class="titulo-sessao">Sistema e Dados</strong>
+                        <div class="grid-inputs mt-15">
+                            <button class="btn-outline" onclick="exportarBackup()"><i class="fas fa-download"></i> Salvar Backup</button>
+                            <button class="btn-outline" onclick="document.getElementById('file-upload').click()"><i class="fas fa-upload"></i> Restaurar</button>
+                            <input type="file" id="file-upload" style="display:none;" accept=".json">
+                        </div>
+                        <button class="btn-danger mt-15" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica</button>
+                    </div>
                     
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion('content-contas-cad')">
-                            <span><i class="fas fa-plus-circle"></i> Gerenciar Contas e Cartões</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="content-contas-cad" class="accordion-content">
-                            <p style="font-size:11px; color:#888;">Crie novas contas informando o tipo correto.</p>
-                            <div class="grid-inputs">
-                                <input type="text" id="nova-conta-nome" placeholder="Nome (Ex: Nubank, C6)">
-                                <select id="nova-conta-tipo" onchange="toggleCamposCartao()">
-                                    <option value="movimentacao">Conta Movimentação</option>
-                                    <option value="investimento">Conta Investimento</option>
-                                    <option value="cartao">Cartão de Crédito</option>
-                                </select>
-                            </div>
-                            <div id="campos-cartao-add" style="display:none;">
-                                <div class="grid-inputs">
-                                    <input type="number" id="nova-conta-limite" placeholder="Limite Total">
-                                    <input type="number" id="nova-conta-meta" placeholder="Meta de Gasto">
-                                </div>
-                                <div class="grid-inputs">
-                                    <input type="number" id="nova-conta-fecha" placeholder="Dia Fechamento">
-                                    <input type="number" id="nova-conta-venc" placeholder="Dia Vencimento">
-                                </div>
-                            </div>
-                            <div class="grid-inputs">
-                                <label style="width:100%; font-size:11px; color:#888;">Cor: <input type="color" id="nova-conta-cor" style="height:40px; padding:0; border:none;"></label>
-                            </div>
-                            <button class="btn-main" onclick="criarConta()" style="background:var(--sucesso);">CRIAR CONTA</button>
-                            
-                            <hr style="margin:20px 0; border:1px solid var(--linha);">
-                            <h4>Contas Cadastradas</h4>
-                            <div id="lista-contas-edit"></div>
-                        </div>
-                    </div>
-
-                    <div class="card" style="margin-top:20px;">
-                        <div style="margin-bottom: 15px; border-bottom: 1px solid var(--linha); padding-bottom: 10px;">
-                            <strong style="color: var(--texto-main); font-size: 16px;"><i class="fas fa-shield-alt"></i> Segurança e Dados</strong>
-                        </div>
-                        
-                        <div class="btn-grid-2">
-                            <button class="btn-main" onclick="exportarBackup()" style="background:var(--azul); font-size:12px; padding: 12px;">
-                                <i class="fas fa-file-download"></i> SALVAR BACKUP
-                            </button>
-                            <button class="btn-main" onclick="document.getElementById('file-upload').click()" style="background:#8e44ad; font-size:12px; padding: 12px;">
-                                <i class="fas fa-file-upload"></i> LER ARQUIVO JSON
-                            </button>
-                            <input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)">
-                        </div>
-                        
-                        <button class="btn-main" onclick="confirmarReset()" style="background:var(--perigo); margin-top:10px; font-size:12px; padding: 12px;">
-                            <i class="fas fa-trash"></i> APAGAR TODOS OS DADOS
-                        </button>
-
-                        <div style="margin-top: 20px; border-top: 1px dashed var(--linha); padding-top: 15px;">
-                            <strong style="font-size: 14px; color: var(--texto-main);"><i class="fas fa-history"></i> Histórico de Backups Locais</strong>
-                            <div id="lista-backups"></div>
-                        </div>
-                    </div>
-
+                    <div id="lista-contas-edit" class="mt-20"></div>
                 </div>
             </section>
 
         </main>
 
+        <div id="modal-emprestimo" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🤝 Detalhes do Recebimento</h3>
+                </div>
+                <div class="modal-body">
+                    <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
+                    <label class="label-moderno">Número de Parcelas</label>
+                    <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
+                    
+                    <label class="label-moderno mt-10">Intervalo (Dias)</label>
+                    <input type="number" id="emp-intervalo" class="input-moderno" value="30">
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalEmprestimo()">Cancelar</button>
+                    <button class="btn-primary" onclick="gerarParcelasEmprestimo()">Gerar Parcelas</button>
+                </div>
+            </div>
+        </div>
+
         <nav class="menu-inferior">
-            <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-home"></i><span>Início</span></div>
-            <div class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-file-invoice-dollar"></i><span>Faturas</span></div>
-            <div class="menu-item" onclick="navegar('historico', this)"><i class="fas fa-list"></i><span>Histórico</span></div>
+            <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-chart-pie"></i><span>Visão</span></div>
+            <div class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-credit-card"></i><span>Faturas</span></div>
+            <div class="menu-item" onclick="navegar('historico', this)"><i class="fas fa-list-ul"></i><span>Extrato</span></div>
             <div class="menu-item" onclick="navegar('contas', this)"><i class="fas fa-wallet"></i><span>Contas</span></div>
-            <div class="menu-item" onclick="navegar('config', this)"><i class="fas fa-cog"></i><span>Config</span></div>
+            <div class="menu-item" onclick="navegar('config', this)"><i class="fas fa-sliders-h"></i><span>Ajustes</span></div>
         </nav>
     </div>
 
-    <script src="script.js?v=25.4"></script>
+    <script src="core.js?v=25.5"></script>
+    <script src="engine.js?v=25.5"></script>
+    <script src="ui.js?v=25.5"></script>
+    <script src="app.js?v=25.5"></script>
 </body>
 </html>
