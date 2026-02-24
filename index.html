@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.1</title>
+    <title>EcoFinance Pro v25.2</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
-    <link rel="stylesheet" href="style.css?v=25.1">
+    <link rel="stylesheet" href="style.css?v=25.2">
 </head>
 <body>
 
@@ -98,10 +98,22 @@
 
             <section id="aba-historico" class="secao-app">
                 <div class="container">
+                    
+                    <div class="accordion-item" style="margin-bottom: 15px;">
+                        <div class="accordion-header" onclick="toggleAccordion('content-recorrencias')">
+                            <span><i class="fas fa-sync-alt"></i> Gerenciar Lançamentos Fixos</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div id="content-recorrencias" class="accordion-content">
+                            <p style="font-size:11px; color:#888; margin-bottom: 15px;">Estes lançamentos são gerados automaticamente todos os meses.</p>
+                            <div id="lista-recorrencias-edit"></div>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <h3 style="margin-bottom: 10px;"><i class="fas fa-filter"></i> Filtros de Pesquisa</h3>
                         <div class="grid-inputs">
-                            <input type="month" id="filtro-mes" onchange="renderHistorico()">
+                            <input type="month" id="filtro-mes" onchange="renderHistorico(); renderAbaContas();">
                             <select id="filtro-cat" onchange="renderHistorico()">
                                 <option value="todas">Todas as Categorias</option>
                                 <option value="Alimentação">🛒 Alimentação</option>
@@ -131,17 +143,6 @@
             <section id="aba-config" class="secao-app">
                 <div class="container">
                     
-                    <div class="accordion-item">
-                        <div class="accordion-header" onclick="toggleAccordion('content-recorrencias')">
-                            <span><i class="fas fa-sync-alt"></i> Lançamentos Fixos (Mensais)</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div id="content-recorrencias" class="accordion-content">
-                            <p style="font-size:11px; color:#888; margin-bottom: 15px;">Aqui você gerencia os lançamentos que se repetem automaticamente todo mês.</p>
-                            <div id="lista-recorrencias-edit"></div>
-                        </div>
-                    </div>
-
                     <div class="accordion-item">
                         <div class="accordion-header" onclick="toggleAccordion('content-contas-cad')">
                             <span><i class="fas fa-plus-circle"></i> Gerenciar Contas e Cartões</span>
@@ -217,6 +218,6 @@
         </nav>
     </div>
 
-    <script src="script.js?v=25.1"></script>
+    <script src="script.js?v=25.2"></script>
 </body>
 </html>
