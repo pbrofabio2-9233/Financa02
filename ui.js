@@ -353,8 +353,24 @@ function renderAbaConfig() {
         divContas.innerHTML = db.contas.map(c => `
             <div class="card" style="padding:15px; border-left:4px solid ${c.cor};">
                 <div class="flex-between">
-                    <div><strong>${c.nome}</strong> <span class="badge-neutro" style="font-size:9px;">${c.tipo}</span></div>
-                    <button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
+                    <div><strong style="font-size:15px;">${c.nome}</strong> <span class="badge-neutro" style="font-size:10px; margin-left:5px;">${c.tipo}</span></div>
+                    <div style="display:flex; gap: 8px;">
+                        <button class="btn-icon" onclick="toggleEditConta('${c.id}')"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                <div id="edit-conta-${c.id}" style="display:none; padding-top:15px; margin-top:15px; border-top:1px dashed var(--linha);">
+                    <div class="grid-inputs mb-10">
+                        <input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}" placeholder="Nome da Conta">
+                        <input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px; cursor:pointer;">
+                    </div>
+                    ${c.tipo === 'cartao' ? `
+                    <div class="grid-inputs mb-10">
+                        <input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite}" placeholder="Limite (R$)">
+                        <input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta}" placeholder="Meta (R$)">
+                    </div>
+                    ` : ''}
+                    <button class="btn-primary" onclick="salvarEdicaoConta('${c.id}')">Salvar Alterações</button>
                 </div>
             </div>
         `).join('');
@@ -382,4 +398,5 @@ function renderAbaConfig() {
 // Importante: No topo da sua função render() no ui.js, adicione estas duas chamadas para garantir que as telas se atualizem:
 // renderAbaFaturas();
 // renderAbaConfig();
+
 
