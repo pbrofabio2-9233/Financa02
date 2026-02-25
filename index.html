@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.6.1</title>
+    <title>EcoFinance Pro v25.6</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -138,7 +138,7 @@
                     </div>
 
                     <div class="card">
-                        <strong class="titulo-sessao">Evolução de Despesas (3 Meses)</strong>
+                        <strong class="titulo-sessao">Evolução Financeira (3 Meses)</strong>
                         <div class="chart-container"><canvas id="graficoEvolucao"></canvas></div>
                     </div>
 
@@ -146,33 +146,38 @@
                         <strong class="titulo-sessao"><i class="fas fa-plus-circle"></i> Novo Lançamento</strong>
                         
                         <div class="grid-inputs mt-15">
+                            <select id="lanc-direcao" class="input-moderno" onchange="if(typeof mudarDirecaoLancamento === 'function') mudarDirecaoLancamento()">
+                                <option value="despesa">Saída (Despesa)</option>
+                                <option value="receita">Entrada (Receita)</option>
+                            </select>
                             <input type="date" id="lanc-data" class="input-moderno" onchange="verificarDataFutura()">
+                        </div>
+
+                        <div class="grid-inputs mt-10">
                             <select id="lanc-tipo" class="input-moderno" onchange="atualizarRegrasLancamento()">
-                                <optgroup label="Saídas (Despesas)">
-                                    <option value="despesas_gerais">Despesas Gerais</option>
-                                    <option value="emprestei_cartao">Emprestei Cartão</option>
-                                    <option value="emprestei_dinheiro">Emprestei Dinheiro</option>
-                                    <option value="pag_emprestimo">Pagamento Empréstimo</option>
-                                    <option value="dep_poupanca">Depósito Poupança</option>
-                                </optgroup>
-                                <optgroup label="Entradas (Receitas)">
-                                    <option value="salario">Salário</option>
-                                    <option value="tomei_emprestimo">Tomei Empréstimo</option>
-                                    <option value="rec_emprestimo">Recebimento Empréstimo</option>
-                                    <option value="outras_receitas">Outras Receitas</option>
-                                    <option value="estorno">Estorno</option>
-                                    <option value="saque_poupanca">Saque Poupança</option>
-                                </optgroup>
+                                <option value="despesas_gerais">Despesas Gerais</option>
+                                <option value="emprestei_cartao">Emprestei Cartão</option>
+                                <option value="emprestei_dinheiro">Emprestei Dinheiro</option>
+                                <option value="pag_emprestimo">Pagamento Empréstimo</option>
+                                <option value="dep_poupanca">Depósito Poupança</option>
+                            </select>
+                            <select id="lanc-conta" class="input-moderno" onchange="atualizarFormaPagamento()">
+                                <option value="">Carregando...</option>
                             </select>
                         </div>
-                        <div class="grid-inputs">
-                            <select id="lanc-conta" class="input-moderno" onchange="atualizarFormaPagamento()"></select>
-                            <select id="lanc-forma" class="input-moderno"></select>
-                        </div>
-                        <input type="text" id="lanc-desc" class="input-moderno" placeholder="Descrição da movimentação">
+
                         <div class="grid-inputs mt-10">
+                            <select id="lanc-forma" class="input-moderno">
+                                <option value="">-</option>
+                            </select>
+                            <select id="lanc-cat" class="input-moderno">
+                                <option value="">Carregando...</option>
+                            </select>
+                        </div>
+
+                        <div class="grid-inputs mt-10">
+                            <input type="text" id="lanc-desc" class="input-moderno" placeholder="Descrição da movimentação">
                             <input type="number" id="lanc-valor" class="input-moderno" placeholder="Valor R$">
-                            <select id="lanc-cat" class="input-moderno"></select>
                         </div>
                         
                         <div class="opcoes-lancamento mt-15">
