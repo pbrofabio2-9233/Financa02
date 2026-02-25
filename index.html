@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="style.css?v=25.5">
 </head>
 <body>
-<div id="toast-container" class="toast-container"></div>
+
     <div id="app">
         <header class="header-modern">
             <div>
@@ -31,11 +31,24 @@
                 <div class="container">
                     
                     <div class="executive-panel">
-                        <div class="exec-card saldo-destaque">
-                            <small>Saldo Livre Disponível</small>
-                            <h2 id="dash-saldo-livre">R$ 0,00</h2>
+                        <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; box-shadow: 0 10px 20px rgba(37,99,235,0.2);">
+                            <div class="flex-between">
+                                <small style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-bullseye"></i> Consumo da Meta (Cartões)</small>
+                                <span id="meta-percentual" style="background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 13px; color: white;">0%</span>
+                            </div>
+                            <h2 id="uso-meta-texto" style="margin: 12px 0 15px 0; font-size: 28px; color: white; letter-spacing: -1px;">R$ 0,00 / R$ 0,00</h2>
+                            <div class="progress-bg" style="background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; overflow: hidden;">
+                                <div id="meta-bar" style="height: 100%; background: #10b981; width: 0%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                            </div>
                         </div>
-                        <div class="exec-card">
+                    </div>
+
+                    <div class="grid-resumo-2" style="margin-bottom: 15px;">
+                        <div class="card-simples">
+                            <small>Saldo Livre</small>
+                            <h3 id="dash-saldo-livre">R$ 0,00</h3>
+                        </div>
+                        <div class="card-simples">
                             <small>Total Investido</small>
                             <h3 id="dash-investido" class="txt-azul">R$ 0,00</h3>
                         </div>
@@ -76,15 +89,6 @@
                     </div>
 
                     <div class="card mt-15">
-                        <div class="flex-between mb-10">
-                            <strong class="titulo-sessao">Consumo de Meta</strong>
-                            <span id="meta-percentual" class="badge-neutro">0%</span>
-                        </div>
-                        <h3 id="uso-meta-texto" class="valor-menor">R$ 0,00 / R$ 0,00</h3>
-                        <div class="progress-bg"><div id="meta-bar" class="progress-fill"></div></div>
-                    </div>
-
-                    <div class="card">
                         <strong class="titulo-sessao txt-alerta"><i class="fas fa-bell"></i> Radar de Vencimentos (7 dias)</strong>
                         <div id="lista-radar-vencimentos" class="mt-15">
                             <p class="texto-vazio">Tudo tranquilo por aqui.</p>
@@ -105,8 +109,8 @@
                         <strong class="titulo-sessao"><i class="fas fa-plus-circle"></i> Novo Lançamento</strong>
                         
                         <div class="grid-inputs mt-15">
-                            <input type="date" id="lanc-data" class="input-moderno">
-                            <select id="lanc-tipo" class="input-moderno">
+                            <input type="date" id="lanc-data" class="input-moderno" onchange="verificarDataFutura()">
+                            <select id="lanc-tipo" class="input-moderno" onchange="atualizarRegrasLancamento()">
                                 <option value="despesa">Saída (Despesa)</option>
                                 <option value="receita">Entrada (Receita)</option>
                                 <option value="emp_cartao">Emprestei Cartão</option>
@@ -122,8 +126,7 @@
                         <input type="text" id="lanc-desc" class="input-moderno" placeholder="Descrição da movimentação">
                         <div class="grid-inputs mt-10">
                             <input type="number" id="lanc-valor" class="input-moderno" placeholder="Valor R$">
-                            <select id="lanc-cat" class="input-moderno">
-                                </select>
+                            <select id="lanc-cat" class="input-moderno"></select>
                         </div>
                         
                         <div class="opcoes-lancamento mt-15">
@@ -140,8 +143,8 @@
                 <div class="container">
                     <div class="card">
                         <div class="grid-inputs">
-                            <input type="month" id="filtro-mes" class="input-moderno">
-                            <select id="filtro-cat" class="input-moderno">
+                            <input type="month" id="filtro-mes" class="input-moderno" onchange="renderHistorico()">
+                            <select id="filtro-cat" class="input-moderno" onchange="renderHistorico()">
                                 <option value="todas">Todas as Categorias</option>
                             </select>
                         </div>
@@ -230,6 +233,8 @@
                 </div>
             </div>
         </div>
+
+        <div id="toast-container" class="toast-container"></div>
 
         <nav class="menu-inferior">
             <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-chart-pie"></i><span>Visão</span></div>
