@@ -2,7 +2,8 @@
 // ENGINE.JS - Lógica de Negócios e Cálculos
 // ==========================================
 
-let ultimoTipoSelecionado = ""; // Evita recarregar a lista de contas em loop
+let ultimoTipoSelecionado = ""; 
+let tempLancamentoEmprestimo = null;
 
 // --- 1. SISTEMA DE AVISOS (TOAST) ---
 function showToast(mensagem) {
@@ -15,64 +16,99 @@ function showToast(mensagem) {
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
-// --- 2. LANÇAMENTO INTELIGENTE E FILTROS ---
+// --- 2. LANÇAMENTO INTELIGENTE (Matriz de Regras v25.6) ---
 function atualizarRegrasLancamento() {
     const tipo = document.getElementById('lanc-tipo').value;
     const contaSelect = document.getElementById('lanc-conta');
     const catSelect = document.getElementById('lanc-cat');
     const boxFixo = document.getElementById('lanc-fixo');
     
-    // 2.1 Atualizar Categorias Dinâmicas
-    catSelect.innerHTML = "";
-    if (tipo === 'receita') {
-        catSelect.innerHTML = `<option value="Salário">💰 Salário</option><option value="Rendimento">📈 Rendimento</option><option value="Vendas">🛍️ Vendas</option><option value="Outras Receitas">🎁 Outras Receitas</option>`;
+    // Categorias da Tabela
+    const catsDespesa = `<option value="Alimentação">🛒 Alimentação</option><option value="Consórcio">📄 Consórcio</option><option value="Transporte">🚗 Transporte</option><option value="Energia">⚡ Energia</option><option value="Moradia">🏠 Moradia</option><option value="Saúde">💊 Saúde</option><option value="Lazer">🍿 Lazer</option><option value="Assinaturas">📺 Assinaturas</option><option value="Terceiros">🤝 Terceiros</option><option value="Outros">⚙️ Outros</option>`;
+    const catsReceita = `<option value="Salário">💰 Salário</option><option value="Terceiros">🤝 Terceiros</option><option value="Estorno">↩️ Estorno</option><option value="Outros">🎁 Outros</option>`;
+
+    // 2.1 Aplicar Categorias e Regra de Repetição
+    const tiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
+    catSelect.innerHTML = tiposReceita.includes(tipo) ? catsReceita : catsDespesa;
+
+    if (tipo === 'despesas_gerais' || tipo === 'salario') {
         boxFixo.disabled = false;
-    } else if (['emp_cartao', 'emp_concedido', 'emp_pessoal', 'compensacao'].includes(tipo)) {
-        catSelect.innerHTML = `<option value="Empréstimo">🤝 Empréstimo</option><option value="Dívida Pessoal">🏦 Minha Dívida</option>`;
-        boxFixo.disabled = true; boxFixo.checked = false;
     } else {
-        catSelect.innerHTML = `<option value="Alimentação">🛒 Alimentação</option><option value="Moradia">🏠 Moradia</option><option value="Transporte">🚗 Transporte</option><option value="Saúde">💊 Saúde</option><option value="Energia">⚡ Energia</option><option value="Assinaturas">📺 Assinaturas</option><option value="Consórcio">📄 Consórcio</option><option value="Lazer">🍿 Lazer</option><option value="Outros">⚙️ Outros</option>`;
-        boxFixo.disabled = false;
+        boxFixo.disabled = true; 
+        boxFixo.checked = false;
     }
 
-    // 2.2 Filtrar Contas Disponíveis
+    // 2.2 Filtrar Origem/Destino (Contas)
     let contaSelecionada = contaSelect.value;
     contaSelect.innerHTML = "";
-    let temCartao = false;
+    let temConta = false;
+    
     db.contas.forEach(c => {
         let mostrar = false;
-        if (tipo === 'emp_cartao' && c.tipo === 'cartao') mostrar = true;
-        else if (['receita', 'emp_pessoal', 'compensacao'].includes(tipo) && ['movimentacao', 'investimento'].includes(c.tipo)) mostrar = true;
-        else if (['despesa', 'emp_concedido'].includes(tipo) && c.tipo !== 'investimento') mostrar = true;
+        switch (tipo) {
+            case 'despesas_gerais':
+            case 'estorno':
+                if (c.tipo === 'movimentacao' || c.tipo === 'cartao') mostrar = true;
+                break;
+            case 'emprestei_cartao':
+                if (c.tipo === 'cartao') mostrar = true;
+                break;
+            case 'emprestei_dinheiro':
+            case 'pag_emprestimo':
+                if (c.tipo === 'movimentacao') mostrar = true;
+                break;
+            case 'dep_poupanca':
+            case 'saque_poupanca':
+                if (c.tipo === 'investimento') mostrar = true;
+                break;
+            case 'salario':
+            case 'tomei_emprestimo':
+            case 'rec_emprestimo':
+            case 'outras_receitas':
+                if (c.tipo === 'movimentacao' || c.tipo === 'investimento') mostrar = true;
+                break;
+        }
         
         if (mostrar) {
             const icone = c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦');
             contaSelect.innerHTML += `<option value="${c.id}">${icone} ${c.nome}</option>`;
-            if (c.id === contaSelecionada) temCartao = true;
+            if (c.id === contaSelecionada) temConta = true;
         }
     });
 
-    // Mantém a conta selecionada (se ela ainda for válida para o tipo de transação)
-    if (temCartao) contaSelect.value = contaSelecionada;
+    if (temConta) contaSelect.value = contaSelecionada;
     ultimoTipoSelecionado = tipo;
 
-    // 2.3 Atualizar Forma de Pagamento
+    // 2.3 Atualizar Formas de Pagamento
     atualizarFormaPagamento();
 }
 
 function atualizarFormaPagamento() {
+    const tipo = document.getElementById('lanc-tipo').value;
     const contaId = document.getElementById('lanc-conta').value;
     const formaSelect = document.getElementById('lanc-forma');
     const contaAtiva = db.contas.find(c => c.id === contaId);
     
     formaSelect.innerHTML = "";
-    if (contaAtiva) {
-        if (contaAtiva.tipo === 'cartao') {
-            formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`;
-        } else if (contaAtiva.tipo === 'movimentacao') {
+    if (!contaAtiva) return;
+
+    if (contaAtiva.tipo === 'cartao') {
+        formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option>`;
+    } 
+    else if (contaAtiva.tipo === 'movimentacao') {
+        if (tipo === 'salario') {
+            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
+        } else if (['tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno'].includes(tipo)) {
+            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option>`;
+        } else {
             formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
-        } else if (contaAtiva.tipo === 'investimento') {
-            formaSelect.innerHTML = `<option value="Transferencia">🔄 Transferência</option><option value="Rendimento">📈 Rendimento</option>`;
+        }
+    } 
+    else if (contaAtiva.tipo === 'investimento') {
+        if (tipo === 'dep_poupanca' || tipo === 'saque_poupanca') {
+            formaSelect.innerHTML = `<option value="Transferência">🔄 Transferência</option><option value="Pix">📱 Pix</option>`;
+        } else {
+            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
         }
     }
 }
@@ -86,6 +122,9 @@ function verificarDataFutura() {
 }
 
 // --- 3. MOTOR DE LANÇAMENTOS E "EFEITO LENE" ---
+const tiposReceitaParaSaldo = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
+const tiposDespesaParaSaldo = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca'];
+
 function adicionarLancamento() {
     const data = document.getElementById('lanc-data').value; 
     const tipo = document.getElementById('lanc-tipo').value;
@@ -100,9 +139,10 @@ function adicionarLancamento() {
     if(!desc || isNaN(valor) || !data) return alert("Preencha a descrição e o valor.");
     const conta = db.contas.find(c => c.id === contaId);
     
+    // Cálculo do Saldo (Respeitando a Matriz)
     if (conta && conta.tipo !== 'cartao' && efetivado) {
-        if (['receita', 'emp_pessoal', 'compensacao'].includes(tipo)) conta.saldo += valor;
-        if (['despesa', 'emp_concedido'].includes(tipo)) conta.saldo -= valor;
+        if (tiposReceitaParaSaldo.includes(tipo)) conta.saldo += valor;
+        if (tiposDespesaParaSaldo.includes(tipo)) conta.saldo -= valor;
     }
     
     const novoLancamento = { id: Date.now(), data, tipo, contaId, forma, desc, valor, cat, efetivado };
@@ -122,7 +162,8 @@ function adicionarLancamento() {
     document.getElementById('lanc-data').valueAsDate = new Date();
     verificarDataFutura();
     
-    if (['emp_cartao', 'emp_concedido'].includes(tipo)) {
+    // Aciona Efeito Lene para Concessão ou Tomada de Empréstimo
+    if (['emprestei_cartao', 'emprestei_dinheiro', 'tomei_emprestimo'].includes(tipo)) {
         abrirModalEmprestimo(novoLancamento);
     } else {
         showToast("Lançamento Registrado com Sucesso!");
@@ -132,7 +173,11 @@ function adicionarLancamento() {
 function abrirModalEmprestimo(lancamentoBase) {
     tempLancamentoEmprestimo = lancamentoBase;
     const modal = document.getElementById('modal-emprestimo');
-    document.getElementById('msg-modal-emp').innerText = `Você emprestou R$ ${lancamentoBase.valor.toFixed(2)} para "${lancamentoBase.desc}". Como será o recebimento?`;
+    const isTomada = lancamentoBase.tipo === 'tomei_emprestimo';
+    const txtAcao = isTomada ? 'tomou emprestado' : 'emprestou';
+    const txtDestino = isTomada ? 'pagamento' : 'recebimento';
+    
+    document.getElementById('msg-modal-emp').innerText = `Você ${txtAcao} R$ ${lancamentoBase.valor.toFixed(2)} ("${lancamentoBase.desc}"). Como será o ${txtDestino}?`;
     modal.classList.add('active');
 }
 
@@ -149,23 +194,24 @@ function gerarParcelasEmprestimo() {
     if (parcelas >= 1) {
         const valorParcela = tempLancamentoEmprestimo.valor / parcelas;
         let dataAtual = new Date(tempLancamentoEmprestimo.data + 'T00:00:00');
+        const isTomada = tempLancamentoEmprestimo.tipo === 'tomei_emprestimo';
         
         for (let i = 1; i <= parcelas; i++) {
             dataAtual.setDate(dataAtual.getDate() + intervalo);
             db.lancamentos.push({
                 id: Date.now() + i,
                 data: dataAtual.toISOString().split('T')[0],
-                tipo: 'compensacao', 
+                tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', 
                 contaId: tempLancamentoEmprestimo.contaId,
                 forma: tempLancamentoEmprestimo.forma,
-                desc: `Rec. ${tempLancamentoEmprestimo.desc} (${i}/${parcelas})`,
+                desc: `${isTomada ? 'Pag.' : 'Rec.'} ${tempLancamentoEmprestimo.desc} (${i}/${parcelas})`,
                 valor: valorParcela,
-                cat: 'Empréstimo',
+                cat: 'Terceiros', // Direto na categoria certa
                 efetivado: false
             });
         }
         save();
-        showToast(`${parcelas} parcelas de recebimento geradas!`);
+        showToast(`${parcelas} parcelas de ${isTomada ? 'pagamento' : 'recebimento'} geradas!`);
     }
     fecharModalEmprestimo();
 }
@@ -175,9 +221,10 @@ function excluirLancamento(id) {
     if(!confirm("Apagar lançamento? O saldo será recalculado.")) return;
     const lanc = db.lancamentos.find(l => l.id === id); if(!lanc) return;
     const c = db.contas.find(x => x.id === lanc.contaId);
+    
     if(c && c.tipo !== 'cartao' && lanc.efetivado) {
-        if (['receita', 'emp_pessoal', 'compensacao'].includes(lanc.tipo)) c.saldo -= lanc.valor;
-        if (['despesa', 'emp_concedido'].includes(lanc.tipo)) c.saldo += lanc.valor;
+        if (tiposReceitaParaSaldo.includes(lanc.tipo)) c.saldo -= lanc.valor; // Reverte entrada
+        if (tiposDespesaParaSaldo.includes(lanc.tipo)) c.saldo += lanc.valor; // Reverte saída
     }
     db.lancamentos = db.lancamentos.filter(l => l.id !== id); save(); showToast("Lançamento apagado!");
 }
@@ -190,10 +237,11 @@ function salvarEdicaoLancamento(id) {
 
     if(!novaDesc || isNaN(novoValor) || !novaData) return alert("Preencha todos os dados.");
     const c = db.contas.find(x => x.id === l.contaId);
+    
     if(c && c.tipo !== 'cartao' && l.efetivado) {
         const diferenca = novoValor - l.valor;
-        if(['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) c.saldo += diferenca;
-        if(['despesa', 'emp_concedido'].includes(l.tipo)) c.saldo -= diferenca;
+        if(tiposReceitaParaSaldo.includes(l.tipo)) c.saldo += diferenca;
+        if(tiposDespesaParaSaldo.includes(l.tipo)) c.saldo -= diferenca;
     }
     l.valor = novoValor; l.data = novaData; l.desc = novaDesc; save(); showToast("Movimentação Atualizada!");
 }
@@ -202,9 +250,10 @@ function confirmarPagamento(id) {
     const l = db.lancamentos.find(x => x.id === id); if(!l) return;
     l.efetivado = true;
     const c = db.contas.find(x => x.id === l.contaId);
+    
     if(c && c.tipo !== 'cartao') {
-        if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) c.saldo += l.valor;
-        if (['despesa', 'emp_concedido'].includes(l.tipo)) c.saldo -= l.valor;
+        if (tiposReceitaParaSaldo.includes(l.tipo)) c.saldo += l.valor;
+        if (tiposDespesaParaSaldo.includes(l.tipo)) c.saldo -= l.valor;
     }
     save(); showToast("Pagamento Efetivado!");
 }
@@ -228,8 +277,8 @@ function processarRecorrencias() {
             
             const conta = db.contas.find(c => c.id === rec.contaId);
             if (conta && conta.tipo !== 'cartao' && isEfetivado) {
-                if (['receita', 'emp_pessoal', 'compensacao'].includes(rec.tipo)) conta.saldo += rec.valor;
-                if (['despesa', 'emp_concedido'].includes(rec.tipo)) conta.saldo -= rec.valor;
+                if (tiposReceitaParaSaldo.includes(rec.tipo)) conta.saldo += rec.valor;
+                if (tiposDespesaParaSaldo.includes(rec.tipo)) conta.saldo -= rec.valor;
             }
             rec.ultimoMesGerado = `${anoUltimo}-${mesStr}`; 
             gerouNovo = true;
@@ -313,12 +362,10 @@ function exportarBackup() {
     const now = new Date(); 
     const nomeArquivo = `EcoBKP_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`; 
     
-    // Grava no histórico
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
-    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.5", payload: dataStr }); 
+    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.6", payload: dataStr }); 
     if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist)); 
     
-    // Baixa o arquivo
     const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); 
     if(typeof renderAbaConfig === 'function') renderAbaConfig(); showToast("Backup Salvo!"); 
 }
