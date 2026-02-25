@@ -52,7 +52,7 @@ function render() {
     setTexto('dash-saldo-livre', `R$ ${calc.saldoLivre.toFixed(2)}`);
     setTexto('dash-investido', `R$ ${calc.investido.toFixed(2)}`);
 
-    // Projeção e Patrimônio Líquido
+    // Projeção Mês
     const saldoProjetado = calc.saldoLivre - calc.prevGastos - calc.faturas + calc.prevReceitas;
     const projElem = document.getElementById('dash-projecao');
     if(projElem) {
@@ -60,26 +60,28 @@ function render() {
         projElem.style.color = saldoProjetado >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
     }
 
-    // Meta Consumida
+    // Meta Consumida (Painel Principal)
     setTexto('uso-meta-texto', `R$ ${calc.usoMetaCartao.toFixed(2)} / R$ ${calc.metaTotalCartao.toFixed(2)}`);
     const pMeta = calc.metaTotalCartao > 0 ? (calc.usoMetaCartao / calc.metaTotalCartao) * 100 : 0;
     const metaBar = document.getElementById('meta-bar');
     if(metaBar) {
         metaBar.style.width = Math.min(pMeta, 100) + "%";
-        metaBar.style.background = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--sucesso)');
+        metaBar.style.background = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981'); // Vermelho, Amarelo, Verde
     }
     setTexto('meta-percentual', `${pMeta.toFixed(1)}%`);
 
-    // ==========================================
-    // CHAMADAS OBRIGATÓRIAS (Corrigido Bugs 1 e 2)
-    // ==========================================
+    // 4. Chamadas de Renderização Secundárias
     if (typeof renderRadarVencimentos === 'function') renderRadarVencimentos();
     if (typeof renderHistorico === 'function') renderHistorico();
     if (typeof renderAbaContas === 'function') renderAbaContas();
-    if (typeof renderGrafico === 'function') renderGrafico();
-    if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
-    if (typeof renderAbaFaturas === 'function') renderAbaFaturas(); // Atualiza a aba Faturas!
-    if (typeof renderAbaConfig === 'function') renderAbaConfig();   // Atualiza os Ajustes!
+    if (typeof renderAbaFaturas === 'function') renderAbaFaturas();
+    if (typeof renderAbaConfig === 'function') renderAbaConfig();
+    
+    // Os gráficos precisam de um pequeno delay para capturar o tamanho certo do container
+    setTimeout(() => {
+        if (typeof renderGrafico === 'function') renderGrafico();
+        if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
+    }, 100);
 }
 
 // Lógica de Fatura Auxiliar
@@ -89,8 +91,12 @@ function getMesFaturaLogico(dataLancamento, diaFechamento) {
     if (dia >= diaFechamento) { mes += 1; if (mes > 12) { mes = 1; ano += 1; } }
     return `${ano}-${mes.toString().padStart(2, '0')}`;
 }
+function formatarMesFaturaLogico(mesAnoStr) { 
+    const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
+    const [ano, mes] = mesAnoStr.split('-'); return `${meses[mes]} / ${ano}`; 
+}
 
-// --- RADAR LIMPO E INTELIGENTE ---
+// --- RADAR LIMPO ---
 function renderRadarVencimentos() {
     const lista = document.getElementById('lista-radar-vencimentos'); if(!lista) return;
     const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -99,7 +105,11 @@ function renderRadarVencimentos() {
     let alertas = [];
     db.lancamentos.forEach(l => {
         const d = new Date(l.data + 'T00:00:00');
-        // Filtro Limpo: Só exibe se NÃO estiver efetivado e for saída
+        const conta = db.contas.find(c => c.id === l.contaId);
+        
+        // Ignora lançamentos de Cartão (vão para faturas)
+        if (conta && conta.tipo === 'cartao') return; 
+
         if (!l.efetivado && ['despesa', 'emp_concedido'].includes(l.tipo) && d <= limite7) {
             const diasFaltando = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
             let txtDia = diasFaltando === 0 ? 'Vence HOJE' : `Vence em ${diasFaltando} dia(s)`;
@@ -117,7 +127,7 @@ function renderRadarVencimentos() {
     lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
 }
 
-// --- HISTÓRICO COM CHIPS DE CORES ---
+// --- HISTÓRICO COM CHIPS DE CORES E EDIÇÃO ---
 function renderHistorico() {
     const lista = document.getElementById('lista-historico-filtros'); if(!lista) return;
     const mesFiltro = document.getElementById('filtro-mes').value;
@@ -135,7 +145,6 @@ function renderHistorico() {
         const dt = new Date(l.data + 'T00:00:00');
         let chipHtml = '';
         
-        // Identidade Visual Executive Modern para Status
         if (l.efetivado) {
             const isReceita = ['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo);
             chipHtml = `<span class="chip ${isReceita ? 'chip-esmeralda' : 'chip-verde'}"><i class="fas fa-check-circle"></i> ${isReceita ? 'Receita' : 'Pago'}</span>`;
@@ -167,10 +176,17 @@ function renderHistorico() {
             </div>
             
             <div id="edit-lanc-${l.id}" style="display:none; padding-top:15px; margin-top:15px; border-top:1px dashed var(--linha);">
+                <label class="label-moderno">Descrição</label>
                 <input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc}">
                 <div class="grid-inputs mb-10">
-                    <input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data}">
-                    <input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor}">
+                    <div>
+                        <label class="label-moderno">Data</label>
+                        <input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data}">
+                    </div>
+                    <div>
+                        <label class="label-moderno">Valor (R$)</label>
+                        <input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor}">
+                    </div>
                 </div>
                 <button class="btn-primary" onclick="salvarEdicaoLancamento(${l.id})">Salvar Alterações</button>
             </div>
@@ -180,10 +196,10 @@ function renderHistorico() {
 
 function toggleEditLancamento(id) { 
     const el = document.getElementById(`edit-lanc-${id}`);
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-// --- ABA CONTAS PREMIUM COM VISÃO BLACK ---
+// --- ABA CONTAS PREMIUM ---
 function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return;
     lista.innerHTML = ``;
@@ -221,88 +237,13 @@ function renderAbaContas() {
     });
 }
 
-// --- GRÁFICOS ---
-function renderGrafico() {
-    const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
-    const mes = document.getElementById('filtro-mes').value;
-    const labels = [], dados = []; const categorias = {};
-    db.lancamentos.forEach(l => { 
-        if(l.efetivado && l.data.substring(0,7) === mes && l.tipo === 'despesa') { 
-            categorias[l.cat] = (categorias[l.cat] || 0) + l.valor; 
-        } 
-    });
-    Object.keys(categorias).forEach(k => { labels.push(k); dados.push(categorias[k]); });
-    if(meuGrafico) meuGrafico.destroy();
-    
-    // Cores Sóbrias Executive
-    const bgColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#14b8a6', '#64748b'];
-    
-    meuGrafico = new Chart(ctx, { 
-        type: 'doughnut', 
-        data: { labels, datasets: [{ data: dados, backgroundColor: bgColors, borderWidth: 0 }] }, 
-        options: { plugins: { legend: { position: 'right', labels: {font: {family: 'Inter', size: 11}, color: 'var(--texto-sec)'} } }, cutout: '70%' } 
-    });
-}
-
-function renderGraficoEvolucao() {
-    const ctx = document.getElementById('graficoEvolucao'); if(!ctx) return;
-    const labels = [], dados = [];
-    for (let i = 2; i >= 0; i--) {
-        let d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
-        let mStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
-        labels.push(formatarMesFaturaLogico(`${mStr}-01`, 1).split('-')[0]);
-        let total = 0; 
-        db.lancamentos.forEach(l => { if(l.efetivado && l.tipo === 'despesa' && l.data.substring(0,7) === mStr) total += l.valor; });
-        dados.push(total);
-    }
-    if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
-    meuGraficoEvolucao = new Chart(ctx, { 
-        type: 'line', 
-        data: { labels, datasets: [{ data: dados, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37, 99, 235, 0.1)' }] }, 
-        options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } } 
-    });
-}
-
-// --- CORREÇÃO DO RADAR DE VENCIMENTOS (Bug 4) ---
-// Substitua a sua função renderRadarVencimentos do ui.js por esta:
-function renderRadarVencimentos() {
-    const lista = document.getElementById('lista-radar-vencimentos'); if(!lista) return;
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const limite7 = new Date(hoje); limite7.setDate(hoje.getDate() + 7);
-    
-    let alertas = [];
-    db.lancamentos.forEach(l => {
-        const d = new Date(l.data + 'T00:00:00');
-        const conta = db.contas.find(c => c.id === l.contaId);
-        
-        // Filtro Limpo: Ignora lançamentos de Cartão de Crédito no Radar (eles vão para a aba faturas)
-        if (conta && conta.tipo === 'cartao') return; 
-
-        if (!l.efetivado && ['despesa', 'emp_concedido'].includes(l.tipo) && d <= limite7) {
-            const diasFaltando = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
-            let txtDia = diasFaltando === 0 ? 'Vence HOJE' : `Vence em ${diasFaltando} dia(s)`;
-            
-            alertas.push(`
-            <div class="flex-between mb-10" style="padding-bottom:10px; border-bottom:1px solid var(--linha);">
-                <div>
-                    <strong style="font-size:14px;">${l.desc}</strong>
-                    <small style="display:block; color: ${diasFaltando < 0 ? 'var(--perigo)' : 'var(--alerta)'}; font-weight:600;">${diasFaltando < 0 ? 'Atrasado' : txtDia}</small>
-                </div>
-                <b class="txt-perigo">R$ ${l.valor.toFixed(2)}</b>
-            </div>`);
-        }
-    });
-    lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
-}
-
-// --- RESTAURAÇÃO DA ABA FATURAS (Bug 5) ---
+// --- ABA FATURAS PREMIUM ---
 function renderAbaFaturas() {
     const abas = document.getElementById('abas-cartoes-fatura'); const lista = document.getElementById('lista-faturas-agrupadas'); if(!abas || !lista) return;
     const cartoes = db.contas.filter(c => c.tipo === 'cartao');
     if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; return; }
     if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
-    // Novas guias de abas modernas
     abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
     
     const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return;
@@ -347,13 +288,7 @@ function renderAbaFaturas() {
     lista.innerHTML = html;
 }
 
-// Para manter compatibilidade com a função chamada no renderAbaFaturas
-function formatarMesFaturaLogico(mesAnoStr) { 
-    const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
-    const [ano, mes] = mesAnoStr.split('-'); return `${meses[mes]} / ${ano}`; 
-}
-
-// --- RESTAURAÇÃO DA ABA CONFIG E BACKUPS (Bug 1 e 2) ---
+// --- ABA CONFIGURAÇÕES (Edição com Rótulos Completos) ---
 function renderAbaConfig() {
     const divContas = document.getElementById('lista-contas-edit');
     const divBackups = document.getElementById('lista-backups');
@@ -368,18 +303,28 @@ function renderAbaConfig() {
                         <button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
+                
                 <div id="edit-conta-${c.id}" style="display:none; padding-top:15px; margin-top:15px; border-top:1px dashed var(--linha);">
                     <div class="grid-inputs mb-10">
-                        <input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}" placeholder="Nome da Conta">
-                        <input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px; cursor:pointer;">
+                        <div><label class="label-moderno">Nome da Conta</label><input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}"></div>
+                        <div><label class="label-moderno">Cor Tema</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px; cursor:pointer; padding:0;"></div>
                     </div>
+                    
                     ${c.tipo === 'cartao' ? `
                     <div class="grid-inputs mb-10">
-                        <input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite}" placeholder="Limite (R$)">
-                        <input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta}" placeholder="Meta (R$)">
+                        <div><label class="label-moderno">Limite Total (R$)</label><input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite}"></div>
+                        <div><label class="label-moderno">Meta Mensal (R$)</label><input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta}"></div>
                     </div>
-                    ` : ''}
-                    <button class="btn-primary" onclick="salvarEdicaoConta('${c.id}')">Salvar Alterações</button>
+                    <div class="grid-inputs mb-10">
+                        <div><label class="label-moderno">Dia Fechamento</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento}"></div>
+                        <div><label class="label-moderno">Dia Vencimento</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento}"></div>
+                    </div>
+                    ` : `
+                    <div class="grid-inputs mb-10">
+                        <div><label class="label-moderno">Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" class="input-moderno" value="${c.saldo}"></div>
+                    </div>
+                    `}
+                    <button class="btn-primary mt-10" onclick="salvarEdicaoConta('${c.id}')">Salvar Alterações</button>
                 </div>
             </div>
         `).join('');
@@ -404,9 +349,68 @@ function renderAbaConfig() {
     }
 }
 
-// Importante: No topo da sua função render() no ui.js, adicione estas duas chamadas para garantir que as telas se atualizem:
-// renderAbaFaturas();
-// renderAbaConfig();
+// --- GRÁFICOS (Formatados e Explicativos com valores em R$) ---
+function renderGrafico() {
+    const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
+    const mes = document.getElementById('filtro-mes').value;
+    const labels = [], dados = []; const categorias = {};
+    
+    db.lancamentos.forEach(l => { 
+        if(l.efetivado && l.data.substring(0,7) === mes && l.tipo === 'despesa') { 
+            categorias[l.cat] = (categorias[l.cat] || 0) + l.valor; 
+        } 
+    });
+    Object.keys(categorias).forEach(k => { labels.push(k); dados.push(categorias[k]); });
+    
+    if(meuGrafico) meuGrafico.destroy();
+    if(dados.length === 0) return; 
+    
+    const bgColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#14b8a6', '#64748b'];
+    
+    meuGrafico = new Chart(ctx, { 
+        type: 'doughnut', 
+        data: { labels, datasets: [{ data: dados, backgroundColor: bgColors, borderWidth: 2, borderColor: 'var(--card-bg)' }] }, 
+        options: { 
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: 10 },
+            plugins: { 
+                legend: { position: 'bottom', labels: { font: {family: 'Inter', size: 12}, color: 'var(--texto-sec)' } },
+                datalabels: { color: '#ffffff', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
+            }, 
+            cutout: '65%' 
+        } 
+    });
+}
 
-
-
+function renderGraficoEvolucao() {
+    const ctx = document.getElementById('graficoEvolucao'); if(!ctx) return;
+    const labels = [], dados = [];
+    
+    for (let i = 2; i >= 0; i--) {
+        let d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
+        let mStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
+        labels.push(formatarMesFaturaLogico(`${mStr}-01`, 1).split('/')[0].trim()); 
+        let total = 0; 
+        db.lancamentos.forEach(l => { if(l.efetivado && l.tipo === 'despesa' && l.data.substring(0,7) === mStr) total += l.valor; });
+        dados.push(total);
+    }
+    
+    if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
+    
+    meuGraficoEvolucao = new Chart(ctx, { 
+        type: 'line', 
+        data: { labels, datasets: [{ data: dados, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37, 99, 235, 0.15)', pointBackgroundColor: '#2563eb', pointRadius: 4 }] }, 
+        options: { 
+            responsive: true, maintainAspectRatio: false,
+            layout: { padding: {top: 25, right: 15} }, 
+            plugins: { 
+                legend: { display: false },
+                datalabels: { align: 'top', color: 'var(--azul)', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
+            }, 
+            scales: { 
+                y: { display: true, border: {display: false}, grid: {color: 'rgba(0,0,0,0.05)'}, ticks: {font:{size:10, family:'Inter'}, color:'var(--texto-sec)', callback: (val) => 'R$ '+val} }, 
+                x: { grid: { display: false }, ticks: {font:{size:12, family:'Inter'}, color:'var(--texto-main)'} } 
+            } 
+        } 
+    });
+}
