@@ -141,3 +141,9 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .modal-body { padding: 20px; }
 .modal-footer { padding: 20px; border-top: 1px solid var(--linha); background: var(--input-bg); margin: 0; }
 .chart-container { position: relative; height: 220px; width: 100%; display: flex; justify-content: center; align-items: center; }
+
+/* TOAST NOTIFICATION */
+.toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px;}
+.toast { background: var(--header-bg); color: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; animation: slideUpToast 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOutToast 0.4s ease 2.6s forwards; border-left: 4px solid var(--sucesso);}
+@keyframes slideUpToast { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeOutToast { to { opacity: 0; transform: translateY(-20px); } }
