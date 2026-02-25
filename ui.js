@@ -43,32 +43,43 @@ function render() {
     });
 
     // 3. Atualizar Dashboard Executivo
-    document.getElementById('dash-receitas').innerText = `R$ ${calc.receitas.toFixed(2)}`;
-    document.getElementById('dash-prev-receitas').innerText = `R$ ${calc.prevReceitas.toFixed(2)}`;
-    document.getElementById('dash-despesas').innerText = `R$ ${calc.despesas.toFixed(2)}`;
-    document.getElementById('dash-prev-gastos').innerText = `R$ ${calc.prevGastos.toFixed(2)}`;
-    document.getElementById('dash-faturas').innerText = `R$ ${calc.faturas.toFixed(2)}`;
-    document.getElementById('dash-saldo-livre').innerText = `R$ ${calc.saldoLivre.toFixed(2)}`;
-    document.getElementById('dash-investido').innerText = `R$ ${calc.investido.toFixed(2)}`;
+    const setTexto = (id, texto) => { const el = document.getElementById(id); if(el) el.innerText = texto; };
+    setTexto('dash-receitas', `R$ ${calc.receitas.toFixed(2)}`);
+    setTexto('dash-prev-receitas', `R$ ${calc.prevReceitas.toFixed(2)}`);
+    setTexto('dash-despesas', `R$ ${calc.despesas.toFixed(2)}`);
+    setTexto('dash-prev-gastos', `R$ ${calc.prevGastos.toFixed(2)}`);
+    setTexto('dash-faturas', `R$ ${calc.faturas.toFixed(2)}`);
+    setTexto('dash-saldo-livre', `R$ ${calc.saldoLivre.toFixed(2)}`);
+    setTexto('dash-investido', `R$ ${calc.investido.toFixed(2)}`);
 
     // Projeção e Patrimônio Líquido
     const saldoProjetado = calc.saldoLivre - calc.prevGastos - calc.faturas + calc.prevReceitas;
     const projElem = document.getElementById('dash-projecao');
-    projElem.innerText = `R$ ${saldoProjetado.toFixed(2)}`;
-    projElem.style.color = saldoProjetado >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
+    if(projElem) {
+        projElem.innerText = `R$ ${saldoProjetado.toFixed(2)}`;
+        projElem.style.color = saldoProjetado >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
+    }
 
-    // Meta Consumida (Correção do Bug)
-    document.getElementById('uso-meta-texto').innerText = `R$ ${calc.usoMetaCartao.toFixed(2)} / R$ ${calc.metaTotalCartao.toFixed(2)}`;
+    // Meta Consumida
+    setTexto('uso-meta-texto', `R$ ${calc.usoMetaCartao.toFixed(2)} / R$ ${calc.metaTotalCartao.toFixed(2)}`);
     const pMeta = calc.metaTotalCartao > 0 ? (calc.usoMetaCartao / calc.metaTotalCartao) * 100 : 0;
-    document.getElementById('meta-bar').style.width = Math.min(pMeta, 100) + "%";
-    document.getElementById('meta-bar').style.background = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--sucesso)');
-    document.getElementById('meta-percentual').innerText = `${pMeta.toFixed(1)}%`;
+    const metaBar = document.getElementById('meta-bar');
+    if(metaBar) {
+        metaBar.style.width = Math.min(pMeta, 100) + "%";
+        metaBar.style.background = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--sucesso)');
+    }
+    setTexto('meta-percentual', `${pMeta.toFixed(1)}%`);
 
-    renderRadarVencimentos();
-    renderHistorico();
-    renderAbaContas();
-    renderGrafico();
-    renderGraficoEvolucao();
+    // ==========================================
+    // CHAMADAS OBRIGATÓRIAS (Corrigido Bugs 1 e 2)
+    // ==========================================
+    if (typeof renderRadarVencimentos === 'function') renderRadarVencimentos();
+    if (typeof renderHistorico === 'function') renderHistorico();
+    if (typeof renderAbaContas === 'function') renderAbaContas();
+    if (typeof renderGrafico === 'function') renderGrafico();
+    if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
+    if (typeof renderAbaFaturas === 'function') renderAbaFaturas(); // Atualiza a aba Faturas!
+    if (typeof renderAbaConfig === 'function') renderAbaConfig();   // Atualiza os Ajustes!
 }
 
 // Lógica de Fatura Auxiliar
@@ -371,3 +382,4 @@ function renderAbaConfig() {
 // Importante: No topo da sua função render() no ui.js, adicione estas duas chamadas para garantir que as telas se atualizem:
 // renderAbaFaturas();
 // renderAbaConfig();
+
