@@ -37,6 +37,7 @@
 body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var(--texto-main); transition: background-color 0.3s ease, color 0.3s ease; }
 
 /* Header Minimalista */
+.header-modern { display: flex; justify-content: space-between; align-items: center; background: var(--header-bg); padding: 25px 20px 20px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; z-index: 1000; transition: 0.3s; }
 .header-modern { background: var(--header-bg); padding: 25px 20px 20px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; z-index: 1000; transition: 0.3s; }
 .header-modern h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
 #subtitulo-header { color: var(--texto-sec); font-size: 13px; font-weight: 500; }
