@@ -2,6 +2,11 @@
 // UI.JS - Renderização e Interface Visual
 // ==========================================
 
+// --- LISTAS DE RETROCOMPATIBILIDADE (Lê dados antigos e novos) ---
+const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
+const T_DESPESAS = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
+const T_DESPESAS_CARTAO = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
+
 function render() {
     const hoje = new Date();
     const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -11,7 +16,7 @@ function render() {
         gastosFixos: 0, gastosVariaveis: 0 
     };
 
-    // Categorias consideradas como Custo Fixo (Altere aqui se quiser!)
+    // Categorias consideradas como Custo Fixo
     const catFixas = ['Moradia', 'Energia', 'Assinaturas', 'Consórcio', 'Saúde', 'Educação'];
 
     // 1. Saldos e Metas Globais
@@ -31,15 +36,14 @@ function render() {
             const mesFaturaAtualLivre = getMesFaturaLogico(hoje.toISOString().split('T')[0], conta.fechamento);
             const fatID = `${conta.id}-${mesFatura}`;
             
-            if (!db.faturasPagas.includes(fatID) && (l.tipo === 'despesa' || l.tipo === 'emp_cartao')) {
-                // Separa fatura deste mês das faturas dos próximos meses
-                if (mesFatura > mesFaturaAtualLivre) {
-                    calc.faturasFuturas += l.valor;
-                } else {
-                    calc.faturas += l.valor; // Faturas atuais ou atrasadas
-                }
+            if (!db.faturasPagas.includes(fatID)) {
+                // Se for receita (ex: estorno), subtrai da fatura. Se for despesa, soma.
+                const valMutante = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
+                
+                if (mesFatura > mesFaturaAtualLivre) calc.faturasFuturas += valMutante;
+                else calc.faturas += valMutante;
             }
-            if (mesFatura === mesFaturaAtualLivre && l.tipo === 'despesa') {
+            if (mesFatura === mesFaturaAtualLivre && ['despesas_gerais', 'despesa'].includes(l.tipo)) {
                 calc.usoMetaCartao += l.valor;
                 if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
                 else calc.gastosVariaveis += l.valor;
@@ -48,15 +52,15 @@ function render() {
             // Conta normal: só processa se for do mês corrente
             if (l.data.substring(0,7) === mesCorrente) {
                 if (l.efetivado) {
-                    if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) calc.receitas += l.valor;
-                    if (['despesa', 'emp_concedido'].includes(l.tipo)) {
+                    if (T_RECEITAS.includes(l.tipo)) calc.receitas += l.valor;
+                    if (T_DESPESAS.includes(l.tipo) && !['emprestei_cartao', 'emp_cartao'].includes(l.tipo)) {
                         calc.despesas += l.valor;
                         if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
                         else calc.gastosVariaveis += l.valor;
                     }
                 } else {
-                    if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) calc.prevReceitas += l.valor;
-                    if (['despesa', 'emp_concedido'].includes(l.tipo)) calc.prevGastos += l.valor;
+                    if (T_RECEITAS.includes(l.tipo)) calc.prevReceitas += l.valor;
+                    if (T_DESPESAS.includes(l.tipo) && !['emprestei_cartao', 'emp_cartao'].includes(l.tipo)) calc.prevGastos += l.valor;
                 }
             }
         }
@@ -70,12 +74,11 @@ function render() {
     setTexto('dash-prev-gastos', `R$ ${calc.prevGastos.toFixed(2)}`);
     
     setTexto('dash-faturas', `R$ ${calc.faturas.toFixed(2)}`);
-    setTexto('dash-faturas-futuras', `R$ ${calc.faturasFuturas.toFixed(2)}`); // O Novo Card
+    setTexto('dash-faturas-futuras', `R$ ${calc.faturasFuturas.toFixed(2)}`);
     
     setTexto('dash-saldo-livre', `R$ ${calc.saldoLivre.toFixed(2)}`);
     setTexto('dash-investido', `R$ ${calc.investido.toFixed(2)}`);
 
-    // Projeção Mês
     const saldoProjetado = calc.saldoLivre - calc.prevGastos - calc.faturas + calc.prevReceitas;
     const projElem = document.getElementById('dash-projecao');
     if(projElem) {
@@ -83,7 +86,6 @@ function render() {
         projElem.style.color = saldoProjetado >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
     }
 
-    // Meta Consumida
     setTexto('uso-meta-texto', `R$ ${calc.usoMetaCartao.toFixed(2)} / R$ ${calc.metaTotalCartao.toFixed(2)}`);
     const pMeta = calc.metaTotalCartao > 0 ? (calc.usoMetaCartao / calc.metaTotalCartao) * 100 : 0;
     const metaBar = document.getElementById('meta-bar');
@@ -159,7 +161,7 @@ function renderRadarVencimentos() {
         const conta = db.contas.find(c => c.id === l.contaId);
         if (conta && conta.tipo === 'cartao') return; 
 
-        if (!l.efetivado && ['despesa', 'emp_concedido'].includes(l.tipo) && d <= limite7) {
+        if (!l.efetivado && T_DESPESAS.includes(l.tipo) && d <= limite7) {
             const diasFaltando = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
             let txtDia = diasFaltando === 0 ? 'Vence HOJE' : `Vence em ${diasFaltando} dia(s)`;
             
@@ -194,8 +196,8 @@ function renderHistorico() {
         const dt = new Date(l.data + 'T00:00:00');
         let chipHtml = '';
         
+        const isReceita = T_RECEITAS.includes(l.tipo);
         if (l.efetivado) {
-            const isReceita = ['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo);
             chipHtml = `<span class="chip ${isReceita ? 'chip-esmeralda' : 'chip-verde'}"><i class="fas fa-check-circle"></i> ${isReceita ? 'Receita' : 'Pago'}</span>`;
         } else if (dt < hoje) {
             chipHtml = `<span class="chip chip-vermelho"><i class="fas fa-exclamation-circle"></i> Atrasado</span>`;
@@ -205,7 +207,8 @@ function renderHistorico() {
             chipHtml = `<span class="chip chip-azul"><i class="fas fa-calendar-alt"></i> Agendado</span>`;
         }
 
-        const corValor = (['despesa', 'emp_concedido'].includes(l.tipo)) ? 'var(--perigo)' : 'var(--sucesso)';
+        const corValor = T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)';
+        const valSinal = isReceita ? '+' : '-';
         
         return `
         <div class="card ${!l.efetivado ? 'opacity-90' : ''}" style="border-left: 4px solid ${c ? c.cor : '#ccc'}; padding:15px;">
@@ -216,7 +219,7 @@ function renderHistorico() {
                     ${(!l.efetivado && c && c.tipo !== 'cartao') ? `<button class="btn-primary" style="padding:6px 12px; font-size:11px; margin-top:8px; width:auto;" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Efetivar</button>` : ''}
                 </div>
                 <div style="text-align: right;">
-                    <b style="color: ${corValor}; font-size:16px;">R$ ${l.valor.toFixed(2)}</b>
+                    <b style="color: ${corValor}; font-size:16px;">${valSinal} R$ ${l.valor.toFixed(2)}</b>
                     <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
                         <button class="btn-icon" onclick="toggleEditLancamento(${l.id})"><i class="fas fa-pencil-alt"></i></button>
                         <button class="btn-icon txt-perigo" onclick="excluirLancamento(${l.id})"><i class="fas fa-trash"></i></button>
@@ -261,7 +264,7 @@ function renderAbaContas() {
             let totalGasto = 0;
             const mesCorrente = document.getElementById('filtro-mes').value || new Date().toISOString().substring(0,7);
             db.lancamentos.forEach(l => {
-                if (l.contaId === c.id && l.data.substring(0,7) === mesCorrente && (l.tipo === 'despesa' || l.tipo === 'emp_cartao')) {
+                if (l.contaId === c.id && l.data.substring(0,7) === mesCorrente && T_DESPESAS_CARTAO.includes(l.tipo)) {
                     totalGasto += l.valor;
                 }
             });
@@ -301,7 +304,11 @@ function renderAbaFaturas() {
         if(l.contaId !== c.id) return;
         const mesFat = getMesFaturaLogico(l.data, c.fechamento);
         if(!mesesFatura[mesFat]) mesesFatura[mesFat] = { total: 0, lancamentos: [] };
-        mesesFatura[mesFat].total += l.valor; mesesFatura[mesFat].lancamentos.push(l);
+        
+        // Estornos e Receitas subtraem o valor da fatura visualmente
+        const valorReal = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
+        mesesFatura[mesFat].total += valorReal; 
+        mesesFatura[mesFat].lancamentos.push(l);
     });
 
     let html = ''; const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
@@ -328,7 +335,9 @@ function renderAbaFaturas() {
                             <span style="color:var(--texto-sec); margin-right:8px;">${l.data.split('-').reverse().join('/')}</span> 
                             ${l.desc}
                         </span>
-                        <strong class="txt-perigo">R$ ${l.valor.toFixed(2)}</strong>
+                        <strong class="${T_RECEITAS.includes(l.tipo) ? 'txt-sucesso' : 'txt-perigo'}">
+                            ${T_RECEITAS.includes(l.tipo) ? '+' : '-'} R$ ${l.valor.toFixed(2)}
+                        </strong>
                     </div>
                 `).join('')}
             </div>
@@ -405,7 +414,7 @@ function renderGrafico() {
     const labels = [], dados = []; const categorias = {};
     
     db.lancamentos.forEach(l => { 
-        if(l.efetivado && l.data.substring(0,7) === mes && l.tipo === 'despesa') { 
+        if(l.efetivado && l.data.substring(0,7) === mes && ['despesas_gerais', 'despesa'].includes(l.tipo)) { 
             categorias[l.cat] = (categorias[l.cat] || 0) + l.valor; 
         } 
     });
@@ -449,11 +458,9 @@ function renderGraficoEvolucao() {
         
         db.lancamentos.forEach(l => { 
             if(l.efetivado && l.data.substring(0,7) === mStr) {
-                // Forçamos a conversão para número, matando o erro da linha flutuante!
                 const valorNum = parseFloat(l.valor) || 0; 
-                
-                if (l.tipo === 'despesa') totDesp += valorNum;
-                if (['receita', 'compensacao', 'emp_pessoal'].includes(l.tipo)) totRec += valorNum;
+                if (T_DESPESAS.includes(l.tipo)) totDesp += valorNum;
+                if (T_RECEITAS.includes(l.tipo)) totRec += valorNum;
             } 
         });
         dadosDespesas.push(totDesp);
@@ -462,7 +469,6 @@ function renderGraficoEvolucao() {
     
     if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
     
-    // Altera o título acima do gráfico dinamicamente
     const tituloEl = ctx.parentElement.previousElementSibling;
     if(tituloEl && tituloEl.tagName === 'STRONG') tituloEl.innerText = "Evolução Financeira (3 Meses)";
     
@@ -479,7 +485,7 @@ function renderGraficoEvolucao() {
                 { 
                     label: 'Receitas',
                     data: dadosReceitas, 
-                    borderColor: '#10b981', // Verde Esmeralda
+                    borderColor: '#10b981', 
                     tension: 0.4, 
                     fill: true, 
                     backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)', 
@@ -491,7 +497,7 @@ function renderGraficoEvolucao() {
                 { 
                     label: 'Despesas',
                     data: dadosDespesas, 
-                    borderColor: '#ef4444', // Vermelho Perigo
+                    borderColor: '#ef4444', 
                     tension: 0.4, 
                     fill: true, 
                     backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)', 
@@ -504,19 +510,20 @@ function renderGraficoEvolucao() {
         }, 
         options: { 
             responsive: true, maintainAspectRatio: false,
-            layout: { padding: {top: 25, right: 15} }, 
+            // CORREÇÃO DO ESPAÇO DIREITO (padding right: 45) PARA NÃO CORTAR O NÚMERO
+            layout: { padding: {top: 25, right: 45, left: 10} }, 
             plugins: { 
                 legend: { display: true, position: 'bottom', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, boxWidth: 6 } },
                 datalabels: { 
                     align: 'top', 
-                    color: (context) => context.dataset.borderColor, // Pega a cor da linha correspondente
+                    color: (context) => context.dataset.borderColor, 
                     font: {weight: 'bold', size: 10}, 
                     formatter: (val) => val > 0 ? 'R$ ' + val.toFixed(0) : '' 
                 }
             }, 
             scales: { 
                 y: { 
-                    type: 'linear', // Garante a escala matemática correta
+                    type: 'linear', 
                     beginAtZero: true, 
                     display: true, 
                     border: {display: false}, 
