@@ -16,120 +16,113 @@ function showToast(mensagem) {
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
-// --- 2. LANÇAMENTO INTELIGENTE (Matriz de Regras Blindada) ---
+// --- 2. LANÇAMENTO INTELIGENTE (Matriz de Regras Segura) ---
 function atualizarRegrasLancamento() {
-    try {
-        const tipoSelect = document.getElementById('lanc-tipo');
-        const contaSelect = document.getElementById('lanc-conta');
-        const catSelect = document.getElementById('lanc-cat');
-        const boxFixo = document.getElementById('lanc-fixo');
-        
-        // Se algum elemento não existir ainda, aborta sem gerar erro
-        if(!tipoSelect || !contaSelect || !catSelect || !boxFixo) return;
+    const tipoSelect = document.getElementById('lanc-tipo');
+    const contaSelect = document.getElementById('lanc-conta');
+    const catSelect = document.getElementById('lanc-cat');
+    const boxFixo = document.getElementById('lanc-fixo');
+    
+    // Trava de segurança caso a tela ainda esteja carregando
+    if(!tipoSelect || !contaSelect || !catSelect || !boxFixo) return;
 
-        const tipo = tipoSelect.value || 'despesas_gerais';
-        
-        // Categorias da Tabela
-        const catsDespesa = `<option value="Alimentação">🛒 Alimentação</option><option value="Consórcio">📄 Consórcio</option><option value="Transporte">🚗 Transporte</option><option value="Energia">⚡ Energia</option><option value="Moradia">🏠 Moradia</option><option value="Saúde">💊 Saúde</option><option value="Lazer">🍿 Lazer</option><option value="Assinaturas">📺 Assinaturas</option><option value="Terceiros">🤝 Terceiros</option><option value="Outros">⚙️ Outros</option>`;
-        const catsReceita = `<option value="Salário">💰 Salário</option><option value="Terceiros">🤝 Terceiros</option><option value="Estorno">↩️ Estorno</option><option value="Outros">🎁 Outros</option>`;
+    const tipo = tipoSelect.value || 'despesas_gerais';
+    
+    // Categorias da Tabela
+    const catsDespesa = `<option value="Alimentação">🛒 Alimentação</option><option value="Consórcio">📄 Consórcio</option><option value="Transporte">🚗 Transporte</option><option value="Energia">⚡ Energia</option><option value="Moradia">🏠 Moradia</option><option value="Saúde">💊 Saúde</option><option value="Lazer">🍿 Lazer</option><option value="Assinaturas">📺 Assinaturas</option><option value="Terceiros">🤝 Terceiros</option><option value="Outros">⚙️ Outros</option>`;
+    const catsReceita = `<option value="Salário">💰 Salário</option><option value="Terceiros">🤝 Terceiros</option><option value="Estorno">↩️ Estorno</option><option value="Outros">🎁 Outros</option>`;
 
-        // 2.1 Aplicar Categorias e Regra de Repetição
-        const tiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
-        catSelect.innerHTML = tiposReceita.includes(tipo) ? catsReceita : catsDespesa;
+    // 2.1 Aplicar Categorias e Regra de Repetição
+    const tiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
+    catSelect.innerHTML = tiposReceita.includes(tipo) ? catsReceita : catsDespesa;
 
-        if (tipo === 'despesas_gerais' || tipo === 'salario') {
-            boxFixo.disabled = false;
-        } else {
-            boxFixo.disabled = true; 
-            boxFixo.checked = false;
-        }
-
-        // 2.2 Filtrar Origem/Destino (Contas)
-        let contaSelecionada = contaSelect.value;
-        contaSelect.innerHTML = ""; // Limpa a lista atual
-        let temConta = false;
-        
-        if (typeof db !== 'undefined' && db.contas) {
-            db.contas.forEach(c => {
-                let mostrar = false;
-                
-                // Aplicação rigída da Matriz (Origem/Destino)
-                if (tipo === 'despesas_gerais' && (c.tipo === 'movimentacao' || c.tipo === 'cartao')) mostrar = true;
-                else if (tipo === 'emprestei_cartao' && c.tipo === 'cartao') mostrar = true;
-                else if (['emprestei_dinheiro', 'pag_emprestimo'].includes(tipo) && c.tipo === 'movimentacao') mostrar = true;
-                else if (['dep_poupanca', 'saque_poupanca'].includes(tipo) && c.tipo === 'investimento') mostrar = true;
-                else if (['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo) && c.tipo !== 'cartao') mostrar = true;
-                else if (tipo === 'estorno') mostrar = true; 
-                
-                if (mostrar) {
-                    const icone = c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦');
-                    contaSelect.innerHTML += `<option value="${c.id}">${icone} ${c.nome}</option>`;
-                    if (c.id === contaSelecionada) temConta = true;
-                }
-            });
-        }
-
-        // BLINDAGEM: Previne que o campo fique totalmente quebrado
-        if (contaSelect.options.length === 0) {
-            contaSelect.innerHTML = '<option value="">Sem conta disponível</option>';
-        } else {
-            if (temConta) contaSelect.value = contaSelecionada;
-            else contaSelect.selectedIndex = 0; 
-        }
-        
-        ultimoTipoSelecionado = tipo;
-        atualizarFormaPagamento();
-
-    } catch (e) {
-        console.error("Erro no motor de regras:", e);
+    if (tipo === 'despesas_gerais' || tipo === 'salario') {
+        boxFixo.disabled = false;
+    } else {
+        boxFixo.disabled = true; 
+        boxFixo.checked = false;
     }
+
+    // 2.2 Filtrar Origem/Destino (Contas) - CONSTRUÇÃO EM LOTE PARA NÃO TRAVAR O NAVEGADOR
+    let contaSelecionada = contaSelect.value;
+    let htmlContas = ""; 
+    let temConta = false;
+    
+    if (typeof db !== 'undefined' && db.contas) {
+        db.contas.forEach(c => {
+            let mostrar = false;
+            
+            // Aplicação da Matriz
+            if (tipo === 'despesas_gerais' && (c.tipo === 'movimentacao' || c.tipo === 'cartao')) mostrar = true;
+            else if (tipo === 'emprestei_cartao' && c.tipo === 'cartao') mostrar = true;
+            else if (['emprestei_dinheiro', 'pag_emprestimo'].includes(tipo) && c.tipo === 'movimentacao') mostrar = true;
+            else if (['dep_poupanca', 'saque_poupanca'].includes(tipo) && c.tipo === 'investimento') mostrar = true;
+            else if (['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo) && c.tipo !== 'cartao') mostrar = true;
+            else if (tipo === 'estorno') mostrar = true; 
+            
+            if (mostrar) {
+                const icone = c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦');
+                htmlContas += `<option value="${c.id}">${icone} ${c.nome}</option>`;
+                if (c.id === contaSelecionada) temConta = true;
+            }
+        });
+    }
+
+    if (htmlContas === "") {
+        htmlContas = '<option value="">Sem conta disponível</option>';
+    }
+    
+    // Injeção única no HTML (Evita o Bug do Safari/Mobile)
+    contaSelect.innerHTML = htmlContas;
+    
+    if (temConta) contaSelect.value = contaSelecionada;
+    else contaSelect.selectedIndex = 0; 
+    
+    ultimoTipoSelecionado = tipo;
+    
+    // Dispara a próxima etapa
+    atualizarFormaPagamento();
 }
 
 function atualizarFormaPagamento() {
-    try {
-        const tipoSelect = document.getElementById('lanc-tipo');
-        const contaSelect = document.getElementById('lanc-conta');
-        const formaSelect = document.getElementById('lanc-forma');
-        
-        if(!tipoSelect || !contaSelect || !formaSelect) return;
+    const tipoSelect = document.getElementById('lanc-tipo');
+    const contaSelect = document.getElementById('lanc-conta');
+    const formaSelect = document.getElementById('lanc-forma');
+    
+    if(!tipoSelect || !contaSelect || !formaSelect) return;
 
-        const tipo = tipoSelect.value;
-        const contaId = contaSelect.value;
-        formaSelect.innerHTML = ""; 
+    const tipo = tipoSelect.value;
+    const contaId = contaSelect.value;
+    let htmlFormas = "";
 
-        if (!contaId || typeof db === 'undefined' || !db.contas) {
-            formaSelect.innerHTML = '<option value="">-</option>';
-            return;
-        }
-
-        const contaAtiva = db.contas.find(c => c.id === contaId);
-        if (!contaAtiva) return;
-
-        // Aplicação da Matriz (Forma de Pagamento)
-        if (contaAtiva.tipo === 'cartao') {
-            formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option>`;
-        } 
-        else if (contaAtiva.tipo === 'movimentacao') {
-            if (tipo === 'salario') {
-                formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
-            } else if (['tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo)) {
-                formaSelect.innerHTML = `<option value="Pix">📱 Pix</option>`;
-            } else if (tipo === 'estorno') {
-                formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Estorno Conta">↩️ Reembolso</option>`;
-            } else {
-                formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
-            }
-        } 
-        else if (contaAtiva.tipo === 'investimento') {
-            if (['dep_poupanca', 'saque_poupanca'].includes(tipo)) {
-                formaSelect.innerHTML = `<option value="Transferência">🔄 Transferência</option><option value="Pix">📱 Pix</option>`;
-            } else {
-                formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
-            }
-        }
-    } catch (e) {
-        console.error("Erro na forma de pagamento:", e);
+    if (!contaId || typeof db === 'undefined' || !db.contas) {
+        formaSelect.innerHTML = '<option value="">-</option>';
+        return;
     }
+
+    const contaAtiva = db.contas.find(c => c.id === contaId);
+    if (!contaAtiva) {
+        formaSelect.innerHTML = '<option value="">-</option>';
+        return;
+    }
+
+    // Aplicação da Matriz (Formas de Pagamento em Lote)
+    if (contaAtiva.tipo === 'cartao') {
+        htmlFormas = `<option value="Crédito">💳 Crédito</option>`;
+    } 
+    else if (contaAtiva.tipo === 'movimentacao') {
+        if (tipo === 'salario') htmlFormas = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
+        else if (['tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo)) htmlFormas = `<option value="Pix">📱 Pix</option>`;
+        else if (tipo === 'estorno') htmlFormas = `<option value="Pix">📱 Pix</option><option value="Estorno Conta">↩️ Reembolso</option>`;
+        else htmlFormas = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
+    } 
+    else if (contaAtiva.tipo === 'investimento') {
+        if (['dep_poupanca', 'saque_poupanca'].includes(tipo)) htmlFormas = `<option value="Transferência">🔄 Transferência</option><option value="Pix">📱 Pix</option>`;
+        else htmlFormas = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
+    }
+    
+    // Injeção única
+    formaSelect.innerHTML = htmlFormas;
 }
 
 function verificarDataFutura() {
@@ -428,13 +421,7 @@ function confirmarReset() {
     } 
 }
 
-// ==========================================
-// GATILHO DE SEGURANÇA: AUTO-INICIALIZAÇÃO
-// ==========================================
-// Força o preenchimento automático das listas de contas, formas e categorias
-// 500ms após a leitura do script, garantindo que elas NUNCA fiquem em branco.
+// INICIALIZAÇÃO DE SEGURANÇA
 setTimeout(() => {
-    if (document.getElementById('lanc-tipo')) {
-        atualizarRegrasLancamento();
-    }
-}, 500);
+    if (document.getElementById('lanc-tipo')) atualizarRegrasLancamento();
+}, 200);
