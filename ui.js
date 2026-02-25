@@ -437,18 +437,34 @@ function renderGrafico() {
 
 function renderGraficoEvolucao() {
     const ctx = document.getElementById('graficoEvolucao'); if(!ctx) return;
-    const labels = [], dados = [];
+    const labels = [], dadosDespesas = [], dadosReceitas = [];
     
     for (let i = 2; i >= 0; i--) {
         let d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
         let mStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
         labels.push(formatarMesFaturaLogico(`${mStr}-01`, 1).split('/')[0].trim()); 
-        let total = 0; 
-        db.lancamentos.forEach(l => { if(l.efetivado && l.tipo === 'despesa' && l.data.substring(0,7) === mStr) total += Number(l.valor); });
-        dados.push(total);
+        
+        let totDesp = 0; 
+        let totRec = 0; 
+        
+        db.lancamentos.forEach(l => { 
+            if(l.efetivado && l.data.substring(0,7) === mStr) {
+                // Forçamos a conversão para número, matando o erro da linha flutuante!
+                const valorNum = parseFloat(l.valor) || 0; 
+                
+                if (l.tipo === 'despesa') totDesp += valorNum;
+                if (['receita', 'compensacao', 'emp_pessoal'].includes(l.tipo)) totRec += valorNum;
+            } 
+        });
+        dadosDespesas.push(totDesp);
+        dadosReceitas.push(totRec);
     }
     
     if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
+    
+    // Altera o título acima do gráfico dinamicamente
+    const tituloEl = ctx.parentElement.previousElementSibling;
+    if(tituloEl && tituloEl.tagName === 'STRONG') tituloEl.innerText = "Evolução Financeira (3 Meses)";
     
     const isDark = document.body.classList.contains('dark-mode');
     const corTexto = isDark ? '#94a3b8' : '#64748b';
@@ -457,18 +473,60 @@ function renderGraficoEvolucao() {
     
     meuGraficoEvolucao = new Chart(ctx, { 
         type: 'line', 
-        data: { labels, datasets: [{ data: dados, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: isDark ? 'rgba(37, 99, 235, 0.25)' : 'rgba(37, 99, 235, 0.15)', pointBackgroundColor: '#2563eb', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 5 }] }, 
+        data: { 
+            labels, 
+            datasets: [
+                { 
+                    label: 'Receitas',
+                    data: dadosReceitas, 
+                    borderColor: '#10b981', // Verde Esmeralda
+                    tension: 0.4, 
+                    fill: true, 
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)', 
+                    pointBackgroundColor: '#10b981', 
+                    pointBorderColor: corPontoBorda, 
+                    pointBorderWidth: 2, 
+                    pointRadius: 4 
+                },
+                { 
+                    label: 'Despesas',
+                    data: dadosDespesas, 
+                    borderColor: '#ef4444', // Vermelho Perigo
+                    tension: 0.4, 
+                    fill: true, 
+                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)', 
+                    pointBackgroundColor: '#ef4444', 
+                    pointBorderColor: corPontoBorda, 
+                    pointBorderWidth: 2, 
+                    pointRadius: 4 
+                }
+            ] 
+        }, 
         options: { 
             responsive: true, maintainAspectRatio: false,
             layout: { padding: {top: 25, right: 15} }, 
             plugins: { 
-                legend: { display: false },
-                datalabels: { align: 'top', color: isDark ? '#60a5fa' : '#2563eb', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
+                legend: { display: true, position: 'bottom', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, boxWidth: 6 } },
+                datalabels: { 
+                    align: 'top', 
+                    color: (context) => context.dataset.borderColor, // Pega a cor da linha correspondente
+                    font: {weight: 'bold', size: 10}, 
+                    formatter: (val) => val > 0 ? 'R$ ' + val.toFixed(0) : '' 
+                }
             }, 
-            // CORREÇÃO: beginAtZero força a linha a ser proporcional aos valores e não ficar flutuando!
             scales: { 
-                y: { beginAtZero: true, display: true, border: {display: false}, grid: {color: corGrid}, ticks: {font:{size:10, family:'Inter'}, color: corTexto, callback: (val) => 'R$ '+val} }, 
-                x: { grid: { display: false }, ticks: {font:{size:12, family:'Inter', weight: '600'}, color: corTexto} } 
+                y: { 
+                    type: 'linear', // Garante a escala matemática correta
+                    beginAtZero: true, 
+                    display: true, 
+                    border: {display: false}, 
+                    grid: {color: corGrid}, 
+                    ticks: {font:{size:10, family:'Inter'}, color: corTexto, callback: (val) => 'R$ '+val} 
+                }, 
+                x: { 
+                    grid: { display: false }, 
+                    ticks: {font:{size:12, family:'Inter', weight: '600'}, color: corTexto} 
+                } 
             } 
         } 
     });
