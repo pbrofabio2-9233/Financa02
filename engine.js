@@ -16,14 +16,19 @@ function showToast(mensagem) {
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
-// --- 2. LANÇAMENTO INTELIGENTE (Matriz de Regras v25.6) ---
+// --- 2. LANÇAMENTO INTELIGENTE (Matriz de Regras Blindada) ---
 function atualizarRegrasLancamento() {
-    const tipo = document.getElementById('lanc-tipo').value;
+    const tipoSelect = document.getElementById('lanc-tipo');
     const contaSelect = document.getElementById('lanc-conta');
     const catSelect = document.getElementById('lanc-cat');
     const boxFixo = document.getElementById('lanc-fixo');
     
-    // Categorias da Tabela
+    // Proteção contra carregamento incompleto do DOM
+    if(!tipoSelect || !contaSelect || !catSelect || !boxFixo) return;
+
+    const tipo = tipoSelect.value;
+    
+    // Categorias da sua Tabela
     const catsDespesa = `<option value="Alimentação">🛒 Alimentação</option><option value="Consórcio">📄 Consórcio</option><option value="Transporte">🚗 Transporte</option><option value="Energia">⚡ Energia</option><option value="Moradia">🏠 Moradia</option><option value="Saúde">💊 Saúde</option><option value="Lazer">🍿 Lazer</option><option value="Assinaturas">📺 Assinaturas</option><option value="Terceiros">🤝 Terceiros</option><option value="Outros">⚙️ Outros</option>`;
     const catsReceita = `<option value="Salário">💰 Salário</option><option value="Terceiros">🤝 Terceiros</option><option value="Estorno">↩️ Estorno</option><option value="Outros">🎁 Outros</option>`;
 
@@ -31,6 +36,7 @@ function atualizarRegrasLancamento() {
     const tiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
     catSelect.innerHTML = tiposReceita.includes(tipo) ? catsReceita : catsDespesa;
 
+    // Regra da Tag "Repetir Mensalmente"
     if (tipo === 'despesas_gerais' || tipo === 'salario') {
         boxFixo.disabled = false;
     } else {
@@ -40,34 +46,19 @@ function atualizarRegrasLancamento() {
 
     // 2.2 Filtrar Origem/Destino (Contas)
     let contaSelecionada = contaSelect.value;
-    contaSelect.innerHTML = "";
+    contaSelect.innerHTML = ""; // Limpa a lista atual
     let temConta = false;
     
     db.contas.forEach(c => {
         let mostrar = false;
-        switch (tipo) {
-            case 'despesas_gerais':
-            case 'estorno':
-                if (c.tipo === 'movimentacao' || c.tipo === 'cartao') mostrar = true;
-                break;
-            case 'emprestei_cartao':
-                if (c.tipo === 'cartao') mostrar = true;
-                break;
-            case 'emprestei_dinheiro':
-            case 'pag_emprestimo':
-                if (c.tipo === 'movimentacao') mostrar = true;
-                break;
-            case 'dep_poupanca':
-            case 'saque_poupanca':
-                if (c.tipo === 'investimento') mostrar = true;
-                break;
-            case 'salario':
-            case 'tomei_emprestimo':
-            case 'rec_emprestimo':
-            case 'outras_receitas':
-                if (c.tipo === 'movimentacao' || c.tipo === 'investimento') mostrar = true;
-                break;
-        }
+        
+        // Aplicação rigída da Matriz (Origem/Destino)
+        if (tipo === 'despesas_gerais' && (c.tipo === 'movimentacao' || c.tipo === 'cartao')) mostrar = true;
+        else if (tipo === 'emprestei_cartao' && c.tipo === 'cartao') mostrar = true;
+        else if (['emprestei_dinheiro', 'pag_emprestimo'].includes(tipo) && c.tipo === 'movimentacao') mostrar = true;
+        else if (['dep_poupanca', 'saque_poupanca'].includes(tipo) && c.tipo === 'investimento') mostrar = true;
+        else if (['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo) && c.tipo !== 'cartao') mostrar = true;
+        else if (tipo === 'estorno') mostrar = true; // Estorno aceita todas as origens
         
         if (mostrar) {
             const icone = c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦');
@@ -76,10 +67,17 @@ function atualizarRegrasLancamento() {
         }
     });
 
-    if (temConta) contaSelect.value = contaSelecionada;
+    // BLINDAGEM: Força uma seleção antes de avançar para não quebrar o formulário
+    if (contaSelect.options.length === 0) {
+        contaSelect.innerHTML = '<option value="">Sem conta disponível</option>';
+    } else {
+        if (temConta) contaSelect.value = contaSelecionada;
+        else contaSelect.selectedIndex = 0; // Seleciona o primeiro da lista automaticamente
+    }
+    
     ultimoTipoSelecionado = tipo;
 
-    // 2.3 Atualizar Formas de Pagamento
+    // 2.3 Aciona a Forma de Pagamento agora com a certeza de que há uma conta selecionada
     atualizarFormaPagamento();
 }
 
@@ -87,25 +85,35 @@ function atualizarFormaPagamento() {
     const tipo = document.getElementById('lanc-tipo').value;
     const contaId = document.getElementById('lanc-conta').value;
     const formaSelect = document.getElementById('lanc-forma');
-    const contaAtiva = db.contas.find(c => c.id === contaId);
     
-    formaSelect.innerHTML = "";
+    formaSelect.innerHTML = ""; // Limpa a lista
+
+    if (!contaId) {
+        formaSelect.innerHTML = '<option value="">-</option>';
+        return;
+    }
+
+    const contaAtiva = db.contas.find(c => c.id === contaId);
     if (!contaAtiva) return;
 
+    // Aplicação da Matriz (Forma de Pagamento)
     if (contaAtiva.tipo === 'cartao') {
         formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option>`;
     } 
     else if (contaAtiva.tipo === 'movimentacao') {
         if (tipo === 'salario') {
             formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
-        } else if (['tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno'].includes(tipo)) {
+        } else if (['tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo)) {
             formaSelect.innerHTML = `<option value="Pix">📱 Pix</option>`;
+        } else if (tipo === 'estorno') {
+            formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Estorno Conta">↩️ Reembolso</option>`;
         } else {
+            // Padrão para despesas na conta corrente
             formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
         }
     } 
     else if (contaAtiva.tipo === 'investimento') {
-        if (tipo === 'dep_poupanca' || tipo === 'saque_poupanca') {
+        if (['dep_poupanca', 'saque_poupanca'].includes(tipo)) {
             formaSelect.innerHTML = `<option value="Transferência">🔄 Transferência</option><option value="Pix">📱 Pix</option>`;
         } else {
             formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Transferência">🔄 Transferência</option>`;
@@ -136,7 +144,7 @@ function adicionarLancamento() {
     const efetivado = document.getElementById('lanc-efetivado').checked; 
     const forma = document.getElementById('lanc-forma').value;
 
-    if(!desc || isNaN(valor) || !data) return alert("Preencha a descrição e o valor.");
+    if(!desc || isNaN(valor) || !data || !contaId) return alert("Preencha todos os dados corretamente.");
     const conta = db.contas.find(c => c.id === contaId);
     
     // Cálculo do Saldo (Respeitando a Matriz)
@@ -206,7 +214,7 @@ function gerarParcelasEmprestimo() {
                 forma: tempLancamentoEmprestimo.forma,
                 desc: `${isTomada ? 'Pag.' : 'Rec.'} ${tempLancamentoEmprestimo.desc} (${i}/${parcelas})`,
                 valor: valorParcela,
-                cat: 'Terceiros', // Direto na categoria certa
+                cat: 'Terceiros', 
                 efetivado: false
             });
         }
@@ -223,8 +231,8 @@ function excluirLancamento(id) {
     const c = db.contas.find(x => x.id === lanc.contaId);
     
     if(c && c.tipo !== 'cartao' && lanc.efetivado) {
-        if (tiposReceitaParaSaldo.includes(lanc.tipo)) c.saldo -= lanc.valor; // Reverte entrada
-        if (tiposDespesaParaSaldo.includes(lanc.tipo)) c.saldo += lanc.valor; // Reverte saída
+        if (tiposReceitaParaSaldo.includes(lanc.tipo)) c.saldo -= lanc.valor; 
+        if (tiposDespesaParaSaldo.includes(lanc.tipo)) c.saldo += lanc.valor; 
     }
     db.lancamentos = db.lancamentos.filter(l => l.id !== id); save(); showToast("Lançamento apagado!");
 }
