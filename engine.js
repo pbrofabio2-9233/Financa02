@@ -8,40 +8,53 @@ let ultimoTipoSelecionado = ""; // Evita recarregar a lista de contas em loop
 function atualizarRegrasLancamento() {
     const tipo = document.getElementById('lanc-tipo').value;
     const contaSelect = document.getElementById('lanc-conta');
-    const formaSelect = document.getElementById('lanc-forma');
     const catSelect = document.getElementById('lanc-cat');
     const boxFixo = document.getElementById('lanc-fixo');
     
-    // Armazena a conta selecionada para não perder ao recriar o select
-    let contaSelecionada = contaSelect.value;
-
-    // 1.1 Filtrar Contas (Só reconstrói se mudar o TIPO da transação)
-    if (tipo !== ultimoTipoSelecionado || contaSelect.innerHTML === "") {
-        contaSelect.innerHTML = "";
-        db.contas.forEach(c => {
-            let mostrar = false;
-            if (tipo === 'emp_cartao' && c.tipo === 'cartao') mostrar = true;
-            else if (['receita', 'emp_pessoal', 'compensacao'].includes(tipo) && ['movimentacao', 'investimento'].includes(c.tipo)) mostrar = true;
-            else if (['despesa', 'emp_concedido'].includes(tipo) && c.tipo !== 'investimento') mostrar = true;
-            
-            if (mostrar) {
-                const icone = c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦');
-                contaSelect.innerHTML += `<option value="${c.id}">${icone} ${c.nome}</option>`;
-            }
-        });
-        ultimoTipoSelecionado = tipo;
-        
-        // Tenta manter a conta que estava selecionada antes, se ela ainda existir na lista
-        if (contaSelecionada && Array.from(contaSelect.options).some(opt => opt.value === contaSelecionada)) {
-            contaSelect.value = contaSelecionada;
-        }
+    // 1.1 Atualizar Categorias (Nunca mais ficarão vazias)
+    catSelect.innerHTML = "";
+    if (tipo === 'receita') {
+        catSelect.innerHTML = `<option value="Salário">💰 Salário</option><option value="Rendimento">📈 Rendimento</option><option value="Vendas">🛍️ Vendas</option><option value="Outras Receitas">🎁 Outras Receitas</option>`;
+        boxFixo.disabled = false;
+    } else if (['emp_cartao', 'emp_concedido', 'emp_pessoal', 'compensacao'].includes(tipo)) {
+        catSelect.innerHTML = `<option value="Empréstimo">🤝 Empréstimo</option><option value="Dívida Pessoal">🏦 Minha Dívida</option>`;
+        boxFixo.disabled = true; boxFixo.checked = false;
+    } else {
+        catSelect.innerHTML = `<option value="Alimentação">🛒 Alimentação</option><option value="Moradia">🏠 Moradia</option><option value="Transporte">🚗 Transporte</option><option value="Saúde">💊 Saúde</option><option value="Energia">⚡ Energia</option><option value="Assinaturas">📺 Assinaturas</option><option value="Consórcio">📄 Consórcio</option><option value="Lazer">🍿 Lazer</option><option value="Outros">⚙️ Outros</option>`;
+        boxFixo.disabled = false;
     }
 
-    // 1.2 Atualizar Formas de Pagamento
-    const contaId = contaSelect.value;
+    // 1.2 Atualizar Contas Disponíveis
+    let contaSelecionada = contaSelect.value;
+    contaSelect.innerHTML = "";
+    let temCartao = false;
+    db.contas.forEach(c => {
+        let mostrar = false;
+        if (tipo === 'emp_cartao' && c.tipo === 'cartao') mostrar = true;
+        else if (['receita', 'emp_pessoal', 'compensacao'].includes(tipo) && ['movimentacao', 'investimento'].includes(c.tipo)) mostrar = true;
+        else if (['despesa', 'emp_concedido'].includes(tipo) && c.tipo !== 'investimento') mostrar = true;
+        
+        if (mostrar) {
+            const icone = c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦');
+            contaSelect.innerHTML += `<option value="${c.id}">${icone} ${c.nome}</option>`;
+            if (c.id === contaSelecionada) temCartao = true;
+        }
+    });
+
+    // Mantém a conta selecionada (se ela ainda for válida)
+    if (temCartao) contaSelect.value = contaSelecionada;
+
+    // 1.3 Atualizar Forma de Pagamento
+    atualizarFormaPagamento();
+}
+
+// 1.4 Função Auxiliar de Pagamento
+function atualizarFormaPagamento() {
+    const contaId = document.getElementById('lanc-conta').value;
+    const formaSelect = document.getElementById('lanc-forma');
     const contaAtiva = db.contas.find(c => c.id === contaId);
-    formaSelect.innerHTML = "";
     
+    formaSelect.innerHTML = "";
     if (contaAtiva) {
         if (contaAtiva.tipo === 'cartao') {
             formaSelect.innerHTML = `<option value="Crédito">💳 Crédito</option><option value="Estorno">↩️ Estorno</option>`;
@@ -49,20 +62,6 @@ function atualizarRegrasLancamento() {
             formaSelect.innerHTML = `<option value="Pix">📱 Pix</option><option value="Boleto">📄 Boleto</option><option value="Débito">🏧 Débito</option>`;
         } else if (contaAtiva.tipo === 'investimento') {
             formaSelect.innerHTML = `<option value="Transferencia">🔄 Transferência</option><option value="Rendimento">📈 Rendimento</option>`;
-        }
-    }
-
-    // 1.3 Atualizar Categorias
-    if (tipo !== ultimoTipoSelecionado) {
-        catSelect.innerHTML = "";
-        if (tipo === 'receita') {
-            catSelect.innerHTML = `<option value="Salário">💰 Salário</option><option value="Rendimento">📈 Rendimento</option><option value="Vendas">🛍️ Vendas</option><option value="Outras Receitas">🎁 Outras Receitas</option>`;
-        } else if (['emp_cartao', 'emp_concedido', 'emp_pessoal', 'compensacao'].includes(tipo)) {
-            catSelect.innerHTML = `<option value="Empréstimo">🤝 Empréstimo</option><option value="Dívida Pessoal">🏦 Minha Dívida</option>`;
-            boxFixo.disabled = true; boxFixo.checked = false;
-        } else {
-            catSelect.innerHTML = `<option value="Alimentação">🛒 Alimentação</option><option value="Moradia">🏠 Moradia</option><option value="Transporte">🚗 Transporte</option><option value="Saúde">💊 Saúde</option><option value="Energia">⚡ Energia</option><option value="Assinaturas">📺 Assinaturas</option><option value="Consórcio">📄 Consórcio</option><option value="Lazer">🍿 Lazer</option><option value="Outros">⚙️ Outros</option>`;
-            boxFixo.disabled = false;
         }
     }
 }
@@ -216,6 +215,24 @@ function toggleCamposCartao() {
     document.getElementById('campos-cartao-add').style.display = document.getElementById('nova-conta-tipo').value === 'cartao' ? 'block' : 'none'; 
 }
 
+function toggleEditConta(id) { 
+    const el = document.getElementById(`edit-conta-${id}`);
+    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function salvarEdicaoConta(id) { 
+    const c = db.contas.find(x => x.id === id); 
+    c.nome = document.getElementById(`edit-nome-${id}`).value; 
+    c.cor = document.getElementById(`edit-cor-${id}`).value; 
+    if(c.tipo === 'cartao'){ 
+        c.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value) || 0; 
+        c.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value) || 0; 
+    } 
+    save(); 
+    showToast("Conta Atualizada!"); 
+    atualizarRegrasLancamento(); 
+}
+
 function criarConta() { 
     const n = document.getElementById('nova-conta-nome').value; const t = document.getElementById('nova-conta-tipo').value; if(!n) return alert("Preencha o nome da conta."); 
     const nc = {id: 'c_'+Date.now(), nome: n, tipo: t, cor: document.getElementById('nova-conta-cor').value, saldo: 0}; 
@@ -254,3 +271,4 @@ function confirmarReset() {
         db = { contas: [ { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2563eb' }, { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#10b981' }, { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#6366f1' } ], lancamentos: [], faturasPagas: [], recorrencias: [] }; save(); alert("Sistema formatado."); location.reload(); 
     } 
 }
+
