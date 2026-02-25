@@ -110,14 +110,18 @@
                         </div>
                     </div>
 
-                    <div class="grid-resumo-2" style="margin-top: 15px;">
-                        <div class="card-simples">
-                            <small>Faturas Abertas</small>
-                            <h3 id="dash-faturas" class="txt-perigo">R$ 0,00</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 15px;">
+                        <div class="card-simples" style="padding: 12px;">
+                            <small style="font-size:10px;">Fatura Atual</small>
+                            <h3 id="dash-faturas" class="txt-perigo" style="font-size:14px;">R$ 0,00</h3>
                         </div>
-                        <div class="card-simples destaque-borda">
-                            <small>Projeção Fim do Mês</small>
-                            <h3 id="dash-projecao">R$ 0,00</h3>
+                        <div class="card-simples" style="padding: 12px;">
+                            <small style="font-size:10px;">Próximas</small>
+                            <h3 id="dash-faturas-futuras" class="txt-alerta" style="font-size:14px;">R$ 0,00</h3>
+                        </div>
+                        <div class="card-simples destaque-borda" style="padding: 12px;">
+                            <small style="font-size:10px;">Projeção Mês</small>
+                            <h3 id="dash-projecao" style="font-size:14px;">R$ 0,00</h3>
                         </div>
                     </div>
 
@@ -134,7 +138,7 @@
                     </div>
 
                     <div class="card">
-                        <strong class="titulo-sessao">Evolução (3 Meses)</strong>
+                        <strong class="titulo-sessao">Evolução de Despesas (3 Meses)</strong>
                         <div class="chart-container"><canvas id="graficoEvolucao"></canvas></div>
                     </div>
 
