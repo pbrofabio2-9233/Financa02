@@ -302,6 +302,7 @@ function renderAbaFaturas() {
     if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; return; }
     if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
+    // Novas guias de abas modernas
     abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
     
     const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return;
@@ -314,24 +315,32 @@ function renderAbaFaturas() {
     });
 
     let html = ''; const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
-    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhuma fatura registrada.</div>"; return; }
+    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhuma fatura registrada neste cartão.</div>"; return; }
 
     mesesOrdenados.forEach(mes => {
         const fatID = `${c.id}-${mes}`; const estaPaga = db.faturasPagas.includes(fatID);
         html += `
-        <div class="card p-0" style="padding:0; overflow:hidden;">
-            <div class="flex-between" style="padding: 18px; cursor:pointer; background: ${estaPaga ? 'rgba(16, 185, 129, 0.05)' : 'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
+        <div class="card" style="padding:0; overflow:hidden; border: 1px solid ${estaPaga ? 'var(--sucesso)' : 'var(--linha)'};">
+            <div class="flex-between" style="padding: 20px; cursor:pointer; background: ${estaPaga ? 'rgba(16, 185, 129, 0.05)' : 'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
                 <div>
-                    <strong style="font-size:15px;"><i class="fas fa-file-invoice"></i> Fatura ${formatarMesFaturaLogico(mes)}</strong>
-                    <small style="display:block; margin-top:5px;">Vencimento: ${c.vencimento}/${mes.split('-')[1]}</small>
+                    <strong style="font-size:16px; color:var(--texto-main);"><i class="fas fa-file-invoice" style="color:var(--texto-sec); margin-right:8px;"></i> Fatura ${formatarMesFaturaLogico(mes)}</strong>
+                    <small style="display:block; margin-top:6px; color:var(--texto-sec); font-weight:500;">Vencimento: ${c.vencimento}/${mes.split('-')[1]}</small>
                 </div>
                 <div style="text-align:right;">
-                    <strong class="${estaPaga ? 'txt-sucesso' : 'txt-perigo'}" style="font-size:18px;">R$ ${mesesFatura[mes].total.toFixed(2)}</strong>
-                    <button class="btn-primary mt-10" style="padding:4px 10px; font-size:10px; width:auto; background: ${estaPaga ? 'var(--texto-sec)' : 'var(--azul)'};" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga ? 'Reabrir Fatura' : 'Pagar Fatura'}</button>
+                    <strong class="${estaPaga ? 'txt-sucesso' : 'txt-perigo'}" style="font-size:20px;">R$ ${mesesFatura[mes].total.toFixed(2)}</strong>
+                    <button class="${estaPaga ? 'btn-outline' : 'btn-primary'}" style="padding:8px 12px; font-size:11px; margin-top:12px; width:auto; border-radius:8px;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga ? '<i class="fas fa-undo"></i> Reabrir' : '<i class="fas fa-check"></i> Pagar Fatura'}</button>
                 </div>
             </div>
-            <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top: 1px solid var(--linha); background: var(--input-bg);">
-                ${mesesFatura[mes].lancamentos.map(l => `<div class="flex-between mb-10" style="font-size:12px; border-bottom:1px dashed var(--linha); padding-bottom:5px;"><span>${l.data.split('-').reverse().join('/')} - ${l.desc}</span><strong>R$ ${l.valor.toFixed(2)}</strong></div>`).join('')}
+            <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top: 1px dashed var(--linha); background: var(--input-bg);">
+                ${mesesFatura[mes].lancamentos.map(l => `
+                    <div class="flex-between mb-10" style="font-size:13px; border-bottom:1px solid var(--linha); padding-bottom:8px;">
+                        <span style="color:var(--texto-main); font-weight:500;">
+                            <span style="color:var(--texto-sec); margin-right:8px;">${l.data.split('-').reverse().join('/')}</span> 
+                            ${l.desc}
+                        </span>
+                        <strong class="txt-perigo">R$ ${l.valor.toFixed(2)}</strong>
+                    </div>
+                `).join('')}
             </div>
         </div>`;
     });
@@ -398,5 +407,6 @@ function renderAbaConfig() {
 // Importante: No topo da sua função render() no ui.js, adicione estas duas chamadas para garantir que as telas se atualizem:
 // renderAbaFaturas();
 // renderAbaConfig();
+
 
 
