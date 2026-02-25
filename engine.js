@@ -4,14 +4,25 @@
 
 let ultimoTipoSelecionado = ""; // Evita recarregar a lista de contas em loop
 
-// --- 1. LANÇAMENTO INTELIGENTE E FILTROS ---
+// --- 1. SISTEMA DE AVISOS (TOAST) ---
+function showToast(mensagem) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<i class="fas fa-check-circle" style="color: var(--sucesso); font-size:18px;"></i> ${mensagem}`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 3000);
+}
+
+// --- 2. LANÇAMENTO INTELIGENTE E FILTROS ---
 function atualizarRegrasLancamento() {
     const tipo = document.getElementById('lanc-tipo').value;
     const contaSelect = document.getElementById('lanc-conta');
     const catSelect = document.getElementById('lanc-cat');
     const boxFixo = document.getElementById('lanc-fixo');
     
-    // 1.1 Atualizar Categorias (Nunca mais ficarão vazias)
+    // 2.1 Atualizar Categorias Dinâmicas
     catSelect.innerHTML = "";
     if (tipo === 'receita') {
         catSelect.innerHTML = `<option value="Salário">💰 Salário</option><option value="Rendimento">📈 Rendimento</option><option value="Vendas">🛍️ Vendas</option><option value="Outras Receitas">🎁 Outras Receitas</option>`;
@@ -24,7 +35,7 @@ function atualizarRegrasLancamento() {
         boxFixo.disabled = false;
     }
 
-    // 1.2 Atualizar Contas Disponíveis
+    // 2.2 Filtrar Contas Disponíveis
     let contaSelecionada = contaSelect.value;
     contaSelect.innerHTML = "";
     let temCartao = false;
@@ -41,14 +52,14 @@ function atualizarRegrasLancamento() {
         }
     });
 
-    // Mantém a conta selecionada (se ela ainda for válida)
+    // Mantém a conta selecionada (se ela ainda for válida para o tipo de transação)
     if (temCartao) contaSelect.value = contaSelecionada;
+    ultimoTipoSelecionado = tipo;
 
-    // 1.3 Atualizar Forma de Pagamento
+    // 2.3 Atualizar Forma de Pagamento
     atualizarFormaPagamento();
 }
 
-// 1.4 Função Auxiliar de Pagamento
 function atualizarFormaPagamento() {
     const contaId = document.getElementById('lanc-conta').value;
     const formaSelect = document.getElementById('lanc-forma');
@@ -74,17 +85,7 @@ function verificarDataFutura() {
     document.getElementById('lanc-efetivado').checked = dtLanc <= hoje;
 }
 
-// --- 2. SISTEMA DE AVISOS (TOAST) ---
-function showToast(mensagem) {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `<i class="fas fa-check-circle" style="color: var(--sucesso); font-size:18px;"></i> ${mensagem}`;
-    container.appendChild(toast);
-    setTimeout(() => { toast.remove(); }, 3000);
-}
-
-// --- 3. MOTOR DE LANÇAMENTOS ---
+// --- 3. MOTOR DE LANÇAMENTOS E "EFEITO LENE" ---
 function adicionarLancamento() {
     const data = document.getElementById('lanc-data').value; 
     const tipo = document.getElementById('lanc-tipo').value;
@@ -114,7 +115,7 @@ function adicionarLancamento() {
     
     save();
 
-    // LIMPEZA DO FORMULÁRIO (Correção do Bug 3)
+    // Limpeza visual do formulário
     document.getElementById('lanc-desc').value = ""; 
     document.getElementById('lanc-valor').value = ""; 
     document.getElementById('lanc-fixo').checked = false;
@@ -124,7 +125,7 @@ function adicionarLancamento() {
     if (['emp_cartao', 'emp_concedido'].includes(tipo)) {
         abrirModalEmprestimo(novoLancamento);
     } else {
-        showToast("Lançamento Registrado com Sucesso!"); // Aviso Visual Inteligente
+        showToast("Lançamento Registrado com Sucesso!");
     }
 }
 
@@ -169,7 +170,7 @@ function gerarParcelasEmprestimo() {
     fecharModalEmprestimo();
 }
 
-// --- 4. EDIÇÃO, EXCLUSÃO E RECORRÊNCIAS ---
+// --- 4. EDIÇÃO, EXCLUSÃO E RECORRÊNCIAS DE LANÇAMENTOS ---
 function excluirLancamento(id) {
     if(!confirm("Apagar lançamento? O saldo será recalculado.")) return;
     const lanc = db.lancamentos.find(l => l.id === id); if(!lanc) return;
@@ -194,7 +195,7 @@ function salvarEdicaoLancamento(id) {
         if(['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) c.saldo += diferenca;
         if(['despesa', 'emp_concedido'].includes(l.tipo)) c.saldo -= diferenca;
     }
-    l.valor = novoValor; l.data = novaData; l.desc = novaDesc; save(); showToast("Atualizado!");
+    l.valor = novoValor; l.data = novaData; l.desc = novaDesc; save(); showToast("Movimentação Atualizada!");
 }
 
 function confirmarPagamento(id) {
@@ -208,11 +209,71 @@ function confirmarPagamento(id) {
     save(); showToast("Pagamento Efetivado!");
 }
 
-function processarRecorrencias() { /* Mantida igual */ }
+function processarRecorrencias() {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear(); const mesAtual = hoje.getMonth() + 1;
+    let gerouNovo = false;
 
-// --- 5. GESTÃO DE CONTAS E BACKUPS (Correção Aba Config) ---
+    db.recorrencias.forEach(rec => {
+        let [anoUltimo, mesUltimo] = rec.ultimoMesGerado.split('-').map(Number);
+        while (anoUltimo < anoAtual || (anoUltimo === anoAtual && mesUltimo < mesAtual)) {
+            mesUltimo++; if (mesUltimo > 12) { mesUltimo = 1; anoUltimo++; }
+            const mesStr = mesUltimo.toString().padStart(2, '0');
+            const dataLancamento = ajustarDataDia(anoUltimo, mesUltimo, rec.diaVencimento);
+            const dtLanc = new Date(dataLancamento + 'T00:00:00');
+            const isEfetivado = dtLanc <= hoje;
+
+            const novoL = { id: Date.now() + Math.random(), data: dataLancamento, tipo: rec.tipo, contaId: rec.contaId, forma: rec.forma, desc: rec.desc + " (Fixo)", valor: rec.valor, cat: rec.cat, efetivado: isEfetivado };
+            db.lancamentos.push(novoL);
+            
+            const conta = db.contas.find(c => c.id === rec.contaId);
+            if (conta && conta.tipo !== 'cartao' && isEfetivado) {
+                if (['receita', 'emp_pessoal', 'compensacao'].includes(rec.tipo)) conta.saldo += rec.valor;
+                if (['despesa', 'emp_concedido'].includes(rec.tipo)) conta.saldo -= rec.valor;
+            }
+            rec.ultimoMesGerado = `${anoUltimo}-${mesStr}`; 
+            gerouNovo = true;
+        }
+    });
+    if (gerouNovo) save();
+}
+
+function ajustarDataDia(ano, mes, diaVencimentoOriginal) {
+    const ultimoDiaDoMes = new Date(ano, mes, 0).getDate();
+    const diaReal = diaVencimentoOriginal > ultimoDiaDoMes ? ultimoDiaDoMes : diaVencimentoOriginal;
+    return `${ano}-${mes.toString().padStart(2, '0')}-${diaReal.toString().padStart(2, '0')}`;
+}
+
+// --- 5. GESTÃO DE CONTAS ---
 function toggleCamposCartao() { 
     document.getElementById('campos-cartao-add').style.display = document.getElementById('nova-conta-tipo').value === 'cartao' ? 'block' : 'none'; 
+}
+
+function criarConta() { 
+    const n = document.getElementById('nova-conta-nome').value; 
+    const t = document.getElementById('nova-conta-tipo').value; 
+    if(!n) return alert("Preencha o nome da conta."); 
+    
+    const nc = {id: 'c_'+Date.now(), nome: n, tipo: t, cor: document.getElementById('nova-conta-cor').value, saldo: 0}; 
+    if(t === 'cartao'){ 
+        nc.limite = parseFloat(document.getElementById('nova-conta-limite').value)||0; 
+        nc.meta = parseFloat(document.getElementById('nova-conta-meta').value)||0; 
+        nc.fechamento = parseInt(document.getElementById('nova-conta-fecha').value)||1; 
+        nc.vencimento = parseInt(document.getElementById('nova-conta-venc').value)||1; 
+    } 
+    db.contas.push(nc); save(); 
+    document.getElementById('nova-conta-nome').value=""; 
+    showToast("Conta Criada!"); 
+    atualizarRegrasLancamento();
+}
+
+function excluirConta(id) { 
+    if(confirm("Excluir conta e todos os lançamentos atrelados?")){ 
+        db.contas = db.contas.filter(c=>c.id!==id); 
+        db.lancamentos = db.lancamentos.filter(l=>l.contaId!==id); 
+        save(); showToast("Conta Excluída!"); 
+        atualizarRegrasLancamento(); 
+    } 
 }
 
 function toggleEditConta(id) { 
@@ -224,31 +285,33 @@ function salvarEdicaoConta(id) {
     const c = db.contas.find(x => x.id === id); 
     c.nome = document.getElementById(`edit-nome-${id}`).value; 
     c.cor = document.getElementById(`edit-cor-${id}`).value; 
+    
     if(c.tipo === 'cartao'){ 
         c.limite = parseFloat(document.getElementById(`edit-limite-${id}`).value) || 0; 
         c.meta = parseFloat(document.getElementById(`edit-meta-${id}`).value) || 0; 
-    } 
+        c.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1;
+        c.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1;
+    } else {
+        c.saldo = parseFloat(document.getElementById(`edit-saldo-${id}`).value) || 0;
+    }
+    
     save(); 
     showToast("Conta Atualizada!"); 
     atualizarRegrasLancamento(); 
 }
 
-function criarConta() { 
-    const n = document.getElementById('nova-conta-nome').value; const t = document.getElementById('nova-conta-tipo').value; if(!n) return alert("Preencha o nome da conta."); 
-    const nc = {id: 'c_'+Date.now(), nome: n, tipo: t, cor: document.getElementById('nova-conta-cor').value, saldo: 0}; 
-    if(t === 'cartao'){ nc.limite = parseFloat(document.getElementById('nova-conta-limite').value)||0; nc.meta = parseFloat(document.getElementById('nova-conta-meta').value)||0; nc.fechamento = parseInt(document.getElementById('nova-conta-fecha').value)||1; nc.vencimento = parseInt(document.getElementById('nova-conta-venc').value)||1; } 
-    db.contas.push(nc); save(); 
-    document.getElementById('nova-conta-nome').value=""; showToast("Conta Criada!"); atualizarRegrasLancamento();
+// --- 6. FATURAS, BACKUPS E RESET ---
+function alternarPagamentoFatura(id) { 
+    const i = db.faturasPagas.indexOf(id); 
+    if(i > -1) db.faturasPagas.splice(i,1); else db.faturasPagas.push(id); 
+    save(); showToast("Status da Fatura Atualizado!"); 
 }
-
-function excluirConta(id) { 
-    if(confirm("Excluir conta e todos os lançamentos atrelados?")){ db.contas = db.contas.filter(c=>c.id!==id); db.lancamentos = db.lancamentos.filter(l=>l.contaId!==id); save(); showToast("Conta Excluída!"); atualizarRegrasLancamento(); } 
-}
-
-function alternarPagamentoFatura(id) { const i = db.faturasPagas.indexOf(id); if(i > -1) db.faturasPagas.splice(i,1); else db.faturasPagas.push(id); save(); showToast("Status da Fatura Atualizado!"); }
 
 function exportarBackup() { 
-    const dataStr = JSON.stringify(db); const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB"; const now = new Date(); const nomeArquivo = `EcoBKP_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`; 
+    const dataStr = JSON.stringify(db); 
+    const sizeKB = (new Blob([dataStr]).size / 1024).toFixed(1) + " KB"; 
+    const now = new Date(); 
+    const nomeArquivo = `EcoBKP_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`; 
     
     // Grava no histórico
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
@@ -260,15 +323,41 @@ function exportarBackup() {
     if(typeof renderAbaConfig === 'function') renderAbaConfig(); showToast("Backup Salvo!"); 
 }
 
-function excluirBackupLocal(id) { if(confirm("Apagar este backup?")) { let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; hist = hist.filter(b => b.id !== id); localStorage.setItem('ecoDB_backups', JSON.stringify(hist)); if(typeof renderAbaConfig === 'function') renderAbaConfig(); } }
-function restaurarBackupLocal(id) { if(confirm("Substituir dados atuais? O app vai recarregar.")) { let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; let bkp = hist.find(b => b.id === id); if(bkp) { localStorage.setItem('ecoDB_v25', bkp.payload); location.reload(); } } }
-function importarArquivoJSON(event) { const file = event.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = function(e) { try { const json = JSON.parse(e.target.result); if(json && json.contas) { localStorage.setItem('ecoDB_v25', JSON.stringify(json)); location.reload(); } else alert("Arquivo inválido."); } catch(err) { alert("Erro de leitura."); } }; reader.readAsText(file); }
-
-function confirmarReset() { 
-    const palavra = prompt("⚠️ ZONA DE PERIGO\nDigite 'excluir' para confirmar:"); 
-    if (palavra && palavra.toLowerCase() === "excluir") { 
-        localStorage.removeItem('ecoDB_v25'); localStorage.removeItem('ecoDB_backups'); 
-        db = { contas: [ { id: 'c_padrao_mov', nome: 'Conta Padrão', tipo: 'movimentacao', saldo: 0, cor: '#2563eb' }, { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#10b981' }, { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#6366f1' } ], lancamentos: [], faturasPagas: [], recorrencias: [] }; save(); alert("Sistema formatado."); location.reload(); 
+function excluirBackupLocal(id) { 
+    if(confirm("Apagar este backup?")) { 
+        let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
+        hist = hist.filter(b => b.id !== id); 
+        localStorage.setItem('ecoDB_backups', JSON.stringify(hist)); 
+        if(typeof renderAbaConfig === 'function') renderAbaConfig(); 
     } 
 }
 
+function restaurarBackupLocal(id) { 
+    if(confirm("Substituir dados atuais? O app vai recarregar.")) { 
+        let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
+        let bkp = hist.find(b => b.id === id); 
+        if(bkp) { localStorage.setItem('ecoDB_v25', bkp.payload); location.reload(); } 
+    } 
+}
+
+function importarArquivoJSON(event) { 
+    const file = event.target.files[0]; if(!file) return; 
+    const reader = new FileReader(); 
+    reader.onload = function(e) { 
+        try { 
+            const json = JSON.parse(e.target.result); 
+            if(json && json.contas) { localStorage.setItem('ecoDB_v25', JSON.stringify(json)); location.reload(); } 
+            else alert("Arquivo inválido."); 
+        } catch(err) { alert("Erro de leitura."); } 
+    }; 
+    reader.readAsText(file); 
+}
+
+function confirmarReset() { 
+    const palavra = prompt("⚠️ ZONA DE PERIGO\nIsso apagará TODO o seu histórico. Digite 'excluir' para confirmar:"); 
+    if (palavra && palavra.toLowerCase() === "excluir") { 
+        localStorage.removeItem('ecoDB_v25'); localStorage.removeItem('ecoDB_backups'); 
+        db = { contas: [ { id: 'c_padrao_mov', nome: 'Conta Corrente', tipo: 'movimentacao', saldo: 0, cor: '#2563eb' }, { id: 'c_padrao_inv', nome: 'Poupança', tipo: 'investimento', saldo: 0, cor: '#10b981' }, { id: 'c_padrao_cred', nome: 'Cartão Padrão', tipo: 'cartao', meta: 1000, limite: 3000, fechamento: 5, vencimento: 10, cor: '#6366f1' } ], lancamentos: [], faturasPagas: [], recorrencias: [] }; 
+        save(); alert("Sistema formatado."); location.reload(); 
+    } 
+}
