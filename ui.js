@@ -7,8 +7,12 @@ function render() {
     const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
     let calc = { 
         receitas: 0, prevReceitas: 0, despesas: 0, prevGastos: 0, 
-        faturas: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0 
+        faturas: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0,
+        gastosFixos: 0, gastosVariaveis: 0 // Novo: Para o módulo BI
     };
+
+    // Categorias consideradas como Custo Fixo
+    const catFixas = ['Moradia', 'Energia', 'Assinaturas', 'Consórcio', 'Saúde', 'Educação'];
 
     // 1. Saldos e Metas Globais
     db.contas.forEach(c => {
@@ -30,11 +34,19 @@ function render() {
             }
             if (mesFatura === getMesFaturaLogico(hoje.toISOString().split('T')[0], conta.fechamento) && l.tipo === 'despesa') {
                 calc.usoMetaCartao += l.valor;
+                // Separa Fixo e Variável (Cartão)
+                if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
+                else calc.gastosVariaveis += l.valor;
             }
         } else {
             if (l.efetivado) {
                 if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) calc.receitas += l.valor;
-                if (['despesa', 'emp_concedido'].includes(l.tipo)) calc.despesas += l.valor;
+                if (['despesa', 'emp_concedido'].includes(l.tipo)) {
+                    calc.despesas += l.valor;
+                    // Separa Fixo e Variável (Conta Corrente)
+                    if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
+                    else calc.gastosVariaveis += l.valor;
+                }
             } else {
                 if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) calc.prevReceitas += l.valor;
                 if (['despesa', 'emp_concedido'].includes(l.tipo)) calc.prevGastos += l.valor;
@@ -42,7 +54,7 @@ function render() {
         }
     });
 
-    // 3. Atualizar Dashboard Executivo
+    // 3. Atualizar Dashboard Base
     const setTexto = (id, texto) => { const el = document.getElementById(id); if(el) el.innerText = texto; };
     setTexto('dash-receitas', `R$ ${calc.receitas.toFixed(2)}`);
     setTexto('dash-prev-receitas', `R$ ${calc.prevReceitas.toFixed(2)}`);
@@ -66,25 +78,63 @@ function render() {
     const metaBar = document.getElementById('meta-bar');
     if(metaBar) {
         metaBar.style.width = Math.min(pMeta, 100) + "%";
-        metaBar.style.background = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981'); // Vermelho, Amarelo, Verde
+        metaBar.style.background = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981'); 
     }
     setTexto('meta-percentual', `${pMeta.toFixed(1)}%`);
 
-    // 4. Chamadas de Renderização Secundárias
+    // ==========================================
+    // 4. MÓDULO BI (NOVO 25.6 - INTELIGÊNCIA)
+    // ==========================================
+    
+    // 4.1 Patrimônio Líquido (Ativos - Passivos Imediatos)
+    const patrimonioLiquido = calc.saldoLivre + calc.investido - calc.faturas;
+    const patElem = document.getElementById('bi-patrimonio');
+    if(patElem) {
+        patElem.innerText = `R$ ${patrimonioLiquido.toFixed(2)}`;
+        patElem.style.color = patrimonioLiquido >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
+    }
+
+    // 4.2 Índice de Sobrevivência (Meses que a reserva cobre os custos)
+    const custoMensal = calc.despesas + calc.faturas;
+    const sobrevivencia = custoMensal > 0 ? (calc.investido / custoMensal) : 0;
+    setTexto('bi-sobrevivencia', custoMensal > 0 ? `${sobrevivencia.toFixed(1)} Meses` : '∞ Meses');
+
+    // 4.3 Taxa de Poupança (Quanto % da receita sobrou/foi investido)
+    const sobra = calc.receitas - custoMensal;
+    const taxaPoupanca = calc.receitas > 0 ? (sobra / calc.receitas) * 100 : 0;
+    const taxaReal = Math.max(0, taxaPoupanca); // Limita em 0% para o gráfico se for negativo
+    setTexto('bi-taxa-poupanca', `${taxaPoupanca.toFixed(1)}%`);
+    const barPoupanca = document.getElementById('bar-poupanca');
+    if(barPoupanca) barPoupanca.style.width = `${Math.min(taxaReal, 100)}%`;
+
+    // 4.4 Composição de Gastos (Fixo vs Variável)
+    const totalGastosBI = calc.gastosFixos + calc.gastosVariaveis;
+    const percFixo = totalGastosBI > 0 ? (calc.gastosFixos / totalGastosBI) * 100 : 0;
+    const percVar = totalGastosBI > 0 ? (calc.gastosVariaveis / totalGastosBI) * 100 : 0;
+    setTexto('bi-perc-fixo', `${percFixo.toFixed(0)}%`);
+    setTexto('bi-perc-var', `${percVar.toFixed(0)}%`);
+    const barFixo = document.getElementById('bar-fixo');
+    const barVar = document.getElementById('bar-var');
+    if(barFixo) barFixo.style.width = `${percFixo}%`;
+    if(barVar) barVar.style.width = `${percVar}%`;
+
+    // ==========================================
+
+    // 5. Chamadas de Renderização Secundárias
     if (typeof renderRadarVencimentos === 'function') renderRadarVencimentos();
     if (typeof renderHistorico === 'function') renderHistorico();
     if (typeof renderAbaContas === 'function') renderAbaContas();
     if (typeof renderAbaFaturas === 'function') renderAbaFaturas();
     if (typeof renderAbaConfig === 'function') renderAbaConfig();
     
-    // Os gráficos precisam de um pequeno delay para capturar o tamanho certo do container
+    // Delay para garantir que o DOM renderizou antes de desenhar o Canvas
     setTimeout(() => {
         if (typeof renderGrafico === 'function') renderGrafico();
         if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
     }, 100);
 }
 
-// Lógica de Fatura Auxiliar
+// --- FUNÇÕES AUXILIARES DE DATA ---
 function getMesFaturaLogico(dataLancamento, diaFechamento) {
     const [anoStr, mesStr, diaStr] = dataLancamento.split('-');
     let ano = parseInt(anoStr); let mes = parseInt(mesStr); let dia = parseInt(diaStr);
@@ -106,8 +156,6 @@ function renderRadarVencimentos() {
     db.lancamentos.forEach(l => {
         const d = new Date(l.data + 'T00:00:00');
         const conta = db.contas.find(c => c.id === l.contaId);
-        
-        // Ignora lançamentos de Cartão (vão para faturas)
         if (conta && conta.tipo === 'cartao') return; 
 
         if (!l.efetivado && ['despesa', 'emp_concedido'].includes(l.tipo) && d <= limite7) {
@@ -365,10 +413,9 @@ function renderGrafico() {
     if(meuGrafico) meuGrafico.destroy();
     if(dados.length === 0) return; 
     
-    // Detecção Inteligente de Tema
     const isDark = document.body.classList.contains('dark-mode');
-    const corTexto = isDark ? '#cbd5e1' : '#64748b'; // Texto mais claro no Dark Mode
-    const corBorda = isDark ? '#1e293b' : '#ffffff'; // Acompanha a cor do Card
+    const corTexto = isDark ? '#cbd5e1' : '#64748b'; 
+    const corBorda = isDark ? '#1e293b' : '#ffffff'; 
     
     const bgColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#14b8a6', '#64748b'];
     
@@ -379,11 +426,10 @@ function renderGrafico() {
             responsive: true, maintainAspectRatio: false,
             layout: { padding: 15 },
             plugins: { 
-                // Legenda movida para o lado com ícones circulares elegantes
                 legend: { position: 'right', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, pointStyle: 'circle', padding: 15 } },
                 datalabels: { color: '#ffffff', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
             }, 
-            cutout: '60%' // Fatias ligeiramente mais espessas
+            cutout: '60%' 
         } 
     });
 }
@@ -403,10 +449,9 @@ function renderGraficoEvolucao() {
     
     if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
     
-    // Detecção Inteligente de Tema para o Eixo e Fundo
     const isDark = document.body.classList.contains('dark-mode');
     const corTexto = isDark ? '#94a3b8' : '#64748b';
-    const corGrid = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'; // Grade visível no Dark
+    const corGrid = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'; 
     const corPontoBorda = isDark ? '#1e293b' : '#ffffff';
     
     meuGraficoEvolucao = new Chart(ctx, { 
