@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.5</title>
+    <title>EcoFinance Pro v25.6</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    
-    <link rel="stylesheet" href="style.css?v=25.5">
+    <link rel="stylesheet" href="style.css?v=25.6">
 </head>
 <body>
 
@@ -54,7 +52,42 @@
                         </div>
                     </div>
 
-                    <div class="grid-resumo-4">
+                    <div class="card mt-15" style="border-left: 4px solid var(--esmeralda);">
+                        <strong class="titulo-sessao"><i class="fas fa-chart-line"></i> Inteligência Financeira (BI)</strong>
+                        
+                        <div class="grid-resumo-2 mt-10">
+                            <div class="card-simples" style="background: var(--card-bg);">
+                                <small>Patrimônio Líquido</small>
+                                <h3 id="bi-patrimonio" class="txt-sucesso">R$ 0,00</h3>
+                            </div>
+                            <div class="card-simples" style="background: var(--card-bg);">
+                                <small title="Meses que seus investimentos cobrem seu custo atual">Sobrevivência</small>
+                                <h3 id="bi-sobrevivencia">0 Meses</h3>
+                            </div>
+                        </div>
+
+                        <div class="mt-15">
+                            <div class="flex-between mb-10">
+                                <small style="color:var(--texto-sec); font-weight:600;">Taxa de Poupança (Mensal)</small>
+                                <span id="bi-taxa-poupanca" class="badge-neutro">0%</span>
+                            </div>
+                            <div class="progress-bg"><div id="bar-poupanca" class="progress-fill" style="background:var(--azul);"></div></div>
+                        </div>
+
+                        <div class="mt-15 pt-15" style="border-top:1px dashed var(--linha);">
+                            <small style="color:var(--texto-sec); font-weight:600; display:block; margin-bottom:10px;">Composição de Gastos (Pago)</small>
+                            <div class="flex-between" style="font-size:12px; margin-bottom:8px;">
+                                <span><i class="fas fa-lock" style="color:var(--texto-sec);"></i> Fixos (<span id="bi-perc-fixo">0%</span>)</span>
+                                <span><i class="fas fa-random" style="color:var(--alerta);"></i> Variáveis (<span id="bi-perc-var">0%</span>)</span>
+                            </div>
+                            <div style="display:flex; height:8px; border-radius:10px; overflow:hidden; background:var(--linha);">
+                                <div id="bar-fixo" style="background:var(--texto-sec); width:0%; transition: 0.5s;"></div>
+                                <div id="bar-var" style="background:var(--alerta); width:0%; transition: 0.5s;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-resumo-4 mt-15">
                         <div class="mini-card">
                             <div class="card-icon sucesso"><i class="fas fa-arrow-down"></i></div>
                             <small>Receitas Pagas</small>
@@ -83,7 +116,7 @@
                             <h3 id="dash-faturas" class="txt-perigo">R$ 0,00</h3>
                         </div>
                         <div class="card-simples destaque-borda">
-                            <small>Projeção Mês</small>
+                            <small>Projeção Fim do Mês</small>
                             <h3 id="dash-projecao">R$ 0,00</h3>
                         </div>
                     </div>
@@ -245,9 +278,9 @@
         </nav>
     </div>
 
-    <script src="core.js?v=25.5"></script>
-    <script src="engine.js?v=25.5"></script>
-    <script src="ui.js?v=25.5"></script>
-    <script src="app.js?v=25.5"></script>
+    <script src="core.js?v=25.6"></script>
+    <script src="engine.js?v=25.6"></script>
+    <script src="ui.js?v=25.6"></script>
+    <script src="app.js?v=25.6"></script>
 </body>
 </html>
