@@ -36,21 +36,22 @@
 
 body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var(--texto-main); transition: background-color 0.3s ease, color 0.3s ease; }
 
-/* Header Minimalista */
+/* Header Minimalista (CORRIGIDO: display flex para alinhar o ícone) */
 .header-modern { display: flex; justify-content: space-between; align-items: center; background: var(--header-bg); padding: 25px 20px 20px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; z-index: 1000; transition: 0.3s; }
-.header-modern { background: var(--header-bg); padding: 25px 20px 20px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; z-index: 1000; transition: 0.3s; }
 .header-modern h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
 #subtitulo-header { color: var(--texto-sec); font-size: 13px; font-weight: 500; }
 .btn-icon { background: none; border: none; font-size: 20px; color: var(--texto-sec); cursor: pointer; padding: 5px; transition: color 0.2s; }
 .btn-icon:hover { color: var(--azul); }
 
-/* Layout Geral */
+/* Layout Geral e Utilitários */
 .container { padding: 16px; }
 .secao-app { display: none; animation: fadeIn 0.3s ease-in-out; }
 .secao-app.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-.mt-10 { margin-top: 10px; } .mt-15 { margin-top: 15px; } .mt-20 { margin-top: 20px; } .mb-10 { margin-bottom: 10px; } .mb-15 { margin-bottom: 15px; }
+.mt-10 { margin-top: 10px; } .mt-15 { margin-top: 15px; } .mt-20 { margin-top: 20px; } 
+.mb-10 { margin-bottom: 10px; } .mb-15 { margin-bottom: 15px; }
+.pt-15 { padding-top: 15px; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
 /* Tipografia e Textos */
@@ -68,8 +69,9 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .card-simples small { color: var(--texto-sec); font-size: 12px; font-weight: 500; display: block; margin-bottom: 5px; }
 .card-simples h3 { margin: 0; font-size: 18px; }
 .destaque-borda { border-left: 4px solid var(--azul); }
+.opacity-90 { opacity: 0.9; }
 
-/* Grid Dashboard 2x2 */
+/* Grid Dashboard */
 .grid-resumo-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 15px; }
 .grid-resumo-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mini-card { background: var(--card-bg); border-radius: var(--radius-md); padding: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--linha); position: relative; overflow: hidden; }
@@ -81,8 +83,6 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .executive-panel { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
 .exec-card { background: var(--header-bg); border-radius: var(--radius-lg); padding: 24px; border: 1px solid var(--linha); box-shadow: var(--shadow-md); }
 .saldo-destaque { background: linear-gradient(135deg, var(--azul), #1e40af); color: white; border: none; }
-.saldo-destaque small { color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500; }
-.saldo-destaque h2 { margin: 8px 0 0 0; font-size: 32px; letter-spacing: -1px; }
 
 /* Formulários Modernos */
 .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -103,16 +103,16 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 
 /* CHIPS DE STATUS (Identidade Visual) */
 .chip { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; border: 1px solid transparent; }
-.chip-verde { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); } /* Pago */
-.chip-esmeralda { background: rgba(5, 150, 105, 0.1); color: #059669; border-color: rgba(5, 150, 105, 0.2); } /* Receita */
-.chip-amarelo { background: rgba(245, 158, 11, 0.1); color: #d97706; border-color: rgba(245, 158, 11, 0.2); } /* Até 7 dias */
-.chip-vermelho { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); } /* Atrasado */
-.chip-azul { background: rgba(37, 99, 235, 0.1); color: #2563eb; border-color: rgba(37, 99, 235, 0.2); } /* Futuro */
+.chip-verde { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
+.chip-esmeralda { background: rgba(5, 150, 105, 0.1); color: #059669; border-color: rgba(5, 150, 105, 0.2); }
+.chip-amarelo { background: rgba(245, 158, 11, 0.1); color: #d97706; border-color: rgba(245, 158, 11, 0.2); }
+.chip-vermelho { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+.chip-azul { background: rgba(37, 99, 235, 0.1); color: #2563eb; border-color: rgba(37, 99, 235, 0.2); }
+.badge-neutro { background: var(--input-bg); border: 1px solid var(--linha); padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
 
 /* Barras de Progresso */
 .progress-bg { background: var(--linha); height: 8px; border-radius: 10px; overflow: hidden; }
 .progress-fill { height: 100%; background: var(--azul); width: 0%; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-.badge-neutro { background: var(--input-bg); border: 1px solid var(--linha); padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
 
 /* Contas Premium (Cartões Reais) */
 .cartao-banco { border-radius: 16px; padding: 24px; color: white; margin-bottom: 16px; position: relative; overflow: hidden; box-shadow: 0 8px 16px rgba(0,0,0,0.15); transition: transform 0.2s;}
@@ -143,9 +143,9 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .modal-footer { padding: 20px; border-top: 1px solid var(--linha); background: var(--input-bg); margin: 0; }
 .chart-container { position: relative; height: 220px; width: 100%; display: flex; justify-content: center; align-items: center; }
 
-/* TOAST NOTIFICATION */
-.toast-container { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px;}
-.toast { background: var(--header-bg); color: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; animation: slideUpToast 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOutToast 0.4s ease 2.6s forwards; border-left: 4px solid var(--sucesso);}
+/* AVISOS VISUAIS (TOAST) */
+.toast-container { position: fixed; bottom: 85px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; width: 90%; max-width: 350px;}
+.toast { background: var(--header-bg); color: var(--texto-main); padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; animation: slideUpToast 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOutToast 0.4s ease 2.6s forwards; border-left: 4px solid var(--sucesso); border: 1px solid var(--linha);}
 @keyframes slideUpToast { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeOutToast { to { opacity: 0; transform: translateY(-20px); } }
 
