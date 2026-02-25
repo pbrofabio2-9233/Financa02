@@ -148,3 +148,8 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .toast { background: var(--header-bg); color: white; padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; animation: slideUpToast 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), fadeOutToast 0.4s ease 2.6s forwards; border-left: 4px solid var(--sucesso);}
 @keyframes slideUpToast { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fadeOutToast { to { opacity: 0; transform: translateY(-20px); } }
+
+/* GUIA DE ABAS FATURAS */
+.abas-superiores { display: flex; background: var(--header-bg); overflow-x: auto; white-space: nowrap; padding: 15px 15px 0 15px; gap: 8px; border-bottom: 1px solid var(--linha); margin-bottom: 15px; }
+.tab-btn { flex: 1; min-width: 120px; background: var(--input-bg); border: 1px solid var(--linha); border-bottom: none; padding: 14px 10px; color: var(--texto-sec); font-weight: 600; font-size: 13px; cursor: pointer; border-radius: 12px 12px 0 0; transition: 0.2s; }
+.tab-btn.active { background: var(--fundo-app); color: var(--azul); border-top: 3px solid var(--azul); }
