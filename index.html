@@ -148,12 +148,21 @@
                         <div class="grid-inputs mt-15">
                             <input type="date" id="lanc-data" class="input-moderno" onchange="verificarDataFutura()">
                             <select id="lanc-tipo" class="input-moderno" onchange="atualizarRegrasLancamento()">
-                                <option value="despesa">Saída (Despesa)</option>
-                                <option value="receita">Entrada (Receita)</option>
-                                <option value="emp_cartao">Emprestei Cartão</option>
-                                <option value="emp_concedido">Emprestei Dinheiro</option>
-                                <option value="emp_pessoal">Tomei Emprestado</option>
-                                <option value="compensacao">Recebimento (Compensação)</option>
+                                <optgroup label="Saídas (Despesas)">
+                                    <option value="despesas_gerais">Despesas Gerais</option>
+                                    <option value="emprestei_cartao">Emprestei Cartão</option>
+                                    <option value="emprestei_dinheiro">Emprestei Dinheiro</option>
+                                    <option value="pag_emprestimo">Pagamento Empréstimo</option>
+                                    <option value="dep_poupanca">Depósito Poupança</option>
+                                </optgroup>
+                                <optgroup label="Entradas (Receitas)">
+                                    <option value="salario">Salário</option>
+                                    <option value="tomei_emprestimo">Tomei Empréstimo</option>
+                                    <option value="rec_emprestimo">Recebimento Empréstimo</option>
+                                    <option value="outras_receitas">Outras Receitas</option>
+                                    <option value="estorno">Estorno</option>
+                                    <option value="saque_poupanca">Saque Poupança</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="grid-inputs">
@@ -254,7 +263,7 @@
         <div id="modal-emprestimo" class="modal-overlay">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3>🤝 Detalhes do Recebimento</h3>
+                    <h3>🤝 Detalhes do Recebimento/Pagamento</h3>
                 </div>
                 <div class="modal-body">
                     <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
