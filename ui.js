@@ -349,7 +349,7 @@ function renderAbaConfig() {
     }
 }
 
-// --- GRÁFICOS (Formatados e Explicativos com valores em R$) ---
+// --- GRÁFICOS (Refinados e Inteligentes para Light/Dark Mode) ---
 function renderGrafico() {
     const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
     const mes = document.getElementById('filtro-mes').value;
@@ -365,19 +365,25 @@ function renderGrafico() {
     if(meuGrafico) meuGrafico.destroy();
     if(dados.length === 0) return; 
     
+    // Detecção Inteligente de Tema
+    const isDark = document.body.classList.contains('dark-mode');
+    const corTexto = isDark ? '#cbd5e1' : '#64748b'; // Texto mais claro no Dark Mode
+    const corBorda = isDark ? '#1e293b' : '#ffffff'; // Acompanha a cor do Card
+    
     const bgColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#14b8a6', '#64748b'];
     
     meuGrafico = new Chart(ctx, { 
         type: 'doughnut', 
-        data: { labels, datasets: [{ data: dados, backgroundColor: bgColors, borderWidth: 2, borderColor: 'var(--card-bg)' }] }, 
+        data: { labels, datasets: [{ data: dados, backgroundColor: bgColors, borderWidth: 3, borderColor: corBorda }] }, 
         options: { 
             responsive: true, maintainAspectRatio: false,
-            layout: { padding: 10 },
+            layout: { padding: 15 },
             plugins: { 
-                legend: { position: 'bottom', labels: { font: {family: 'Inter', size: 12}, color: 'var(--texto-sec)' } },
+                // Legenda movida para o lado com ícones circulares elegantes
+                legend: { position: 'right', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, pointStyle: 'circle', padding: 15 } },
                 datalabels: { color: '#ffffff', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
             }, 
-            cutout: '65%' 
+            cutout: '60%' // Fatias ligeiramente mais espessas
         } 
     });
 }
@@ -397,19 +403,25 @@ function renderGraficoEvolucao() {
     
     if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
     
+    // Detecção Inteligente de Tema para o Eixo e Fundo
+    const isDark = document.body.classList.contains('dark-mode');
+    const corTexto = isDark ? '#94a3b8' : '#64748b';
+    const corGrid = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'; // Grade visível no Dark
+    const corPontoBorda = isDark ? '#1e293b' : '#ffffff';
+    
     meuGraficoEvolucao = new Chart(ctx, { 
         type: 'line', 
-        data: { labels, datasets: [{ data: dados, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37, 99, 235, 0.15)', pointBackgroundColor: '#2563eb', pointRadius: 4 }] }, 
+        data: { labels, datasets: [{ data: dados, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: isDark ? 'rgba(37, 99, 235, 0.25)' : 'rgba(37, 99, 235, 0.15)', pointBackgroundColor: '#2563eb', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 5 }] }, 
         options: { 
             responsive: true, maintainAspectRatio: false,
             layout: { padding: {top: 25, right: 15} }, 
             plugins: { 
                 legend: { display: false },
-                datalabels: { align: 'top', color: 'var(--azul)', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
+                datalabels: { align: 'top', color: isDark ? '#60a5fa' : '#2563eb', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
             }, 
             scales: { 
-                y: { display: true, border: {display: false}, grid: {color: 'rgba(0,0,0,0.05)'}, ticks: {font:{size:10, family:'Inter'}, color:'var(--texto-sec)', callback: (val) => 'R$ '+val} }, 
-                x: { grid: { display: false }, ticks: {font:{size:12, family:'Inter'}, color:'var(--texto-main)'} } 
+                y: { display: true, border: {display: false}, grid: {color: corGrid}, ticks: {font:{size:10, family:'Inter'}, color: corTexto, callback: (val) => 'R$ '+val} }, 
+                x: { grid: { display: false }, ticks: {font:{size:12, family:'Inter', weight: '600'}, color: corTexto} } 
             } 
         } 
     });
