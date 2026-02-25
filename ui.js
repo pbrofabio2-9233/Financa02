@@ -251,3 +251,123 @@ function renderGraficoEvolucao() {
         options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } } 
     });
 }
+
+// --- CORREÇÃO DO RADAR DE VENCIMENTOS (Bug 4) ---
+// Substitua a sua função renderRadarVencimentos do ui.js por esta:
+function renderRadarVencimentos() {
+    const lista = document.getElementById('lista-radar-vencimentos'); if(!lista) return;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const limite7 = new Date(hoje); limite7.setDate(hoje.getDate() + 7);
+    
+    let alertas = [];
+    db.lancamentos.forEach(l => {
+        const d = new Date(l.data + 'T00:00:00');
+        const conta = db.contas.find(c => c.id === l.contaId);
+        
+        // Filtro Limpo: Ignora lançamentos de Cartão de Crédito no Radar (eles vão para a aba faturas)
+        if (conta && conta.tipo === 'cartao') return; 
+
+        if (!l.efetivado && ['despesa', 'emp_concedido'].includes(l.tipo) && d <= limite7) {
+            const diasFaltando = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
+            let txtDia = diasFaltando === 0 ? 'Vence HOJE' : `Vence em ${diasFaltando} dia(s)`;
+            
+            alertas.push(`
+            <div class="flex-between mb-10" style="padding-bottom:10px; border-bottom:1px solid var(--linha);">
+                <div>
+                    <strong style="font-size:14px;">${l.desc}</strong>
+                    <small style="display:block; color: ${diasFaltando < 0 ? 'var(--perigo)' : 'var(--alerta)'}; font-weight:600;">${diasFaltando < 0 ? 'Atrasado' : txtDia}</small>
+                </div>
+                <b class="txt-perigo">R$ ${l.valor.toFixed(2)}</b>
+            </div>`);
+        }
+    });
+    lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
+}
+
+// --- RESTAURAÇÃO DA ABA FATURAS (Bug 5) ---
+function renderAbaFaturas() {
+    const abas = document.getElementById('abas-cartoes-fatura'); const lista = document.getElementById('lista-faturas-agrupadas'); if(!abas || !lista) return;
+    const cartoes = db.contas.filter(c => c.tipo === 'cartao');
+    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; return; }
+    if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
+    
+    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
+    
+    const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return;
+    let mesesFatura = {};
+    db.lancamentos.forEach(l => {
+        if(l.contaId !== c.id) return;
+        const mesFat = getMesFaturaLogico(l.data, c.fechamento);
+        if(!mesesFatura[mesFat]) mesesFatura[mesFat] = { total: 0, lancamentos: [] };
+        mesesFatura[mesFat].total += l.valor; mesesFatura[mesFat].lancamentos.push(l);
+    });
+
+    let html = ''; const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
+    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhuma fatura registrada.</div>"; return; }
+
+    mesesOrdenados.forEach(mes => {
+        const fatID = `${c.id}-${mes}`; const estaPaga = db.faturasPagas.includes(fatID);
+        html += `
+        <div class="card p-0" style="padding:0; overflow:hidden;">
+            <div class="flex-between" style="padding: 18px; cursor:pointer; background: ${estaPaga ? 'rgba(16, 185, 129, 0.05)' : 'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
+                <div>
+                    <strong style="font-size:15px;"><i class="fas fa-file-invoice"></i> Fatura ${formatarMesFaturaLogico(mes)}</strong>
+                    <small style="display:block; margin-top:5px;">Vencimento: ${c.vencimento}/${mes.split('-')[1]}</small>
+                </div>
+                <div style="text-align:right;">
+                    <strong class="${estaPaga ? 'txt-sucesso' : 'txt-perigo'}" style="font-size:18px;">R$ ${mesesFatura[mes].total.toFixed(2)}</strong>
+                    <button class="btn-primary mt-10" style="padding:4px 10px; font-size:10px; width:auto; background: ${estaPaga ? 'var(--texto-sec)' : 'var(--azul)'};" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga ? 'Reabrir Fatura' : 'Pagar Fatura'}</button>
+                </div>
+            </div>
+            <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top: 1px solid var(--linha); background: var(--input-bg);">
+                ${mesesFatura[mes].lancamentos.map(l => `<div class="flex-between mb-10" style="font-size:12px; border-bottom:1px dashed var(--linha); padding-bottom:5px;"><span>${l.data.split('-').reverse().join('/')} - ${l.desc}</span><strong>R$ ${l.valor.toFixed(2)}</strong></div>`).join('')}
+            </div>
+        </div>`;
+    });
+    lista.innerHTML = html;
+}
+
+// Para manter compatibilidade com a função chamada no renderAbaFaturas
+function formatarMesFaturaLogico(mesAnoStr) { 
+    const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
+    const [ano, mes] = mesAnoStr.split('-'); return `${meses[mes]} / ${ano}`; 
+}
+
+// --- RESTAURAÇÃO DA ABA CONFIG E BACKUPS (Bug 1 e 2) ---
+function renderAbaConfig() {
+    const divContas = document.getElementById('lista-contas-edit');
+    const divBackups = document.getElementById('lista-backups');
+    
+    if (divContas) {
+        divContas.innerHTML = db.contas.map(c => `
+            <div class="card" style="padding:15px; border-left:4px solid ${c.cor};">
+                <div class="flex-between">
+                    <div><strong>${c.nome}</strong> <span class="badge-neutro" style="font-size:9px;">${c.tipo}</span></div>
+                    <button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    if (divBackups) {
+        let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+        if (hist.length === 0) { divBackups.innerHTML = '<p class="texto-vazio">Nenhum backup local salvo.</p>'; return; }
+        
+        divBackups.innerHTML = hist.map(b => `
+            <div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);">
+                <div>
+                    <strong style="font-size:12px;">${b.nome}</strong>
+                    <small style="display:block; font-size:10px; color:var(--texto-sec);">${b.data} • ${b.size}</small>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})" title="Restaurar"><i class="fas fa-undo"></i></button>
+                    <button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})" title="Excluir"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// Importante: No topo da sua função render() no ui.js, adicione estas duas chamadas para garantir que as telas se atualizem:
+// renderAbaFaturas();
+// renderAbaConfig();
