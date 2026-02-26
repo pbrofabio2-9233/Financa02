@@ -1,86 +1,75 @@
 // ==========================================
-// APP.JS - Inicialização e Controladores de UI
+// APP.JS - Inicialização, Navegação e Tema
 // ==========================================
 
-// --- 1. INICIALIZAÇÃO DO SISTEMA (BOOTSTRAP) ---
-window.onload = () => {
-    // 1.1 Configurar Tema Salvo (Dark/Light Mode)
-    if (localStorage.getItem('ecoTheme') === 'dark') {
-        document.body.classList.add('dark-mode');
-        document.getElementById('btn-theme').classList.replace('fa-moon', 'fa-sun');
-    }
-
-    // 1.2 Definir Datas Padrão (Hoje / Mês Atual)
-    const hoje = new Date();
-    document.getElementById('lanc-data').valueAsDate = hoje;
-    
-    // Formata YYYY-MM
-    const mesAtualFormatado = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
-    document.getElementById('filtro-mes').value = mesAtualFormatado;
-    
-    // 1.3 Inicializar Componentes e Motor Lógico
-    if (typeof atualizarRegrasLancamento === 'function') atualizarRegrasLancamento();
-    if (typeof verificarDataFutura === 'function') verificarDataFutura();
-    if (typeof processarRecorrencias === 'function') processarRecorrencias();
-    
-    // 1.4 Renderizar Tela Inicial
-    if (typeof render === 'function') render();
-};
-
-// --- 2. CONTROLADOR DE TEMA (DARK MODE) ---
-function toggleDarkMode() {
-    const body = document.body; 
-    const icone = document.getElementById('btn-theme');
-    
-    body.classList.toggle('dark-mode');
-    const isDark = body.classList.contains('dark-mode');
-    
-    // Salva a preferência
-    localStorage.setItem('ecoTheme', isDark ? 'dark' : 'light');
-    icone.classList.replace(isDark ? 'fa-moon' : 'fa-sun', isDark ? 'fa-sun' : 'fa-moon');
-    
-    // Re-renderizar gráficos para ajustar as cores ao novo fundo
-    if (typeof renderGrafico === 'function') { 
-        renderGrafico(); 
-        renderGraficoEvolucao(); 
-    }
-}
-
-// --- 3. CONTROLADOR DE NAVEGAÇÃO (TABS) ---
-function navegar(idAba, elementoClicado) {
-    // Esconder todas as seções ativas
+// --- 1. NAVEGAÇÃO DE ABAS (MENU INFERIOR) ---
+function navegar(idSecao, elementoClicado) {
+    // Esconde todas as abas
     document.querySelectorAll('.secao-app').forEach(secao => {
         secao.classList.remove('active');
     });
-    
-    // Mostrar a nova aba correspondente
-    const abaAlvo = document.getElementById('aba-' + idAba);
-    if(abaAlvo) abaAlvo.classList.add('active');
-    
-    // Atualizar classe visual no menu inferior
+
+    // Remove o status de "ativo" de todos os botões do menu
     document.querySelectorAll('.menu-item').forEach(item => {
         item.classList.remove('active');
     });
-    
+
+    // Mostra a aba correta
+    const abaAlvo = document.getElementById(`aba-${idSecao}`);
+    if (abaAlvo) {
+        abaAlvo.classList.add('active');
+    }
+
+    // Destaca o botão clicado
     if (elementoClicado) {
         elementoClicado.classList.add('active');
-    } else {
-        // Fallback caso a navegação seja acionada por código interno
-        const mapaId = {'dashboard':0, 'faturas':1, 'historico':2, 'contas':3, 'config':4}; 
-        if (mapaId[idAba] !== undefined) {
-            document.querySelectorAll('.menu-item')[mapaId[idAba]].classList.add('active'); 
-        }
     }
-    
-    // Atualizar Título do Cabeçalho
-    const itemAtivo = document.querySelector('.menu-item.active span');
-    if (itemAtivo) {
-        document.getElementById('titulo-aba').innerText = itemAtivo.innerText;
+
+    // Força uma re-renderização para garantir que os dados estejam atualizados na aba
+    if (typeof render === 'function') {
+        render();
     }
-    
-    // Rolar página para o topo
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Atualizar dados visuais ao trocar de aba
-    if (typeof render === 'function') render();
 }
+
+// --- 2. GESTÃO DO TEMA ESCURO (DARK MODE) ---
+function toggleDarkMode() {
+    // Alterna a classe global no corpo da página
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    
+    // Salva a preferência no armazenamento do celular/navegador
+    localStorage.setItem('ecoDB_theme', isDark ? 'dark' : 'light');
+    
+    // Sincroniza visualmente o botão (checkbox) lá na aba de Ajustes
+    const toggleAjustes = document.getElementById('toggle-tema-ajustes');
+    if (toggleAjustes) {
+        toggleAjustes.checked = isDark;
+    }
+    
+    // Pede para os gráficos se redesenharem com as novas cores (linha clara ou escura)
+    setTimeout(() => {
+        if (typeof renderGrafico === 'function') renderGrafico();
+        if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
+    }, 50);
+}
+
+// --- 3. INICIALIZAÇÃO DO SISTEMA (BOOT) ---
+window.addEventListener('DOMContentLoaded', () => {
+    // A. Verifica a preferência de Tema do usuário
+    const savedTheme = localStorage.getItem('ecoDB_theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+        document.body.classList.add('dark-mode');
+        // Deixa o toggle da aba Ajustes marcado, se já estiver na tela
+        const toggleAjustes = document.getElementById('toggle-tema-ajustes');
+        if (toggleAjustes) toggleAjustes.checked = true;
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+
+    // B. Dá a partida no motor principal (Puxa os dados e desenha a tela)
+    if (typeof render === 'function') {
+        render();
+    }
+});
