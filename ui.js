@@ -35,9 +35,12 @@ function render() {
             
             if (!db.faturasPagas.includes(fatID)) {
                 const valMutante = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-                if (mesFatura > mesFaturaAtualLivre) calc.faturasFuturas += valMutante;
+                // CORREÇÃO: "Fatura Atual" agora respeita o Calendário Real (mesCorrente)
+                if (mesFatura > mesCorrente) calc.faturasFuturas += valMutante;
                 else calc.faturas += valMutante;
             }
+            
+            // A meta de consumo continua olhando para o ciclo lógico do cartão
             if (mesFatura === mesFaturaAtualLivre && ['despesas_gerais', 'despesa'].includes(l.tipo)) {
                 calc.usoMetaCartao += l.valor;
                 if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
@@ -250,6 +253,7 @@ function toggleCamposPrevisao() { const isChecked = document.getElementById('emp
 // ==========================================
 // FIM DA PARTE 1 DE 2
 // ==========================================
+
 // ==========================================
 // CONTINUAÇÃO: UI.JS (PARTE 2)
 // Limite de linhas aplicado (< 300)
@@ -271,33 +275,26 @@ function renderAbaContas() {
             db.lancamentos.forEach(l => {
                 if (l.contaId === c.id && T_DESPESAS_CARTAO.includes(l.tipo)) {
                     const mesFatLancamento = getMesFaturaLogico(l.data, c.fechamento);
-                    if (mesFatLancamento === mesCorrenteLogico) {
-                        totalGasto += l.valor;
-                    }
+                    if (mesFatLancamento === mesCorrenteLogico) totalGasto += l.valor;
                 }
             });
             
-            const percUsoLimite = c.limite > 0 ? (totalGasto / c.limite) * 100 : 0;
-            const percUsoMeta = c.meta > 0 ? (totalGasto / c.meta) * 100 : 0;
+            const pLimite = c.limite > 0 ? (totalGasto / c.limite) * 100 : 0;
+            const pMeta = c.meta > 0 ? (totalGasto / c.meta) * 100 : 0;
             
-            // CORREÇÃO: Porcentagem adicionada ao lado do valor
             extraHtml = `
                 <div style="margin-top: 15px; padding-right: 25px;">
-                    <div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9; font-size: 11px;"><span>Consumo (Limite): R$ ${totalGasto.toFixed(2)} (${percUsoLimite.toFixed(1)}%)</span><span>R$ ${c.limite.toFixed(2)}</span></div>
-                    <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(percUsoLimite,100)}%"></div></div>
-                    
-                    <div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;"><span>Consumo (Meta): R$ ${totalGasto.toFixed(2)} (${percUsoMeta.toFixed(1)}%)</span><span>R$ ${c.meta.toFixed(2)}</span></div>
-                    <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(percUsoMeta,100)}%; background: ${percUsoMeta > 100 ? '#ef4444' : (percUsoMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div>
-                </div>
-            `;
+                    <div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9; font-size: 11px;"><span>Consumo (Limite): R$ ${totalGasto.toFixed(2)} (${pLimite.toFixed(1)}%)</span><span>R$ ${c.limite.toFixed(2)}</span></div>
+                    <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pLimite,100)}%"></div></div>
+                    <div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;"><span>Consumo (Meta): R$ ${totalGasto.toFixed(2)} (${pMeta.toFixed(1)}%)</span><span>R$ ${c.meta.toFixed(2)}</span></div>
+                    <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pMeta,100)}%; background: ${pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div>
+                </div>`;
         }
 
-        // CORREÇÃO: padding-right no header do cartão para não sobrepor a engrenagem
         lista.innerHTML += `
-            <div class="cartao-banco" style="background: linear-gradient(135deg, ${c.cor}, #1e293b); position: relative; margin-bottom: 10px;">
+            <div class="cartao-banco" style="background: linear-gradient(135deg, ${c.cor}, #1e293b); position: relative; margin-bottom: 10px; transition: transform 0.2s;">
                 <button class="btn-icon" onclick="toggleEditConta('${c.id}')" style="position: absolute; top: 15px; right: 15px; color: white; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 2;"><i class="fas fa-cog"></i></button>
-                
-                <div class="cartao-header" style="padding-right: 40px;">
+                <div class="cartao-header" style="padding-right: 45px;">
                     <span class="cartao-nome">${c.nome}</span>
                     <span class="cartao-tipo">${isCartao ? 'Crédito' : (c.tipo==='investimento' ? 'Investimento' : 'Conta Corrente')}</span>
                 </div>
@@ -305,55 +302,25 @@ function renderAbaContas() {
                 ${isCartao ? '<small style="display:block; opacity:0.8; font-size:10px; margin-top:5px;">Limite Disponível</small>' : ''}
                 ${extraHtml}
             </div>
-            
-            <div id="edit-conta-${c.id}" class="card" style="display:none; margin-top: -15px; margin-bottom: 20px; border-top-left-radius: 0; border-top-right-radius: 0; border: 1px dashed ${c.cor}; border-top: none;">
-                <strong class="label-moderno mb-10" style="display:block;"><i class="fas fa-edit"></i> Editando Configurações</strong>
+            <div id="edit-conta-${c.id}" class="card" style="display:none; margin-top: -15px; margin-bottom: 20px; border-top-left-radius: 0; border-top-right-radius: 0; border: 1px dashed ${c.cor}; border-top: none; animation: slideDown 0.3s ease-out;">
                 <div class="grid-inputs mb-10">
-                    <div><label class="label-moderno">Nome da Conta</label><input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}"></div>
-                    <div><label class="label-moderno">Cor Tema</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px; cursor:pointer; padding:0;"></div>
+                    <div><label class="label-moderno">Nome</label><input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}"></div>
+                    <div><label class="label-moderno">Cor</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px;"></div>
                 </div>
-                
-                ${isCartao ? `
-                <div class="grid-inputs mb-10">
-                    <div><label class="label-moderno">Limite Total (R$)</label><input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite}"></div>
-                    <div><label class="label-moderno">Meta Mensal (R$)</label><input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta}"></div>
-                </div>
-                <div class="grid-inputs mb-10">
-                    <div><label class="label-moderno">Dia Fechamento</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento}"></div>
-                    <div><label class="label-moderno">Dia Vencimento</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento}"></div>
-                </div>
-                ` : `
-                <div class="grid-inputs mb-10">
-                    <div><label class="label-moderno">Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" class="input-moderno" value="${c.saldo}"></div>
-                </div>
-                `}
-                <div class="flex-between mt-15">
-                    <button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')" title="Excluir Conta"><i class="fas fa-trash"></i> Excluir</button>
-                    <button class="btn-primary" onclick="salvarEdicaoConta('${c.id}')" style="width:auto;">Salvar Alterações</button>
-                </div>
-            </div>
-        `;
+                ${isCartao ? `<div class="grid-inputs mb-10"><div><label class="label-moderno">Limite</label><input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite}"></div><div><label class="label-moderno">Meta</label><input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta}"></div></div><div class="grid-inputs"><div><label class="label-moderno">Fecha</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento}"></div><div><label class="label-moderno">Venc</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento}"></div></div>` : `<label class="label-moderno">Saldo</label><input type="number" id="edit-saldo-${c.id}" class="input-moderno" value="${c.saldo}">`}
+                <div class="flex-between mt-15"><button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i> Excluir</button><button class="btn-primary" onclick="salvarEdicaoConta('${c.id}')">Salvar</button></div>
+            </div>`;
     });
 }
 
 function renderAbaFaturas() {
     const abas = document.getElementById('abas-cartoes-fatura'); const lista = document.getElementById('lista-faturas-agrupadas'); if(!abas || !lista) return;
     const cartoes = db.contas.filter(c => c.tipo === 'cartao');
-    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão registado.</div>"; return; }
+    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão.</div>"; return; }
     if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
-    // CORREÇÃO: CSS Inline para garantir formatação de botões e scroll horizontal
-    abas.style.display = 'flex';
-    abas.style.gap = '10px';
-    abas.style.overflowX = 'auto';
-    abas.style.paddingBottom = '10px';
-    abas.style.marginBottom = '15px';
-    
-    abas.innerHTML = cartoes.map(c => `
-        <button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" 
-            style="white-space: nowrap; padding: 10px 20px; border-radius: 20px; font-weight: 600; font-size: 13px; border: 1px solid ${c.id === cartaoAtivoFatura ? 'var(--azul)' : 'var(--linha)'}; background: ${c.id === cartaoAtivoFatura ? 'var(--azul)' : 'var(--input-bg)'}; color: ${c.id === cartaoAtivoFatura ? '#fff' : 'var(--texto-sec)'}; transition: 0.3s; cursor: pointer;"
-            onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>
-    `).join('');
+    abas.style = "display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:15px;";
+    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" style="white-space:nowrap; padding:10px 20px; border-radius:20px; font-weight:600; font-size:13px; border:1px solid ${c.id === cartaoAtivoFatura ? 'var(--azul)' : 'var(--linha)'}; background:${c.id === cartaoAtivoFatura ? 'var(--azul)' : 'var(--input-bg)'}; color:${c.id === cartaoAtivoFatura ? '#fff' : 'var(--texto-sec)'}; cursor:pointer;" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
     
     const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return;
     let mesesFatura = {};
@@ -361,174 +328,55 @@ function renderAbaFaturas() {
         if(l.contaId !== c.id) return;
         const mesFat = getMesFaturaLogico(l.data, c.fechamento);
         if(!mesesFatura[mesFat]) mesesFatura[mesFat] = { total: 0, lancamentos: [] };
-        
-        const valorReal = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-        mesesFatura[mesFat].total += valorReal; 
+        mesesFatura[mesFat].total += T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor; 
         mesesFatura[mesFat].lancamentos.push(l);
     });
 
     let html = ''; const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
-    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhuma fatura registada neste cartão.</div>"; return; }
+    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Sem faturas.</div>"; return; }
 
     mesesOrdenados.forEach(mes => {
         const fatID = `${c.id}-${mes}`; const estaPaga = db.faturasPagas.includes(fatID);
-        html += `
-        <div class="card" style="padding:0; overflow:hidden; border: 1px solid ${estaPaga ? 'var(--sucesso)' : 'var(--linha)'};">
-            <div class="flex-between" style="padding: 20px; cursor:pointer; background: ${estaPaga ? 'rgba(16, 185, 129, 0.05)' : 'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
-                <div>
-                    <strong style="font-size:16px; color:var(--texto-main);"><i class="fas fa-file-invoice" style="color:var(--texto-sec); margin-right:8px;"></i> Fatura ${formatarMesFaturaLogico(mes)}</strong>
-                    <small style="display:block; margin-top:6px; color:var(--texto-sec); font-weight:500;">Vencimento: ${c.vencimento}/${mes.split('-')[1]}</small>
-                </div>
-                <div style="text-align:right;">
-                    <strong class="${estaPaga ? 'txt-sucesso' : 'txt-perigo'}" style="font-size:20px;">R$ ${mesesFatura[mes].total.toFixed(2)}</strong>
-                    <button class="${estaPaga ? 'btn-outline' : 'btn-primary'}" style="padding:8px 12px; font-size:11px; margin-top:12px; width:auto; border-radius:8px;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga ? '<i class="fas fa-undo"></i> Reabrir' : '<i class="fas fa-check"></i> Pagar Fatura'}</button>
-                </div>
-            </div>
-            <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top: 1px dashed var(--linha); background: var(--input-bg);">
-                ${mesesFatura[mes].lancamentos.map(l => `
-                    <div class="flex-between mb-10" style="font-size:13px; border-bottom:1px solid var(--linha); padding-bottom:8px;">
-                        <span style="color:var(--texto-main); font-weight:500;">
-                            <span style="color:var(--texto-sec); margin-right:8px;">${l.data.split('-').reverse().join('/')}</span> 
-                            ${l.desc}
-                        </span>
-                        <strong class="${T_RECEITAS.includes(l.tipo) ? 'txt-sucesso' : 'txt-perigo'}">
-                            ${T_RECEITAS.includes(l.tipo) ? '+' : '-'} R$ ${l.valor.toFixed(2)}
-                        </strong>
-                    </div>
-                `).join('')}
-            </div>
-        </div>`;
+        html += `<div class="card" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'};"><div class="flex-between" style="padding:20px; cursor:pointer; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')"><div><strong>Fatura ${formatarMesFaturaLogico(mes)}</strong><small style="display:block; margin-top:4px;">Venc: ${c.vencimento}/${mes.split('-')[1]}</small></div><div style="text-align:right;"><strong class="${estaPaga?'txt-sucesso':'txt-perigo'}" style="font-size:18px;">R$ ${mesesFatura[mes].total.toFixed(2)}</strong><br><button class="${estaPaga?'btn-outline':'btn-primary'}" style="padding:5px 10px; font-size:10px; margin-top:8px;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga?'Reabrir':'Pagar'}</button></div></div><div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top:1px dashed var(--linha); background:var(--input-bg);">${mesesFatura[mes].lancamentos.map(l => `<div class="flex-between mb-10" style="font-size:12px; border-bottom:1px solid var(--linha); padding-bottom:5px;"><span>${l.data.split('-').reverse().join('/')} ${l.desc}</span><strong class="${T_RECEITAS.includes(l.tipo)?'txt-sucesso':'txt-perigo'}">R$ ${l.valor.toFixed(2)}</strong></div>`).join('')}</div></div>`;
     });
     lista.innerHTML = html;
 }
 
 function renderAbaConfig() {
-    const divBackups = document.getElementById('lista-backups');
     const toggleTema = document.getElementById('toggle-tema-ajustes');
-    if (toggleTema) { toggleTema.checked = document.body.classList.contains('dark-mode'); }
-
-    if (divBackups) {
-        let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-        if (hist.length === 0) { divBackups.innerHTML = '<p class="texto-vazio">Nenhum backup local salvo.</p>'; return; }
-        
-        divBackups.innerHTML = hist.map(b => `
-            <div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);">
-                <div>
-                    <strong style="font-size:12px;">${b.nome}</strong>
-                    <small style="display:block; font-size:10px; color:var(--texto-sec);">${b.data} • ${b.size}</small>
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})" title="Restaurar"><i class="fas fa-undo"></i></button>
-                    <button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})" title="Excluir"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        `).join('');
-    }
+    if (toggleTema) toggleTema.checked = document.body.classList.contains('dark-mode');
+    const divBackups = document.getElementById('lista-backups'); if(!divBackups) return;
+    let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
+    divBackups.innerHTML = hist.length ? hist.map(b => `<div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);"><div><strong>${b.nome}</strong><small style="display:block; font-size:10px;">${b.data} • ${b.size}</small></div><div style="display:flex; gap:5px;"><button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button><button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})"><i class="fas fa-trash"></i></button></div></div>`).join('') : '<p class="texto-vazio">Sem backups.</p>';
 }
 
 function renderGrafico() {
     const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
-    
-    // CORREÇÃO: Se filtro-mes estiver vazio na inicialização, usa o mês atual
     const inputFiltro = document.getElementById('filtro-mes');
     const mes = (inputFiltro && inputFiltro.value) ? inputFiltro.value : new Date().toISOString().substring(0,7);
-    
     const labels = [], dados = []; const categorias = {};
-    
-    db.lancamentos.forEach(l => { 
-        if(l.efetivado && l.data.substring(0,7) === mes && ['despesas_gerais', 'despesa'].includes(l.tipo)) { 
-            categorias[l.cat] = (categorias[l.cat] || 0) + l.valor; 
-        } 
-    });
+    db.lancamentos.forEach(l => { if(l.efetivado && l.data.substring(0,7) === mes && ['despesas_gerais','despesa'].includes(l.tipo)) { categorias[l.cat] = (categorias[l.cat]||0) + l.valor; } });
     Object.keys(categorias).forEach(k => { labels.push(k); dados.push(categorias[k]); });
-    
-    if(meuGrafico) meuGrafico.destroy();
-    if(dados.length === 0) return; 
-    
+    if(meuGrafico) meuGrafico.destroy(); if(dados.length === 0) return; 
     const isDark = document.body.classList.contains('dark-mode');
-    const corTexto = isDark ? '#cbd5e1' : '#64748b'; 
-    const corBorda = isDark ? '#1e293b' : '#ffffff'; 
-    const bgColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#14b8a6', '#64748b'];
-    
-    meuGrafico = new Chart(ctx, { 
-        type: 'doughnut', 
-        data: { labels, datasets: [{ data: dados, backgroundColor: bgColors, borderWidth: 3, borderColor: corBorda }] }, 
-        options: { 
-            responsive: true, maintainAspectRatio: false,
-            layout: { padding: 15 },
-            plugins: { 
-                legend: { position: 'right', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, pointStyle: 'circle', padding: 15 } },
-                datalabels: { color: '#ffffff', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
-            }, 
-            cutout: '60%' 
-        } 
-    });
+    meuGrafico = new Chart(ctx, { type:'doughnut', data:{ labels, datasets:[{ data:dados, backgroundColor:['#2563eb','#10b981','#f59e0b','#ef4444','#6366f1','#8b5cf6','#14b8a6','#64748b'], borderWidth:3, borderColor:isDark?'#1e293b':'#fff' }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:isDark?'#cbd5e1':'#64748b', usePointStyle:true, font:{size:11} } }, datalabels:{ color:'#fff', font:{weight:'bold', size:11}, formatter:(v)=>'R$ '+v.toFixed(0) } }, cutout:'60%' } });
 }
 
 function renderGraficoEvolucao() {
     const ctx = document.getElementById('graficoEvolucao'); if(!ctx) return;
-    const labels = [], dadosDespesas = [], dadosReceitas = [];
-    
+    const labels = [], dDesp = [], dRec = [];
     for (let i = 2; i >= 0; i--) {
         let d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
         let mStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
-        labels.push(formatarMesFaturaLogico(`${mStr}-01`, 1).split('/')[0].trim()); 
-        
-        let totDesp = 0; let totRec = 0; 
-        
-        db.lancamentos.forEach(l => { 
-            if(l.efetivado && l.data.substring(0,7) === mStr) {
-                const valorNum = parseFloat(l.valor) || 0; 
-                if (T_DESPESAS.includes(l.tipo)) totDesp += valorNum;
-                if (T_RECEITAS.includes(l.tipo)) totRec += valorNum;
-            } 
-        });
-        dadosDespesas.push(totDesp); dadosReceitas.push(totRec);
+        labels.push(formatarMesFaturaLogico(`${mStr}-01`).split('/')[0].trim());
+        let tD = 0, tR = 0;
+        db.lancamentos.forEach(l => { if(l.efetivado && l.data.substring(0,7) === mStr){ if(T_DESPESAS.includes(l.tipo)) tD += l.valor; if(T_RECEITAS.includes(l.tipo)) tR += l.valor; } });
+        dDesp.push(tD); dRec.push(tR);
     }
-    
     if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
-    const tituloEl = ctx.parentElement.previousElementSibling;
-    if(tituloEl && tituloEl.tagName === 'STRONG') tituloEl.innerText = "Evolução Financeira (3 Meses)";
-    
     const isDark = document.body.classList.contains('dark-mode');
-    const corTexto = isDark ? '#94a3b8' : '#64748b';
-    const corGrid = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'; 
-    const corPontoBorda = isDark ? '#1e293b' : '#ffffff';
-    
-    meuGraficoEvolucao = new Chart(ctx, { 
-        type: 'line', 
-        data: { 
-            labels, 
-            datasets: [
-                { 
-                    label: 'Receitas', data: dadosReceitas, borderColor: '#10b981', tension: 0.4, fill: true, 
-                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)', 
-                    pointBackgroundColor: '#10b981', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 4,
-                    datalabels: { align: 'top', anchor: 'end' } // CORREÇÃO: Força Receita para CIMA
-                },
-                { 
-                    label: 'Despesas', data: dadosDespesas, borderColor: '#ef4444', tension: 0.4, fill: true, 
-                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)', 
-                    pointBackgroundColor: '#ef4444', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 4,
-                    datalabels: { align: 'bottom', anchor: 'start' } // CORREÇÃO: Força Despesa para BAIXO
-                }
-            ] 
-        }, 
-        options: { 
-            responsive: true, maintainAspectRatio: false,
-            layout: { padding: {top: 25, right: 45, left: 10, bottom: 20} }, 
-            plugins: { 
-                legend: { display: true, position: 'bottom', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, boxWidth: 6 } },
-                datalabels: { 
-                    color: (context) => context.dataset.borderColor, 
-                    font: {weight: 'bold', size: 10}, 
-                    formatter: (val) => val > 0 ? 'R$ ' + val.toFixed(0) : '' 
-                }
-            }, 
-            scales: { 
-                y: { type: 'linear', beginAtZero: true, display: true, border: {display: false}, grid: {color: corGrid}, ticks: {font:{size:10, family:'Inter'}, color: corTexto, callback: (val) => 'R$ '+val} }, 
-                x: { grid: { display: false }, ticks: {font:{size:12, family:'Inter', weight: '600'}, color: corTexto} } 
-            } 
-        } 
-    });
+    meuGraficoEvolucao = new Chart(ctx, { type:'line', data:{ labels, datasets:[
+        { label:'Receitas', data:dRec, borderColor:'#10b981', tension:0.4, fill:true, backgroundColor:isDark?'rgba(16,185,129,0.15)':'rgba(16,185,129,0.1)', datalabels:{align:'top', anchor:'end'} },
+        { label:'Despesas', data:dDesp, borderColor:'#ef4444', tension:0.4, fill:true, backgroundColor:isDark?'rgba(239,68,68,0.15)':'rgba(239,68,68,0.1)', datalabels:{align:'bottom', anchor:'start'} }
+    ] }, options:{ responsive:true, maintainAspectRatio:false, layout:{padding:{top:25, right:45, bottom:20}}, plugins:{ legend:{position:'bottom', labels:{color:isDark?'#94a3b8':'#64748b', usePointStyle:true}}, datalabels:{ color:c=>c.dataset.borderColor, font:{weight:'bold', size:10}, formatter:v=>v>0?'R$ '+v.toFixed(0):'' } }, scales:{ y:{ grid:{color:isDark?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)'}, ticks:{color:isDark?'#94a3b8':'#64748b'} }, x:{ grid:{display:false}, ticks:{color:isDark?'#94a3b8':'#64748b', font:{weight:'bold'}} } } } });
 }
