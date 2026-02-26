@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.7</title>
+    <title>EcoFinance Pro v25.8</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=25.7">
+    <link rel="stylesheet" href="style.css?v=25.8">
 </head>
 <body>
 
     <div id="app">
-        <header class="header-modern">
+        <header class="header-modern" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--card-bg); border-bottom: 1px solid var(--linha);">
             <div>
-                <h1 id="titulo-aba">Visão Geral</h1>
-                <small id="subtitulo-header">O seu copiloto financeiro</small>
+                <h1 id="titulo-aba" style="font-size: 20px; font-weight: 700; color: var(--texto-main); margin: 0;">Visão Geral</h1>
+                <small id="subtitulo-header" style="color: var(--texto-sec); font-size: 12px; font-weight: 500;">O seu copiloto financeiro</small>
             </div>
-            <button class="btn-icon" onclick="toggleDarkMode()" aria-label="Mudar Tema">
-                <i class="fas fa-moon" id="btn-theme"></i>
+            <button class="btn-icon" onclick="location.reload()" aria-label="Atualizar Sistema" style="background: var(--input-bg); padding: 10px; border-radius: 10px; border: 1px solid var(--linha);">
+                <i class="fas fa-sync-alt" style="color: var(--azul);"></i>
             </button>
         </header>
 
@@ -54,7 +54,6 @@
 
                     <div class="card mt-15" style="border-left: 4px solid var(--esmeralda);">
                         <strong class="titulo-sessao"><i class="fas fa-chart-line"></i> Inteligência Financeira (BI)</strong>
-                        
                         <div class="grid-resumo-2 mt-10">
                             <div class="card-simples" style="background: var(--card-bg);">
                                 <small>Patrimônio Líquido</small>
@@ -65,7 +64,6 @@
                                 <h3 id="bi-sobrevivencia">0 Meses</h3>
                             </div>
                         </div>
-
                         <div class="mt-15">
                             <div class="flex-between mb-10">
                                 <small style="color:var(--texto-sec); font-weight:600;">Taxa de Poupança (Mensal)</small>
@@ -73,7 +71,6 @@
                             </div>
                             <div class="progress-bg"><div id="bar-poupanca" class="progress-fill" style="background:var(--azul);"></div></div>
                         </div>
-
                         <div class="mt-15 pt-15" style="border-top:1px dashed var(--linha);">
                             <small style="color:var(--texto-sec); font-weight:600; display:block; margin-bottom:10px;">Composição de Gastos (Pago)</small>
                             <div class="flex-between" style="font-size:12px; margin-bottom:8px;">
@@ -136,7 +133,6 @@
                         <strong class="titulo-sessao">Gastos por Categoria</strong>
                         <div class="chart-container"><canvas id="graficoCategorias"></canvas></div>
                     </div>
-
                     <div class="card">
                         <strong class="titulo-sessao">Evolução Financeira (3 Meses)</strong>
                         <div class="chart-container"><canvas id="graficoEvolucao"></canvas></div>
@@ -150,34 +146,25 @@
                                 <option value="despesa">Saída (Despesa)</option>
                                 <option value="receita">Entrada (Receita)</option>
                             </select>
-                            <input type="date" id="lanc-data" class="input-moderno" onchange="verificarDataFutura()">
+                            <input type="date" id="lanc-data" class="input-moderno" onchange="if(typeof verificarDataFutura === 'function') verificarDataFutura(); if(typeof atualizarParcelasCartao === 'function') atualizarParcelasCartao();">
                         </div>
 
                         <div class="grid-inputs mt-10">
-                            <select id="lanc-tipo" class="input-moderno" onchange="atualizarRegrasLancamento()">
-                                <option value="despesas_gerais">Despesas Gerais</option>
-                                <option value="emprestei_cartao">Emprestei Cartão</option>
-                                <option value="emprestei_dinheiro">Emprestei Dinheiro</option>
-                                <option value="pag_emprestimo">Pagamento Empréstimo</option>
-                                <option value="dep_poupanca">Depósito Poupança</option>
-                            </select>
-                            <select id="lanc-conta" class="input-moderno" onchange="atualizarFormaPagamento()">
-                                <option value="">Carregando...</option>
-                            </select>
+                            <select id="lanc-tipo" class="input-moderno" onchange="atualizarRegrasLancamento()"></select>
+                            <select id="lanc-conta" class="input-moderno" onchange="atualizarFormaPagamento()"></select>
                         </div>
 
                         <div class="grid-inputs mt-10">
-                            <select id="lanc-forma" class="input-moderno">
-                                <option value="">-</option>
-                            </select>
-                            <select id="lanc-cat" class="input-moderno">
-                                <option value="">Carregando...</option>
-                            </select>
+                            <select id="lanc-forma" class="input-moderno" onchange="if(typeof verificarFormaCredito === 'function') verificarFormaCredito()"></select>
+                            <select id="lanc-cat" class="input-moderno"></select>
                         </div>
 
-                        <div class="grid-inputs mt-10">
-                            <input type="text" id="lanc-desc" class="input-moderno" placeholder="Descrição da movimentação">
-                            <input type="number" id="lanc-valor" class="input-moderno" placeholder="Valor R$">
+                        <div class="mt-10">
+                            <input type="text" id="lanc-desc" class="input-moderno mb-10" placeholder="Descrição da movimentação">
+                            <div class="grid-inputs">
+                                <input type="number" id="lanc-valor" class="input-moderno" placeholder="Valor R$" oninput="if(typeof atualizarParcelasCartao === 'function') atualizarParcelasCartao()">
+                                <select id="lanc-parcelas" class="input-moderno" style="display:none;"></select>
+                            </div>
                         </div>
                         
                         <div class="opcoes-lancamento mt-15">
@@ -210,14 +197,11 @@
             </section>
 
             <section id="aba-contas" class="secao-app">
-                <div class="container" id="lista-contas-saldos"></div>
-            </section>
-
-            <section id="aba-config" class="secao-app">
                 <div class="container">
+                    <button class="btn-primary mb-15" onclick="toggleNovaContaArea()" style="width: 100%;"><i class="fas fa-plus-circle"></i> Cadastrar Nova Conta ou Cartão</button>
                     
-                    <div class="card">
-                        <strong class="titulo-sessao"><i class="fas fa-plus-circle"></i> Cadastrar Nova Conta/Cartão</strong>
+                    <div id="area-nova-conta" class="card mb-20" style="display: none; border: 1px solid var(--azul);">
+                        <strong class="titulo-sessao mb-10">Nova Conta</strong>
                         <div class="grid-inputs mt-10">
                             <input type="text" id="nova-conta-nome" class="input-moderno" placeholder="Nome (Ex: Nubank, C6)">
                             <select id="nova-conta-tipo" class="input-moderno" onchange="toggleCamposCartao()">
@@ -240,12 +224,39 @@
                             <label class="label-moderno">Cor de Identificação</label>
                             <input type="color" id="nova-conta-cor" style="width:100%; height:40px; border:none; border-radius:8px; cursor:pointer;" value="#2563eb">
                         </div>
-                        <button class="btn-primary" onclick="criarConta()">Salvar Conta</button>
-                        
-                        <div id="lista-contas-edit" class="mt-20"></div>
+                        <div class="flex-between">
+                            <button class="btn-outline" onclick="toggleNovaContaArea()" style="width: 48%;">Cancelar</button>
+                            <button class="btn-primary" onclick="criarConta()" style="width: 48%;">Salvar</button>
+                        </div>
                     </div>
 
-                    <div class="card mt-20">
+                    <div id="lista-contas-saldos"></div>
+                </div>
+            </section>
+
+            <section id="aba-config" class="secao-app">
+                <div class="container">
+                    
+                    <div class="card mb-20">
+                        <strong class="titulo-sessao"><i class="fas fa-paint-roller"></i> Aparência e Interface</strong>
+                        <div class="flex-between mt-15" style="padding: 10px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
+                            <span style="font-weight: 500; font-size: 14px;"><i class="fas fa-moon" style="color: var(--texto-sec); margin-right: 8px;"></i> Tema Escuro (Dark Mode)</span>
+                            <label class="checkbox-moderno" style="margin: 0; padding: 0;">
+                                <input type="checkbox" id="toggle-tema-ajustes" onchange="toggleDarkMode()">
+                                <span></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="card mb-20">
+                        <div class="flex-between">
+                            <strong class="titulo-sessao"><i class="fas fa-tags"></i> Personalização de Categorias</strong>
+                            <span class="badge-neutro" style="background: var(--esmeralda); color: white;">Em Breve (v25.9)</span>
+                        </div>
+                        <p class="mt-10" style="font-size: 13px; color: var(--texto-sec);">O módulo de edição total de Categorias, Entradas e Saídas chegará na próxima atualização para manter a segurança do seu banco de dados.</p>
+                    </div>
+
+                    <div class="card">
                         <strong class="titulo-sessao"><i class="fas fa-shield-alt"></i> Sistema e Dados</strong>
                         <div class="grid-inputs mt-15">
                             <button class="btn-outline" onclick="exportarBackup()"><i class="fas fa-download"></i> Gerar Backup</button>
@@ -272,16 +283,13 @@
                 </div>
                 <div class="modal-body">
                     <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
-                    
                     <label class="checkbox-moderno mb-15" style="background: var(--input-bg); padding: 10px; border-radius: 8px;">
-                        <input type="checkbox" id="emp-sem-previsao" onchange="toggleCamposPrevisao()">
-                        <span style="font-weight: 500;">Sem previsão exata de quitação (Rolar para o mês seguinte)</span>
+                        <input type="checkbox" id="emp-sem-previsao" onchange="if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao()">
+                        <span style="font-weight: 500;">Sem previsão exata de quitação (Rolar mensalmente)</span>
                     </label>
-
                     <div id="container-campos-previsao">
                         <label class="label-moderno">Número de Parcelas</label>
                         <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
-                        
                         <label class="label-moderno mt-10">Intervalo (Dias)</label>
                         <input type="number" id="emp-intervalo" class="input-moderno" value="30">
                     </div>
@@ -324,9 +332,9 @@
         </nav>
     </div>
 
-    <script src="core.js?v=25.7"></script>
-    <script src="engine.js?v=25.7"></script>
-    <script src="ui.js?v=25.7"></script>
-    <script src="app.js?v=25.7"></script>
+    <script src="core.js?v=25.8"></script>
+    <script src="engine.js?v=25.8"></script>
+    <script src="ui.js?v=25.8"></script>
+    <script src="app.js?v=25.8"></script>
 </body>
 </html>
