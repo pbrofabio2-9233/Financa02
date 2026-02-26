@@ -172,12 +172,6 @@ function renderRadarVencimentos() {
     });
     lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
 }
-// ==========================================
-// FIM DA PARTE 1 DE 2
-// ==========================================
-// ==========================================
-// CONTINUAÇÃO: UI.JS (PARTE 2)
-// ==========================================
 
 function renderHistorico() {
     const lista = document.getElementById('lista-historico-filtros'); if(!lista) return;
@@ -217,8 +211,6 @@ function renderHistorico() {
         const corValor = T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)';
         const valSinal = isReceita ? '+' : '-';
         const iconeHtml = (c && c.tipo === 'cartao') ? `<i class="fas fa-credit-card" style="color:${c.cor}"></i>` : `<i class="fas fa-wallet" style="color:${c ? c.cor : ''}"></i>`;
-        
-        // CORREÇÃO: Data formatada voltando para a tela
         const dataFormatada = l.data.split('-').reverse().join('/');
         
         return `
@@ -229,19 +221,11 @@ function renderHistorico() {
                     <small style="display:block; color:var(--texto-sec); margin-top:4px;">
                         <i class="fas fa-calendar-alt"></i> ${dataFormatada} • ${iconeHtml} ${c?c.nome:'Conta Excluída'} • ${l.cat}
                     </small>
-                    
-                    ${(!l.efetivado && c && c.tipo !== 'cartao') ? `
-                    <div style="display:flex; gap:8px; margin-top:10px;">
-                        <button class="btn-primary" style="padding:6px 12px; font-size:11px; width:auto;" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Total</button>
-                        <button class="btn-outline" style="padding:6px 12px; font-size:11px; width:auto;" onclick="abrirModalParcial(${l.id}, ${l.valor})"><i class="fas fa-adjust"></i> Parcial</button>
-                    </div>` : ''}
+                    ${(!l.efetivado && c && c.tipo !== 'cartao') ? `<div style="display:flex; gap:8px; margin-top:10px;"><button class="btn-primary" style="padding:6px 12px; font-size:11px; width:auto;" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Total</button><button class="btn-outline" style="padding:6px 12px; font-size:11px; width:auto;" onclick="abrirModalParcial(${l.id}, ${l.valor})"><i class="fas fa-adjust"></i> Parcial</button></div>` : ''}
                 </div>
                 <div style="text-align: right;">
                     <b style="color: ${corValor}; font-size:16px;">${valSinal} R$ ${l.valor.toFixed(2)}</b>
-                    <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
-                        <button class="btn-icon" onclick="toggleEditLancamento(${l.id})"><i class="fas fa-pencil-alt"></i></button>
-                        <button class="btn-icon txt-perigo" onclick="excluirLancamento(${l.id})"><i class="fas fa-trash"></i></button>
-                    </div>
+                    <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;"><button class="btn-icon" onclick="toggleEditLancamento(${l.id})"><i class="fas fa-pencil-alt"></i></button><button class="btn-icon txt-perigo" onclick="excluirLancamento(${l.id})"><i class="fas fa-trash"></i></button></div>
                 </div>
             </div>
             
@@ -249,14 +233,8 @@ function renderHistorico() {
                 <label class="label-moderno">Descrição</label>
                 <input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc}">
                 <div class="grid-inputs mb-10">
-                    <div>
-                        <label class="label-moderno">Data</label>
-                        <input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data}">
-                    </div>
-                    <div>
-                        <label class="label-moderno">Valor (R$)</label>
-                        <input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor}">
-                    </div>
+                    <div><label class="label-moderno">Data</label><input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data}"></div>
+                    <div><label class="label-moderno">Valor (R$)</label><input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor}"></div>
                 </div>
                 <button class="btn-primary" onclick="salvarEdicaoLancamento(${l.id})">Salvar Alterações</button>
             </div>
@@ -264,27 +242,18 @@ function renderHistorico() {
     }).join('');
 }
 
-function toggleEditLancamento(id) { 
-    const el = document.getElementById(`edit-lanc-${id}`);
-    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
+function toggleEditLancamento(id) { const el = document.getElementById(`edit-lanc-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+function abrirModalParcial(id, valorAtual) { document.getElementById('hidden-id-parcial').value = id; document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`; document.getElementById('input-valor-parcial').value = ''; document.getElementById('modal-pagamento-parcial').classList.add('active'); }
+function fecharModalParcial() { document.getElementById('modal-pagamento-parcial').classList.remove('active'); }
+function toggleCamposPrevisao() { const isChecked = document.getElementById('emp-sem-previsao').checked; const container = document.getElementById('container-campos-previsao'); if(container) container.style.display = isChecked ? 'none' : 'block'; }
 
-function abrirModalParcial(id, valorAtual) {
-    document.getElementById('hidden-id-parcial').value = id;
-    document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`;
-    document.getElementById('input-valor-parcial').value = '';
-    document.getElementById('modal-pagamento-parcial').classList.add('active');
-}
-
-function fecharModalParcial() {
-    document.getElementById('modal-pagamento-parcial').classList.remove('active');
-}
-
-function toggleCamposPrevisao() {
-    const isChecked = document.getElementById('emp-sem-previsao').checked;
-    const container = document.getElementById('container-campos-previsao');
-    if(container) container.style.display = isChecked ? 'none' : 'block';
-}
+// ==========================================
+// FIM DA PARTE 1 DE 2
+// ==========================================
+// ==========================================
+// CONTINUAÇÃO: UI.JS (PARTE 2)
+// Limite de linhas aplicado (< 300)
+// ==========================================
 
 function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return;
@@ -296,7 +265,6 @@ function renderAbaContas() {
         let totalGasto = 0;
         
         if (isCartao) {
-            // CORREÇÃO: Olhar apenas para a fatura do mês atual lógico
             const hoje = new Date();
             const mesCorrenteLogico = getMesFaturaLogico(hoje.toISOString().split('T')[0], c.fechamento);
             
@@ -312,22 +280,24 @@ function renderAbaContas() {
             const percUsoLimite = c.limite > 0 ? (totalGasto / c.limite) * 100 : 0;
             const percUsoMeta = c.meta > 0 ? (totalGasto / c.meta) * 100 : 0;
             
+            // CORREÇÃO: Porcentagem adicionada ao lado do valor
             extraHtml = `
-                <div style="margin-top: 15px;">
-                    <div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9;"><span>Consumo (Limite): R$ ${totalGasto.toFixed(2)}</span><span>R$ ${c.limite.toFixed(2)}</span></div>
+                <div style="margin-top: 15px; padding-right: 25px;">
+                    <div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9; font-size: 11px;"><span>Consumo (Limite): R$ ${totalGasto.toFixed(2)} (${percUsoLimite.toFixed(1)}%)</span><span>R$ ${c.limite.toFixed(2)}</span></div>
                     <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(percUsoLimite,100)}%"></div></div>
                     
-                    <div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9;"><span>Consumo (Meta): R$ ${totalGasto.toFixed(2)}</span><span>R$ ${c.meta.toFixed(2)}</span></div>
+                    <div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;"><span>Consumo (Meta): R$ ${totalGasto.toFixed(2)} (${percUsoMeta.toFixed(1)}%)</span><span>R$ ${c.meta.toFixed(2)}</span></div>
                     <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(percUsoMeta,100)}%; background: ${percUsoMeta > 100 ? '#ef4444' : (percUsoMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div>
                 </div>
             `;
         }
 
+        // CORREÇÃO: padding-right no header do cartão para não sobrepor a engrenagem
         lista.innerHTML += `
             <div class="cartao-banco" style="background: linear-gradient(135deg, ${c.cor}, #1e293b); position: relative; margin-bottom: 10px;">
-                <button class="btn-icon" onclick="toggleEditConta('${c.id}')" style="position: absolute; top: 15px; right: 15px; color: white; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-cog"></i></button>
+                <button class="btn-icon" onclick="toggleEditConta('${c.id}')" style="position: absolute; top: 15px; right: 15px; color: white; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 2;"><i class="fas fa-cog"></i></button>
                 
-                <div class="cartao-header">
+                <div class="cartao-header" style="padding-right: 40px;">
                     <span class="cartao-nome">${c.nome}</span>
                     <span class="cartao-tipo">${isCartao ? 'Crédito' : (c.tipo==='investimento' ? 'Investimento' : 'Conta Corrente')}</span>
                 </div>
@@ -372,7 +342,18 @@ function renderAbaFaturas() {
     if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão registado.</div>"; return; }
     if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
-    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
+    // CORREÇÃO: CSS Inline para garantir formatação de botões e scroll horizontal
+    abas.style.display = 'flex';
+    abas.style.gap = '10px';
+    abas.style.overflowX = 'auto';
+    abas.style.paddingBottom = '10px';
+    abas.style.marginBottom = '15px';
+    
+    abas.innerHTML = cartoes.map(c => `
+        <button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" 
+            style="white-space: nowrap; padding: 10px 20px; border-radius: 20px; font-weight: 600; font-size: 13px; border: 1px solid ${c.id === cartaoAtivoFatura ? 'var(--azul)' : 'var(--linha)'}; background: ${c.id === cartaoAtivoFatura ? 'var(--azul)' : 'var(--input-bg)'}; color: ${c.id === cartaoAtivoFatura ? '#fff' : 'var(--texto-sec)'}; transition: 0.3s; cursor: pointer;"
+            onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>
+    `).join('');
     
     const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return;
     let mesesFatura = {};
@@ -447,7 +428,11 @@ function renderAbaConfig() {
 
 function renderGrafico() {
     const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
-    const mes = document.getElementById('filtro-mes').value;
+    
+    // CORREÇÃO: Se filtro-mes estiver vazio na inicialização, usa o mês atual
+    const inputFiltro = document.getElementById('filtro-mes');
+    const mes = (inputFiltro && inputFiltro.value) ? inputFiltro.value : new Date().toISOString().substring(0,7);
+    
     const labels = [], dados = []; const categorias = {};
     
     db.lancamentos.forEach(l => { 
@@ -515,16 +500,30 @@ function renderGraficoEvolucao() {
         data: { 
             labels, 
             datasets: [
-                { label: 'Receitas', data: dadosReceitas, borderColor: '#10b981', tension: 0.4, fill: true, backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)', pointBackgroundColor: '#10b981', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 4 },
-                { label: 'Despesas', data: dadosDespesas, borderColor: '#ef4444', tension: 0.4, fill: true, backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)', pointBackgroundColor: '#ef4444', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 4 }
+                { 
+                    label: 'Receitas', data: dadosReceitas, borderColor: '#10b981', tension: 0.4, fill: true, 
+                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)', 
+                    pointBackgroundColor: '#10b981', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 4,
+                    datalabels: { align: 'top', anchor: 'end' } // CORREÇÃO: Força Receita para CIMA
+                },
+                { 
+                    label: 'Despesas', data: dadosDespesas, borderColor: '#ef4444', tension: 0.4, fill: true, 
+                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)', 
+                    pointBackgroundColor: '#ef4444', pointBorderColor: corPontoBorda, pointBorderWidth: 2, pointRadius: 4,
+                    datalabels: { align: 'bottom', anchor: 'start' } // CORREÇÃO: Força Despesa para BAIXO
+                }
             ] 
         }, 
         options: { 
             responsive: true, maintainAspectRatio: false,
-            layout: { padding: {top: 25, right: 45, left: 10} }, 
+            layout: { padding: {top: 25, right: 45, left: 10, bottom: 20} }, 
             plugins: { 
                 legend: { display: true, position: 'bottom', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, boxWidth: 6 } },
-                datalabels: { align: 'top', color: (context) => context.dataset.borderColor, font: {weight: 'bold', size: 10}, formatter: (val) => val > 0 ? 'R$ ' + val.toFixed(0) : '' }
+                datalabels: { 
+                    color: (context) => context.dataset.borderColor, 
+                    font: {weight: 'bold', size: 10}, 
+                    formatter: (val) => val > 0 ? 'R$ ' + val.toFixed(0) : '' 
+                }
             }, 
             scales: { 
                 y: { type: 'linear', beginAtZero: true, display: true, border: {display: false}, grid: {color: corGrid}, ticks: {font:{size:10, family:'Inter'}, color: corTexto, callback: (val) => 'R$ '+val} }, 
