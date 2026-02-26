@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.6</title>
+    <title>EcoFinance Pro v25.7</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=25.6">
+    <link rel="stylesheet" href="style.css?v=25.7">
 </head>
 <body>
 
@@ -272,15 +272,43 @@
                 </div>
                 <div class="modal-body">
                     <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
-                    <label class="label-moderno">Número de Parcelas</label>
-                    <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
                     
-                    <label class="label-moderno mt-10">Intervalo (Dias)</label>
-                    <input type="number" id="emp-intervalo" class="input-moderno" value="30">
+                    <label class="checkbox-moderno mb-15" style="background: var(--input-bg); padding: 10px; border-radius: 8px;">
+                        <input type="checkbox" id="emp-sem-previsao" onchange="toggleCamposPrevisao()">
+                        <span style="font-weight: 500;">Sem previsão exata de quitação (Rolar para o mês seguinte)</span>
+                    </label>
+
+                    <div id="container-campos-previsao">
+                        <label class="label-moderno">Número de Parcelas</label>
+                        <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
+                        
+                        <label class="label-moderno mt-10">Intervalo (Dias)</label>
+                        <input type="number" id="emp-intervalo" class="input-moderno" value="30">
+                    </div>
                 </div>
                 <div class="modal-footer grid-inputs mt-20">
                     <button class="btn-outline" onclick="fecharModalEmprestimo()">Cancelar</button>
-                    <button class="btn-primary" onclick="gerarParcelasEmprestimo()">Gerar Parcelas</button>
+                    <button class="btn-primary" onclick="gerarParcelasEmprestimo()">Confirmar Regras</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-pagamento-parcial" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>💸 Pagamento Parcial</h3>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-15" style="font-size:13px; color:var(--texto-sec);">
+                        Valor original pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong>
+                    </p>
+                    <label class="label-moderno">Valor Pago/Recebido Agora (R$)</label>
+                    <input type="number" id="input-valor-parcial" class="input-moderno" placeholder="0.00" step="0.01">
+                    <input type="hidden" id="hidden-id-parcial">
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalParcial()">Cancelar</button>
+                    <button class="btn-primary" onclick="confirmarPagamentoParcial()">Amortizar</button>
                 </div>
             </div>
         </div>
@@ -296,9 +324,9 @@
         </nav>
     </div>
 
-    <script src="core.js?v=25.6"></script>
-    <script src="engine.js?v=25.6"></script>
-    <script src="ui.js?v=25.6"></script>
-    <script src="app.js?v=25.6"></script>
+    <script src="core.js?v=25.7"></script>
+    <script src="engine.js?v=25.7"></script>
+    <script src="ui.js?v=25.7"></script>
+    <script src="app.js?v=25.7"></script>
 </body>
 </html>
