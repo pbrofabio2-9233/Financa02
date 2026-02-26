@@ -2,8 +2,7 @@
 // ENGINE.JS - Lógica de Negócios e Cálculos
 // ==========================================
 
-// BLINDAGEM NUCLEAR: Usando 'window.' e nomes inéditos para impedir 
-// conflitos com caches antigos ou variáveis perdidas em outros arquivos.
+// BLINDAGEM NUCLEAR
 window.ecoTempEmprestimo = null;
 window.ecoTiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
 window.ecoTiposDespesa = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca'];
@@ -20,8 +19,6 @@ function showToast(mensagem) {
 }
 
 // --- 2. LANÇAMENTO INTELIGENTE (EFEITO CASCATA) ---
-
-// PASSO 1 DA CASCATA: Mudar a Direção (Receita/Despesa) filtra o Tipo/Referência
 function mudarDirecaoLancamento() {
     const direcaoSelect = document.getElementById('lanc-direcao');
     const tipoSelect = document.getElementById('lanc-tipo');
@@ -29,7 +26,7 @@ function mudarDirecaoLancamento() {
     if(!direcaoSelect || !tipoSelect) return;
 
     const direcao = direcaoSelect.value;
-    tipoSelect.options.length = 0; // Esvazia o select de Tipos de forma segura
+    tipoSelect.options.length = 0; 
 
     let listaTipos = [];
 
@@ -52,16 +49,10 @@ function mudarDirecaoLancamento() {
         ];
     }
 
-    // Injeta os tipos via API Nativa
-    listaTipos.forEach(t => {
-        tipoSelect.options.add(new Option(t.txt, t.val));
-    });
-
-    // Pula para o Passo 2
+    listaTipos.forEach(t => tipoSelect.options.add(new Option(t.txt, t.val)));
     atualizarRegrasLancamento();
 }
 
-// PASSO 2 DA CASCATA: Mudar a Referência filtra as Contas e Categorias
 function atualizarRegrasLancamento() {
     const direcaoSelect = document.getElementById('lanc-direcao');
     const tipoSelect = document.getElementById('lanc-tipo');
@@ -77,7 +68,6 @@ function atualizarRegrasLancamento() {
     contaSelect.options.length = 0;
     catSelect.options.length = 0;
 
-    // Define Categorias baseadas na Direção
     const listaCategorias = direcao === 'receita' ? [
         { val: 'Salário', txt: '💰 Salário' }, { val: 'Terceiros', txt: '🤝 Terceiros' },
         { val: 'Estorno', txt: '↩️ Estorno' }, { val: 'Outros', txt: '🎁 Outros' }
@@ -91,7 +81,6 @@ function atualizarRegrasLancamento() {
 
     listaCategorias.forEach(cat => catSelect.options.add(new Option(cat.txt, cat.val)));
 
-    // Regra da Tag "Repetir Mensalmente"
     if (tipo === 'despesas_gerais' || tipo === 'salario') {
         boxFixo.disabled = false;
     } else {
@@ -99,7 +88,6 @@ function atualizarRegrasLancamento() {
         boxFixo.checked = false;
     }
 
-    // Filtrar Origem/Destino (Contas)
     let temConta = false;
     
     if (typeof db !== 'undefined' && db.contas) {
@@ -123,11 +111,9 @@ function atualizarRegrasLancamento() {
 
     if (!temConta) contaSelect.options.add(new Option('Sem conta compatível', ''));
 
-    // Pula para o Passo 3
     atualizarFormaPagamento();
 }
 
-// PASSO 3 DA CASCATA: Mudar a Conta filtra as Formas de Pagamento
 function atualizarFormaPagamento() {
     const tipo = document.getElementById('lanc-tipo').value;
     const contaId = document.getElementById('lanc-conta').value;
@@ -233,6 +219,8 @@ function abrirModalEmprestimo(lancamentoBase) {
     const txtDestino = isTomada ? 'pagamento' : 'recebimento';
     
     document.getElementById('msg-modal-emp').innerText = `Você ${txtAcao} R$ ${lancamentoBase.valor.toFixed(2)} ("${lancamentoBase.desc}"). Como será o ${txtDestino}?`;
+    document.getElementById('emp-sem-previsao').checked = false;
+    if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao();
     modal.classList.add('active');
 }
 
@@ -243,35 +231,117 @@ function fecharModalEmprestimo() {
 
 function gerarParcelasEmprestimo() {
     if (!window.ecoTempEmprestimo) return;
-    const parcelas = parseInt(document.getElementById('emp-parcelas').value);
-    const intervalo = parseInt(document.getElementById('emp-intervalo').value);
     
-    if (parcelas >= 1) {
-        const valorParcela = window.ecoTempEmprestimo.valor / parcelas;
-        let dataAtual = new Date(window.ecoTempEmprestimo.data + 'T00:00:00');
-        const isTomada = window.ecoTempEmprestimo.tipo === 'tomei_emprestimo';
+    const semPrevisao = document.getElementById('emp-sem-previsao').checked;
+    const isTomada = window.ecoTempEmprestimo.tipo === 'tomei_emprestimo';
+    let dataAtual = new Date(window.ecoTempEmprestimo.data + 'T00:00:00');
+
+    if (semPrevisao) {
+        db.lancamentos.push({
+            id: Date.now(),
+            data: dataAtual.toISOString().split('T')[0],
+            tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', 
+            contaId: window.ecoTempEmprestimo.contaId,
+            forma: window.ecoTempEmprestimo.forma,
+            desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc} (Em Aberto)`,
+            valor: window.ecoTempEmprestimo.valor,
+            cat: 'Terceiros', 
+            efetivado: false,
+            rolagem: true 
+        });
+        showToast("Dívida registrada em rolagem mensal automática!");
+    } 
+    else {
+        const parcelas = parseInt(document.getElementById('emp-parcelas').value);
+        const intervalo = parseInt(document.getElementById('emp-intervalo').value);
         
-        for (let i = 1; i <= parcelas; i++) {
-            dataAtual.setDate(dataAtual.getDate() + intervalo);
-            db.lancamentos.push({
-                id: Date.now() + i,
-                data: dataAtual.toISOString().split('T')[0],
-                tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', 
-                contaId: window.ecoTempEmprestimo.contaId,
-                forma: window.ecoTempEmprestimo.forma,
-                desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc} (${i}/${parcelas})`,
-                valor: valorParcela,
-                cat: 'Terceiros', 
-                efetivado: false
-            });
+        if (parcelas >= 1) {
+            const valorParcela = window.ecoTempEmprestimo.valor / parcelas;
+            
+            for (let i = 1; i <= parcelas; i++) {
+                dataAtual.setDate(dataAtual.getDate() + intervalo);
+                db.lancamentos.push({
+                    id: Date.now() + i,
+                    data: dataAtual.toISOString().split('T')[0],
+                    tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', 
+                    contaId: window.ecoTempEmprestimo.contaId,
+                    forma: window.ecoTempEmprestimo.forma,
+                    desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc} (${i}/${parcelas})`,
+                    valor: valorParcela,
+                    cat: 'Terceiros', 
+                    efetivado: false,
+                    rolagem: false
+                });
+            }
+            showToast(`${parcelas} parcelas geradas!`);
         }
-        save();
-        showToast(`${parcelas} parcelas de ${isTomada ? 'pagamento' : 'recebimento'} geradas!`);
     }
+    
+    save();
     fecharModalEmprestimo();
 }
 
 // --- 4. EDIÇÃO, EXCLUSÃO E RECORRÊNCIAS DE LANÇAMENTOS ---
+
+function confirmarPagamentoParcial() {
+    const idInput = document.getElementById('hidden-id-parcial').value;
+    const valorPago = parseFloat(document.getElementById('input-valor-parcial').value);
+    
+    if (!idInput || isNaN(valorPago) || valorPago <= 0) return alert("Insira um valor válido e maior que zero.");
+    
+    const lOriginal = db.lancamentos.find(l => l.id == idInput);
+    if (!lOriginal) return;
+    
+    if (valorPago >= lOriginal.valor) {
+        alert("O valor inserido quita totalmente a dívida. Por favor, use o botão de Pagamento Total.");
+        return;
+    }
+    
+    const valorRestante = lOriginal.valor - valorPago;
+    
+    // Limpador de Tags (Evita o acúmulo de textos repetidos)
+    let descBaseLimpa = lOriginal.desc.replace(' (Em Aberto)', '').replace(' (Restante)', '').replace(' (Amortizado)', '').trim();
+    
+    // Passo 1: Quitar o pedaço que foi pago e adicionar tag de Amortizado
+    lOriginal.valor = valorPago;
+    lOriginal.efetivado = true;
+    lOriginal.desc = descBaseLimpa + " (Amortizado)";
+    
+    // Atualizar o saldo real da conta
+    const c = db.contas.find(x => x.id === lOriginal.contaId);
+    if (c && c.tipo !== 'cartao') {
+        if (window.ecoTiposReceita.includes(lOriginal.tipo)) c.saldo += valorPago;
+        if (window.ecoTiposDespesa.includes(lOriginal.tipo)) c.saldo -= valorPago;
+    }
+    
+    // Passo 2: Calcular a data do saldo devedor (joga para 1 mês à frente)
+    let [ano, mes, dia] = lOriginal.data.split('-').map(Number);
+    mes += 1;
+    if (mes > 12) { mes = 1; ano += 1; }
+    const dataProximoMes = ajustarDataDia(ano, mes, dia);
+    
+    // Passo 3: Criar um novo lançamento cobrando o Restante
+    const novaCobranca = {
+        id: Date.now() + Math.random(),
+        data: dataProximoMes,
+        tipo: lOriginal.tipo,
+        contaId: lOriginal.contaId,
+        forma: lOriginal.forma,
+        desc: descBaseLimpa + " (Restante)",
+        valor: valorRestante,
+        cat: lOriginal.cat,
+        efetivado: false,
+        rolagem: lOriginal.rolagem 
+    };
+    
+    db.lancamentos.push(novaCobranca);
+    save();
+    
+    if (typeof fecharModalParcial === 'function') fecharModalParcial();
+    showToast("Amortização registrada! Novo saldo agendado.");
+    if (typeof render === 'function') render();
+}
+
 function excluirLancamento(id) {
     if(!confirm("Apagar lançamento? O saldo será recalculado.")) return;
     const lanc = db.lancamentos.find(l => l.id === id); if(!lanc) return;
@@ -282,6 +352,7 @@ function excluirLancamento(id) {
         if (window.ecoTiposDespesa.includes(lanc.tipo)) c.saldo += lanc.valor; 
     }
     db.lancamentos = db.lancamentos.filter(l => l.id !== id); save(); showToast("Lançamento apagado!");
+    if (typeof render === 'function') render();
 }
 
 function salvarEdicaoLancamento(id) {
@@ -299,11 +370,16 @@ function salvarEdicaoLancamento(id) {
         if(window.ecoTiposDespesa.includes(l.tipo)) c.saldo -= diferenca;
     }
     l.valor = novoValor; l.data = novaData; l.desc = novaDesc; save(); showToast("Movimentação Atualizada!");
+    if (typeof render === 'function') render();
 }
 
 function confirmarPagamento(id) {
     const l = db.lancamentos.find(x => x.id === id); if(!l) return;
     l.efetivado = true;
+    
+    // Limpador de tags visual quando quitado integralmente
+    l.desc = l.desc.replace(' (Em Aberto)', '').replace(' (Restante)', '').trim();
+
     const c = db.contas.find(x => x.id === l.contaId);
     
     if(c && c.tipo !== 'cartao') {
@@ -311,6 +387,26 @@ function confirmarPagamento(id) {
         if (window.ecoTiposDespesa.includes(l.tipo)) c.saldo -= l.valor;
     }
     save(); showToast("Pagamento Efetivado!");
+    if (typeof render === 'function') render();
+}
+
+// 💥 V25.7: CÃO DE GUARDA DA ROLAGEM MENSAL
+function processarRolagensPendentes() {
+    const hoje = new Date();
+    const anoAtual = hoje.getFullYear();
+    const mesAtual = hoje.getMonth() + 1;
+
+    let atualizouAlgo = false;
+    db.lancamentos.forEach(l => {
+        if (l.rolagem && !l.efetivado) {
+            let [anoLanc, mesLanc, diaLanc] = l.data.split('-').map(Number);
+            if (anoLanc < anoAtual || (anoLanc === anoAtual && mesLanc < mesAtual)) {
+                l.data = ajustarDataDia(anoAtual, mesAtual, diaLanc);
+                atualizouAlgo = true;
+            }
+        }
+    });
+    if (atualizouAlgo) save();
 }
 
 function processarRecorrencias() {
@@ -418,7 +514,7 @@ function exportarBackup() {
     const nomeArquivo = `EcoBKP_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours()}${now.getMinutes()}.json`; 
     
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
-    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.6", payload: dataStr }); 
+    hist.unshift({ id: Date.now(), nome: nomeArquivo, data: now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), size: sizeKB, versao: "v25.7", payload: dataStr }); 
     if(hist.length > 5) hist.pop(); localStorage.setItem('ecoDB_backups', JSON.stringify(hist)); 
     
     const a = document.createElement('a'); a.href = "data:text/json;charset=utf-8," + encodeURIComponent(dataStr); a.download = nomeArquivo; a.click(); 
@@ -464,9 +560,12 @@ function confirmarReset() {
     } 
 }
 
-// INICIALIZAÇÃO DE SEGURANÇA (Dispara a cascata ao carregar)
+// INICIALIZAÇÃO E VERIFICAÇÃO DE AUTOMATISMOS NO BOOT
 window.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('lanc-direcao')) mudarDirecaoLancamento();
+    
+    processarRolagensPendentes();
+    processarRecorrencias();
 });
 setTimeout(() => {
     if (document.getElementById('lanc-tipo') && document.getElementById('lanc-tipo').options.length === 0) {
