@@ -16,27 +16,66 @@ function showToast(mensagem) {
     setTimeout(() => { toast.remove(); }, 3000);
 }
 
-// --- 2. LANÇAMENTO INTELIGENTE (Matriz com Renderização Nativa) ---
+// --- 2. LANÇAMENTO INTELIGENTE (EFEITO CASCATA) ---
+
+// PASSO 1 DA CASCATA: Mudar a Direção (Receita/Despesa) filtra o Tipo/Referência
+function mudarDirecaoLancamento() {
+    const direcaoSelect = document.getElementById('lanc-direcao');
+    const tipoSelect = document.getElementById('lanc-tipo');
+    
+    if(!direcaoSelect || !tipoSelect) return;
+
+    const direcao = direcaoSelect.value;
+    tipoSelect.options.length = 0; // Esvazia o select de Tipos de forma segura
+
+    let listaTipos = [];
+
+    if (direcao === 'despesa') {
+        listaTipos = [
+            { val: 'despesas_gerais', txt: 'Despesas Gerais' },
+            { val: 'emprestei_cartao', txt: 'Emprestei Cartão' },
+            { val: 'emprestei_dinheiro', txt: 'Emprestei Dinheiro' },
+            { val: 'pag_emprestimo', txt: 'Pagamento Empréstimo' },
+            { val: 'dep_poupanca', txt: 'Depósito Poupança' }
+        ];
+    } else {
+        listaTipos = [
+            { val: 'salario', txt: 'Salário' },
+            { val: 'tomei_emprestimo', txt: 'Tomei Empréstimo' },
+            { val: 'rec_emprestimo', txt: 'Recebimento Empréstimo' },
+            { val: 'outras_receitas', txt: 'Outras Receitas' },
+            { val: 'estorno', txt: 'Estorno' },
+            { val: 'saque_poupanca', txt: 'Saque Poupança' }
+        ];
+    }
+
+    // Injeta os tipos via API Nativa
+    listaTipos.forEach(t => {
+        tipoSelect.options.add(new Option(t.txt, t.val));
+    });
+
+    // Pula para o Passo 2
+    atualizarRegrasLancamento();
+}
+
+// PASSO 2 DA CASCATA: Mudar a Referência filtra as Contas e Categorias
 function atualizarRegrasLancamento() {
+    const direcaoSelect = document.getElementById('lanc-direcao');
     const tipoSelect = document.getElementById('lanc-tipo');
     const contaSelect = document.getElementById('lanc-conta');
     const catSelect = document.getElementById('lanc-cat');
     const boxFixo = document.getElementById('lanc-fixo');
     
-    // Proteção de carregamento
     if(!tipoSelect || !contaSelect || !catSelect || !boxFixo) return;
 
     const tipo = tipoSelect.value;
+    const direcao = direcaoSelect.value;
 
-    // LIMPEZA SEGURA NATIVA (Esvazia as caixas de seleção)
     contaSelect.options.length = 0;
     catSelect.options.length = 0;
 
-    // 2.1 Preencher Categorias (Usando a API 'new Option' para forçar renderização)
-    const tiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
-    const isReceita = tiposReceita.includes(tipo);
-
-    const listaCategorias = isReceita ? [
+    // Define Categorias baseadas na Direção
+    const listaCategorias = direcao === 'receita' ? [
         { val: 'Salário', txt: '💰 Salário' }, { val: 'Terceiros', txt: '🤝 Terceiros' },
         { val: 'Estorno', txt: '↩️ Estorno' }, { val: 'Outros', txt: '🎁 Outros' }
     ] : [
@@ -47,9 +86,7 @@ function atualizarRegrasLancamento() {
         { val: 'Terceiros', txt: '🤝 Terceiros' }, { val: 'Outros', txt: '⚙️ Outros' }
     ];
 
-    listaCategorias.forEach(cat => {
-        catSelect.options.add(new Option(cat.txt, cat.val));
-    });
+    listaCategorias.forEach(cat => catSelect.options.add(new Option(cat.txt, cat.val)));
 
     // Regra da Tag "Repetir Mensalmente"
     if (tipo === 'despesas_gerais' || tipo === 'salario') {
@@ -59,14 +96,13 @@ function atualizarRegrasLancamento() {
         boxFixo.checked = false;
     }
 
-    // 2.2 Filtrar Origem/Destino (Contas) via Renderização Nativa
+    // Filtrar Origem/Destino (Contas)
     let temConta = false;
     
     if (typeof db !== 'undefined' && db.contas) {
         db.contas.forEach(c => {
             let mostrar = false;
             
-            // Matriz de Regras
             if (tipo === 'despesas_gerais' && (c.tipo === 'movimentacao' || c.tipo === 'cartao')) mostrar = true;
             else if (tipo === 'emprestei_cartao' && c.tipo === 'cartao') mostrar = true;
             else if (['emprestei_dinheiro', 'pag_emprestimo'].includes(tipo) && c.tipo === 'movimentacao') mostrar = true;
@@ -82,25 +118,21 @@ function atualizarRegrasLancamento() {
         });
     }
 
-    // Blindagem caso não tenha conta compatível
-    if (!temConta) {
-        contaSelect.options.add(new Option('Sem conta disponível', ''));
-    }
+    if (!temConta) contaSelect.options.add(new Option('Sem conta compatível', ''));
     
     ultimoTipoSelecionado = tipo;
 
-    // Dispara a atualização das formas de pagamento logo em seguida
+    // Pula para o Passo 3
     atualizarFormaPagamento();
 }
 
+// PASSO 3 DA CASCATA: Mudar a Conta filtra as Formas de Pagamento
 function atualizarFormaPagamento() {
     const tipo = document.getElementById('lanc-tipo').value;
     const contaId = document.getElementById('lanc-conta').value;
     const formaSelect = document.getElementById('lanc-forma');
     
     if(!formaSelect) return;
-
-    // Limpeza segura da lista
     formaSelect.options.length = 0;
 
     if (!contaId || typeof db === 'undefined' || !db.contas) {
@@ -114,7 +146,6 @@ function atualizarFormaPagamento() {
         return;
     }
 
-    // Matriz de Formas de Pagamento
     let listaFormas = [];
 
     if (contaAtiva.tipo === 'cartao') {
@@ -139,10 +170,7 @@ function atualizarFormaPagamento() {
         }
     }
 
-    // Injeta na tela usando a API nativa
-    listaFormas.forEach(forma => {
-        formaSelect.options.add(new Option(forma.txt, forma.val));
-    });
+    listaFormas.forEach(forma => formaSelect.options.add(new Option(forma.txt, forma.val)));
 }
 
 function verificarDataFutura() {
@@ -342,7 +370,7 @@ function criarConta() {
     db.contas.push(nc); save(); 
     document.getElementById('nova-conta-nome').value=""; 
     showToast("Conta Criada!"); 
-    atualizarRegrasLancamento();
+    mudarDirecaoLancamento(); // Reinicia o formulário
 }
 
 function excluirConta(id) { 
@@ -350,7 +378,7 @@ function excluirConta(id) {
         db.contas = db.contas.filter(c=>c.id!==id); 
         db.lancamentos = db.lancamentos.filter(l=>l.contaId!==id); 
         save(); showToast("Conta Excluída!"); 
-        atualizarRegrasLancamento(); 
+        mudarDirecaoLancamento(); 
     } 
 }
 
@@ -375,7 +403,7 @@ function salvarEdicaoConta(id) {
     
     save(); 
     showToast("Conta Atualizada!"); 
-    atualizarRegrasLancamento(); 
+    mudarDirecaoLancamento(); 
 }
 
 // --- 6. FATURAS, BACKUPS E RESET ---
@@ -438,12 +466,12 @@ function confirmarReset() {
     } 
 }
 
-// INICIALIZAÇÃO DE SEGURANÇA IMEDIATA E NATIVA
+// INICIALIZAÇÃO DE SEGURANÇA (Dispara a cascata ao carregar)
 window.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('lanc-tipo')) atualizarRegrasLancamento();
+    if (document.getElementById('lanc-direcao')) mudarDirecaoLancamento();
 });
 setTimeout(() => {
-    if (document.getElementById('lanc-tipo') && document.getElementById('lanc-conta').options.length === 0) {
-        atualizarRegrasLancamento();
+    if (document.getElementById('lanc-tipo') && document.getElementById('lanc-tipo').options.length === 0) {
+        mudarDirecaoLancamento();
     }
 }, 300);
