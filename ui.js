@@ -37,9 +37,7 @@ function render() {
             const fatID = `${conta.id}-${mesFatura}`;
             
             if (!db.faturasPagas.includes(fatID)) {
-                // Se for receita (ex: estorno), subtrai da fatura. Se for despesa, soma.
                 const valMutante = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-                
                 if (mesFatura > mesFaturaAtualLivre) calc.faturasFuturas += valMutante;
                 else calc.faturas += valMutante;
             }
@@ -49,7 +47,6 @@ function render() {
                 else calc.gastosVariaveis += l.valor;
             }
         } else {
-            // Conta normal: só processa se for do mês corrente
             if (l.data.substring(0,7) === mesCorrente) {
                 if (l.efetivado) {
                     if (T_RECEITAS.includes(l.tipo)) calc.receitas += l.valor;
@@ -178,7 +175,7 @@ function renderRadarVencimentos() {
     lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
 }
 
-// --- HISTÓRICO COM CHIPS DE CORES E EDIÇÃO ---
+// --- HISTÓRICO COM BOTÕES DE AMORTIZAÇÃO (NOVO) ---
 function renderHistorico() {
     const lista = document.getElementById('lista-historico-filtros'); if(!lista) return;
     const mesFiltro = document.getElementById('filtro-mes').value;
@@ -189,7 +186,7 @@ function renderHistorico() {
     let lancs = db.lancamentos.filter(l => (l.data.substring(0,7) === mesFiltro) && (catFiltro === 'todas' ? true : l.cat === catFiltro))
                 .sort((a, b) => new Date(b.data) - new Date(a.data));
 
-    if(lancs.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhum registro encontrado.</div>"; return; }
+    if(lancs.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhum registo encontrado.</div>"; return; }
 
     lista.innerHTML = lancs.map(l => {
         const c = db.contas.find(x => x.id === l.contaId);
@@ -216,7 +213,12 @@ function renderHistorico() {
                 <div>
                     <strong style="font-size:15px;">${l.desc} ${chipHtml}</strong>
                     <small style="display:block; color:var(--texto-sec); margin-top:4px;"><i class="fas fa-wallet" style="color:${c?c.cor:''}"></i> ${c?c.nome:'Conta Excluída'} • ${l.cat}</small>
-                    ${(!l.efetivado && c && c.tipo !== 'cartao') ? `<button class="btn-primary" style="padding:6px 12px; font-size:11px; margin-top:8px; width:auto;" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Efetivar</button>` : ''}
+                    
+                    ${(!l.efetivado && c && c.tipo !== 'cartao') ? `
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                        <button class="btn-primary" style="padding:6px 12px; font-size:11px; width:auto;" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Total</button>
+                        <button class="btn-outline" style="padding:6px 12px; font-size:11px; width:auto;" onclick="abrirModalParcial(${l.id}, ${l.valor})"><i class="fas fa-adjust"></i> Parcial</button>
+                    </div>` : ''}
                 </div>
                 <div style="text-align: right;">
                     <b style="color: ${corValor}; font-size:16px;">${valSinal} R$ ${l.valor.toFixed(2)}</b>
@@ -249,6 +251,26 @@ function renderHistorico() {
 function toggleEditLancamento(id) { 
     const el = document.getElementById(`edit-lanc-${id}`);
     if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// --- CONTROLO DA UI: MODAIS DE AMORTIZAÇÃO (NOVO) ---
+function abrirModalParcial(id, valorAtual) {
+    document.getElementById('hidden-id-parcial').value = id;
+    document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`;
+    document.getElementById('input-valor-parcial').value = '';
+    document.getElementById('modal-pagamento-parcial').classList.add('active');
+}
+
+function fecharModalParcial() {
+    document.getElementById('modal-pagamento-parcial').classList.remove('active');
+}
+
+function toggleCamposPrevisao() {
+    const isChecked = document.getElementById('emp-sem-previsao').checked;
+    const container = document.getElementById('container-campos-previsao');
+    if(container) {
+        container.style.display = isChecked ? 'none' : 'block';
+    }
 }
 
 // --- ABA CONTAS PREMIUM ---
@@ -293,7 +315,7 @@ function renderAbaContas() {
 function renderAbaFaturas() {
     const abas = document.getElementById('abas-cartoes-fatura'); const lista = document.getElementById('lista-faturas-agrupadas'); if(!abas || !lista) return;
     const cartoes = db.contas.filter(c => c.tipo === 'cartao');
-    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; return; }
+    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão registado.</div>"; return; }
     if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
     abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
@@ -305,14 +327,13 @@ function renderAbaFaturas() {
         const mesFat = getMesFaturaLogico(l.data, c.fechamento);
         if(!mesesFatura[mesFat]) mesesFatura[mesFat] = { total: 0, lancamentos: [] };
         
-        // Estornos e Receitas subtraem o valor da fatura visualmente
         const valorReal = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
         mesesFatura[mesFat].total += valorReal; 
         mesesFatura[mesFat].lancamentos.push(l);
     });
 
     let html = ''; const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
-    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhuma fatura registrada neste cartão.</div>"; return; }
+    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhuma fatura registada neste cartão.</div>"; return; }
 
     mesesOrdenados.forEach(mes => {
         const fatID = `${c.id}-${mes}`; const estaPaga = db.faturasPagas.includes(fatID);
@@ -510,7 +531,6 @@ function renderGraficoEvolucao() {
         }, 
         options: { 
             responsive: true, maintainAspectRatio: false,
-            // CORREÇÃO DO ESPAÇO DIREITO (padding right: 45) PARA NÃO CORTAR O NÚMERO
             layout: { padding: {top: 25, right: 45, left: 10} }, 
             plugins: { 
                 legend: { display: true, position: 'bottom', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, boxWidth: 6 } },
