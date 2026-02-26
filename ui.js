@@ -2,22 +2,13 @@
 // UI.JS - Renderização e Interface Visual
 // ==========================================
 
-// --- LISTAS DE RETROCOMPATIBILIDADE (Lê dados antigos e novos) ---
-const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
-const T_DESPESAS = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
-const T_DESPESAS_CARTAO = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
-
 function render() {
     const hoje = new Date();
     const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
     let calc = { 
         receitas: 0, prevReceitas: 0, despesas: 0, prevGastos: 0, 
-        faturas: 0, faturasFuturas: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0,
-        gastosFixos: 0, gastosVariaveis: 0 
+        faturas: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0 
     };
-
-    // Categorias consideradas como Custo Fixo
-    const catFixas = ['Moradia', 'Energia', 'Assinaturas', 'Consórcio', 'Saúde', 'Educação'];
 
     // 1. Saldos e Metas Globais
     db.contas.forEach(c => {
@@ -29,124 +20,66 @@ function render() {
     // 2. Varredura do Mês Corrente
     db.lancamentos.forEach(l => {
         const conta = db.contas.find(c => c.id === l.contaId);
-        if(!conta) return;
+        if(!conta || l.data.substring(0,7) !== mesCorrente) return;
 
         if (conta.tipo === 'cartao') {
             const mesFatura = getMesFaturaLogico(l.data, conta.fechamento);
-            const mesFaturaAtualLivre = getMesFaturaLogico(hoje.toISOString().split('T')[0], conta.fechamento);
             const fatID = `${conta.id}-${mesFatura}`;
-            
-            if (!db.faturasPagas.includes(fatID)) {
-                const valMutante = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-                if (mesFatura > mesFaturaAtualLivre) calc.faturasFuturas += valMutante;
-                else calc.faturas += valMutante;
+            if (!db.faturasPagas.includes(fatID) && (l.tipo === 'despesa' || l.tipo === 'emp_cartao')) {
+                calc.faturas += l.valor;
             }
-            if (mesFatura === mesFaturaAtualLivre && ['despesas_gerais', 'despesa'].includes(l.tipo)) {
+            if (mesFatura === getMesFaturaLogico(hoje.toISOString().split('T')[0], conta.fechamento) && l.tipo === 'despesa') {
                 calc.usoMetaCartao += l.valor;
-                if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
-                else calc.gastosVariaveis += l.valor;
             }
         } else {
-            if (l.data.substring(0,7) === mesCorrente) {
-                if (l.efetivado) {
-                    if (T_RECEITAS.includes(l.tipo)) calc.receitas += l.valor;
-                    if (T_DESPESAS.includes(l.tipo) && !['emprestei_cartao', 'emp_cartao'].includes(l.tipo)) {
-                        calc.despesas += l.valor;
-                        if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
-                        else calc.gastosVariaveis += l.valor;
-                    }
-                } else {
-                    if (T_RECEITAS.includes(l.tipo)) calc.prevReceitas += l.valor;
-                    if (T_DESPESAS.includes(l.tipo) && !['emprestei_cartao', 'emp_cartao'].includes(l.tipo)) calc.prevGastos += l.valor;
-                }
+            if (l.efetivado) {
+                if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) calc.receitas += l.valor;
+                if (['despesa', 'emp_concedido'].includes(l.tipo)) calc.despesas += l.valor;
+            } else {
+                if (['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) calc.prevReceitas += l.valor;
+                if (['despesa', 'emp_concedido'].includes(l.tipo)) calc.prevGastos += l.valor;
             }
         }
     });
 
-    // 3. Atualizar Dashboard Base
-    const setTexto = (id, texto) => { const el = document.getElementById(id); if(el) el.innerText = texto; };
-    setTexto('dash-receitas', `R$ ${calc.receitas.toFixed(2)}`);
-    setTexto('dash-prev-receitas', `R$ ${calc.prevReceitas.toFixed(2)}`);
-    setTexto('dash-despesas', `R$ ${calc.despesas.toFixed(2)}`);
-    setTexto('dash-prev-gastos', `R$ ${calc.prevGastos.toFixed(2)}`);
-    
-    setTexto('dash-faturas', `R$ ${calc.faturas.toFixed(2)}`);
-    setTexto('dash-faturas-futuras', `R$ ${calc.faturasFuturas.toFixed(2)}`);
-    
-    setTexto('dash-saldo-livre', `R$ ${calc.saldoLivre.toFixed(2)}`);
-    setTexto('dash-investido', `R$ ${calc.investido.toFixed(2)}`);
+    // 3. Atualizar Dashboard Executivo
+    document.getElementById('dash-receitas').innerText = `R$ ${calc.receitas.toFixed(2)}`;
+    document.getElementById('dash-prev-receitas').innerText = `R$ ${calc.prevReceitas.toFixed(2)}`;
+    document.getElementById('dash-despesas').innerText = `R$ ${calc.despesas.toFixed(2)}`;
+    document.getElementById('dash-prev-gastos').innerText = `R$ ${calc.prevGastos.toFixed(2)}`;
+    document.getElementById('dash-faturas').innerText = `R$ ${calc.faturas.toFixed(2)}`;
+    document.getElementById('dash-saldo-livre').innerText = `R$ ${calc.saldoLivre.toFixed(2)}`;
+    document.getElementById('dash-investido').innerText = `R$ ${calc.investido.toFixed(2)}`;
 
+    // Projeção e Patrimônio Líquido
     const saldoProjetado = calc.saldoLivre - calc.prevGastos - calc.faturas + calc.prevReceitas;
     const projElem = document.getElementById('dash-projecao');
-    if(projElem) {
-        projElem.innerText = `R$ ${saldoProjetado.toFixed(2)}`;
-        projElem.style.color = saldoProjetado >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
-    }
+    projElem.innerText = `R$ ${saldoProjetado.toFixed(2)}`;
+    projElem.style.color = saldoProjetado >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
 
-    setTexto('uso-meta-texto', `R$ ${calc.usoMetaCartao.toFixed(2)} / R$ ${calc.metaTotalCartao.toFixed(2)}`);
+    // Meta Consumida (Correção do Bug)
+    document.getElementById('uso-meta-texto').innerText = `R$ ${calc.usoMetaCartao.toFixed(2)} / R$ ${calc.metaTotalCartao.toFixed(2)}`;
     const pMeta = calc.metaTotalCartao > 0 ? (calc.usoMetaCartao / calc.metaTotalCartao) * 100 : 0;
-    const metaBar = document.getElementById('meta-bar');
-    if(metaBar) {
-        metaBar.style.width = Math.min(pMeta, 100) + "%";
-        metaBar.style.background = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981'); 
-    }
-    setTexto('meta-percentual', `${pMeta.toFixed(1)}%`);
+    document.getElementById('meta-bar').style.width = Math.min(pMeta, 100) + "%";
+    document.getElementById('meta-bar').style.background = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--sucesso)');
+    document.getElementById('meta-percentual').innerText = `${pMeta.toFixed(1)}%`;
 
-    // 4. MÓDULO BI
-    const patrimonioLiquido = calc.saldoLivre + calc.investido - calc.faturas;
-    const patElem = document.getElementById('bi-patrimonio');
-    if(patElem) {
-        patElem.innerText = `R$ ${patrimonioLiquido.toFixed(2)}`;
-        patElem.style.color = patrimonioLiquido >= 0 ? 'var(--sucesso)' : 'var(--perigo)';
-    }
-
-    const custoMensal = calc.despesas + calc.faturas;
-    const sobrevivencia = custoMensal > 0 ? (calc.investido / custoMensal) : 0;
-    setTexto('bi-sobrevivencia', custoMensal > 0 ? `${sobrevivencia.toFixed(1)} Meses` : '∞ Meses');
-
-    const sobra = calc.receitas - custoMensal;
-    const taxaPoupanca = calc.receitas > 0 ? (sobra / calc.receitas) * 100 : 0;
-    const taxaReal = Math.max(0, taxaPoupanca);
-    setTexto('bi-taxa-poupanca', `${taxaPoupanca.toFixed(1)}%`);
-    const barPoupanca = document.getElementById('bar-poupanca');
-    if(barPoupanca) barPoupanca.style.width = `${Math.min(taxaReal, 100)}%`;
-
-    const totalGastosBI = calc.gastosFixos + calc.gastosVariaveis;
-    const percFixo = totalGastosBI > 0 ? (calc.gastosFixos / totalGastosBI) * 100 : 0;
-    const percVar = totalGastosBI > 0 ? (calc.gastosVariaveis / totalGastosBI) * 100 : 0;
-    setTexto('bi-perc-fixo', `${percFixo.toFixed(0)}%`);
-    setTexto('bi-perc-var', `${percVar.toFixed(0)}%`);
-    const barFixo = document.getElementById('bar-fixo');
-    const barVar = document.getElementById('bar-var');
-    if(barFixo) barFixo.style.width = `${percFixo}%`;
-    if(barVar) barVar.style.width = `${percVar}%`;
-
-    // 5. Chamadas de Renderização Secundárias
-    if (typeof renderRadarVencimentos === 'function') renderRadarVencimentos();
-    if (typeof renderHistorico === 'function') renderHistorico();
-    if (typeof renderAbaContas === 'function') renderAbaContas();
-    if (typeof renderAbaFaturas === 'function') renderAbaFaturas();
-    if (typeof renderAbaConfig === 'function') renderAbaConfig();
-    
-    setTimeout(() => {
-        if (typeof renderGrafico === 'function') renderGrafico();
-        if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
-    }, 100);
+    renderRadarVencimentos();
+    renderHistorico();
+    renderAbaContas();
+    renderGrafico();
+    renderGraficoEvolucao();
 }
 
-// --- FUNÇÕES AUXILIARES DE DATA ---
+// Lógica de Fatura Auxiliar
 function getMesFaturaLogico(dataLancamento, diaFechamento) {
     const [anoStr, mesStr, diaStr] = dataLancamento.split('-');
     let ano = parseInt(anoStr); let mes = parseInt(mesStr); let dia = parseInt(diaStr);
     if (dia >= diaFechamento) { mes += 1; if (mes > 12) { mes = 1; ano += 1; } }
     return `${ano}-${mes.toString().padStart(2, '0')}`;
 }
-function formatarMesFaturaLogico(mesAnoStr) { 
-    const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
-    const [ano, mes] = mesAnoStr.split('-'); return `${meses[mes]} / ${ano}`; 
-}
 
-// --- RADAR LIMPO ---
+// --- RADAR LIMPO E INTELIGENTE ---
 function renderRadarVencimentos() {
     const lista = document.getElementById('lista-radar-vencimentos'); if(!lista) return;
     const hoje = new Date(); hoje.setHours(0,0,0,0);
@@ -155,10 +88,8 @@ function renderRadarVencimentos() {
     let alertas = [];
     db.lancamentos.forEach(l => {
         const d = new Date(l.data + 'T00:00:00');
-        const conta = db.contas.find(c => c.id === l.contaId);
-        if (conta && conta.tipo === 'cartao') return; 
-
-        if (!l.efetivado && T_DESPESAS.includes(l.tipo) && d <= limite7) {
+        // Filtro Limpo: Só exibe se NÃO estiver efetivado e for saída
+        if (!l.efetivado && ['despesa', 'emp_concedido'].includes(l.tipo) && d <= limite7) {
             const diasFaltando = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
             let txtDia = diasFaltando === 0 ? 'Vence HOJE' : `Vence em ${diasFaltando} dia(s)`;
             
@@ -175,7 +106,7 @@ function renderRadarVencimentos() {
     lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
 }
 
-// --- HISTÓRICO COM BOTÕES DE AMORTIZAÇÃO (NOVO) ---
+// --- HISTÓRICO COM CHIPS DE CORES ---
 function renderHistorico() {
     const lista = document.getElementById('lista-historico-filtros'); if(!lista) return;
     const mesFiltro = document.getElementById('filtro-mes').value;
@@ -186,15 +117,16 @@ function renderHistorico() {
     let lancs = db.lancamentos.filter(l => (l.data.substring(0,7) === mesFiltro) && (catFiltro === 'todas' ? true : l.cat === catFiltro))
                 .sort((a, b) => new Date(b.data) - new Date(a.data));
 
-    if(lancs.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhum registo encontrado.</div>"; return; }
+    if(lancs.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhum registro encontrado.</div>"; return; }
 
     lista.innerHTML = lancs.map(l => {
         const c = db.contas.find(x => x.id === l.contaId);
         const dt = new Date(l.data + 'T00:00:00');
         let chipHtml = '';
         
-        const isReceita = T_RECEITAS.includes(l.tipo);
+        // Identidade Visual Executive Modern para Status
         if (l.efetivado) {
+            const isReceita = ['receita', 'emp_pessoal', 'compensacao'].includes(l.tipo);
             chipHtml = `<span class="chip ${isReceita ? 'chip-esmeralda' : 'chip-verde'}"><i class="fas fa-check-circle"></i> ${isReceita ? 'Receita' : 'Pago'}</span>`;
         } else if (dt < hoje) {
             chipHtml = `<span class="chip chip-vermelho"><i class="fas fa-exclamation-circle"></i> Atrasado</span>`;
@@ -204,8 +136,7 @@ function renderHistorico() {
             chipHtml = `<span class="chip chip-azul"><i class="fas fa-calendar-alt"></i> Agendado</span>`;
         }
 
-        const corValor = T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)';
-        const valSinal = isReceita ? '+' : '-';
+        const corValor = (['despesa', 'emp_concedido'].includes(l.tipo)) ? 'var(--perigo)' : 'var(--sucesso)';
         
         return `
         <div class="card ${!l.efetivado ? 'opacity-90' : ''}" style="border-left: 4px solid ${c ? c.cor : '#ccc'}; padding:15px;">
@@ -213,15 +144,10 @@ function renderHistorico() {
                 <div>
                     <strong style="font-size:15px;">${l.desc} ${chipHtml}</strong>
                     <small style="display:block; color:var(--texto-sec); margin-top:4px;"><i class="fas fa-wallet" style="color:${c?c.cor:''}"></i> ${c?c.nome:'Conta Excluída'} • ${l.cat}</small>
-                    
-                    ${(!l.efetivado && c && c.tipo !== 'cartao') ? `
-                    <div style="display:flex; gap:8px; margin-top:10px;">
-                        <button class="btn-primary" style="padding:6px 12px; font-size:11px; width:auto;" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Total</button>
-                        <button class="btn-outline" style="padding:6px 12px; font-size:11px; width:auto;" onclick="abrirModalParcial(${l.id}, ${l.valor})"><i class="fas fa-adjust"></i> Parcial</button>
-                    </div>` : ''}
+                    ${(!l.efetivado && c && c.tipo !== 'cartao') ? `<button class="btn-primary" style="padding:6px 12px; font-size:11px; margin-top:8px; width:auto;" onclick="confirmarPagamento(${l.id})"><i class="fas fa-check"></i> Efetivar</button>` : ''}
                 </div>
                 <div style="text-align: right;">
-                    <b style="color: ${corValor}; font-size:16px;">${valSinal} R$ ${l.valor.toFixed(2)}</b>
+                    <b style="color: ${corValor}; font-size:16px;">R$ ${l.valor.toFixed(2)}</b>
                     <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;">
                         <button class="btn-icon" onclick="toggleEditLancamento(${l.id})"><i class="fas fa-pencil-alt"></i></button>
                         <button class="btn-icon txt-perigo" onclick="excluirLancamento(${l.id})"><i class="fas fa-trash"></i></button>
@@ -230,17 +156,10 @@ function renderHistorico() {
             </div>
             
             <div id="edit-lanc-${l.id}" style="display:none; padding-top:15px; margin-top:15px; border-top:1px dashed var(--linha);">
-                <label class="label-moderno">Descrição</label>
                 <input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc}">
                 <div class="grid-inputs mb-10">
-                    <div>
-                        <label class="label-moderno">Data</label>
-                        <input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data}">
-                    </div>
-                    <div>
-                        <label class="label-moderno">Valor (R$)</label>
-                        <input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor}">
-                    </div>
+                    <input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data}">
+                    <input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor}">
                 </div>
                 <button class="btn-primary" onclick="salvarEdicaoLancamento(${l.id})">Salvar Alterações</button>
             </div>
@@ -250,30 +169,10 @@ function renderHistorico() {
 
 function toggleEditLancamento(id) { 
     const el = document.getElementById(`edit-lanc-${id}`);
-    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-// --- CONTROLO DA UI: MODAIS DE AMORTIZAÇÃO (NOVO) ---
-function abrirModalParcial(id, valorAtual) {
-    document.getElementById('hidden-id-parcial').value = id;
-    document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`;
-    document.getElementById('input-valor-parcial').value = '';
-    document.getElementById('modal-pagamento-parcial').classList.add('active');
-}
-
-function fecharModalParcial() {
-    document.getElementById('modal-pagamento-parcial').classList.remove('active');
-}
-
-function toggleCamposPrevisao() {
-    const isChecked = document.getElementById('emp-sem-previsao').checked;
-    const container = document.getElementById('container-campos-previsao');
-    if(container) {
-        container.style.display = isChecked ? 'none' : 'block';
-    }
-}
-
-// --- ABA CONTAS PREMIUM ---
+// --- ABA CONTAS PREMIUM COM VISÃO BLACK ---
 function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return;
     lista.innerHTML = ``;
@@ -286,7 +185,7 @@ function renderAbaContas() {
             let totalGasto = 0;
             const mesCorrente = document.getElementById('filtro-mes').value || new Date().toISOString().substring(0,7);
             db.lancamentos.forEach(l => {
-                if (l.contaId === c.id && l.data.substring(0,7) === mesCorrente && T_DESPESAS_CARTAO.includes(l.tipo)) {
+                if (l.contaId === c.id && l.data.substring(0,7) === mesCorrente && (l.tipo === 'despesa' || l.tipo === 'emp_cartao')) {
                     totalGasto += l.valor;
                 }
             });
@@ -311,250 +210,44 @@ function renderAbaContas() {
     });
 }
 
-// --- ABA FATURAS PREMIUM ---
-function renderAbaFaturas() {
-    const abas = document.getElementById('abas-cartoes-fatura'); const lista = document.getElementById('lista-faturas-agrupadas'); if(!abas || !lista) return;
-    const cartoes = db.contas.filter(c => c.tipo === 'cartao');
-    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão registado.</div>"; return; }
-    if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
-    
-    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
-    
-    const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return;
-    let mesesFatura = {};
-    db.lancamentos.forEach(l => {
-        if(l.contaId !== c.id) return;
-        const mesFat = getMesFaturaLogico(l.data, c.fechamento);
-        if(!mesesFatura[mesFat]) mesesFatura[mesFat] = { total: 0, lancamentos: [] };
-        
-        const valorReal = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-        mesesFatura[mesFat].total += valorReal; 
-        mesesFatura[mesFat].lancamentos.push(l);
-    });
-
-    let html = ''; const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
-    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhuma fatura registada neste cartão.</div>"; return; }
-
-    mesesOrdenados.forEach(mes => {
-        const fatID = `${c.id}-${mes}`; const estaPaga = db.faturasPagas.includes(fatID);
-        html += `
-        <div class="card" style="padding:0; overflow:hidden; border: 1px solid ${estaPaga ? 'var(--sucesso)' : 'var(--linha)'};">
-            <div class="flex-between" style="padding: 20px; cursor:pointer; background: ${estaPaga ? 'rgba(16, 185, 129, 0.05)' : 'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
-                <div>
-                    <strong style="font-size:16px; color:var(--texto-main);"><i class="fas fa-file-invoice" style="color:var(--texto-sec); margin-right:8px;"></i> Fatura ${formatarMesFaturaLogico(mes)}</strong>
-                    <small style="display:block; margin-top:6px; color:var(--texto-sec); font-weight:500;">Vencimento: ${c.vencimento}/${mes.split('-')[1]}</small>
-                </div>
-                <div style="text-align:right;">
-                    <strong class="${estaPaga ? 'txt-sucesso' : 'txt-perigo'}" style="font-size:20px;">R$ ${mesesFatura[mes].total.toFixed(2)}</strong>
-                    <button class="${estaPaga ? 'btn-outline' : 'btn-primary'}" style="padding:8px 12px; font-size:11px; margin-top:12px; width:auto; border-radius:8px;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga ? '<i class="fas fa-undo"></i> Reabrir' : '<i class="fas fa-check"></i> Pagar Fatura'}</button>
-                </div>
-            </div>
-            <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top: 1px dashed var(--linha); background: var(--input-bg);">
-                ${mesesFatura[mes].lancamentos.map(l => `
-                    <div class="flex-between mb-10" style="font-size:13px; border-bottom:1px solid var(--linha); padding-bottom:8px;">
-                        <span style="color:var(--texto-main); font-weight:500;">
-                            <span style="color:var(--texto-sec); margin-right:8px;">${l.data.split('-').reverse().join('/')}</span> 
-                            ${l.desc}
-                        </span>
-                        <strong class="${T_RECEITAS.includes(l.tipo) ? 'txt-sucesso' : 'txt-perigo'}">
-                            ${T_RECEITAS.includes(l.tipo) ? '+' : '-'} R$ ${l.valor.toFixed(2)}
-                        </strong>
-                    </div>
-                `).join('')}
-            </div>
-        </div>`;
-    });
-    lista.innerHTML = html;
-}
-
-// --- ABA CONFIGURAÇÕES ---
-function renderAbaConfig() {
-    const divContas = document.getElementById('lista-contas-edit');
-    const divBackups = document.getElementById('lista-backups');
-    
-    if (divContas) {
-        divContas.innerHTML = db.contas.map(c => `
-            <div class="card" style="padding:15px; border-left:4px solid ${c.cor};">
-                <div class="flex-between">
-                    <div><strong style="font-size:15px;">${c.nome}</strong> <span class="badge-neutro" style="font-size:10px; margin-left:5px;">${c.tipo}</span></div>
-                    <div style="display:flex; gap: 8px;">
-                        <button class="btn-icon" onclick="toggleEditConta('${c.id}')"><i class="fas fa-pencil-alt"></i></button>
-                        <button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-                
-                <div id="edit-conta-${c.id}" style="display:none; padding-top:15px; margin-top:15px; border-top:1px dashed var(--linha);">
-                    <div class="grid-inputs mb-10">
-                        <div><label class="label-moderno">Nome da Conta</label><input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}"></div>
-                        <div><label class="label-moderno">Cor Tema</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px; cursor:pointer; padding:0;"></div>
-                    </div>
-                    
-                    ${c.tipo === 'cartao' ? `
-                    <div class="grid-inputs mb-10">
-                        <div><label class="label-moderno">Limite Total (R$)</label><input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite}"></div>
-                        <div><label class="label-moderno">Meta Mensal (R$)</label><input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta}"></div>
-                    </div>
-                    <div class="grid-inputs mb-10">
-                        <div><label class="label-moderno">Dia Fechamento</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento}"></div>
-                        <div><label class="label-moderno">Dia Vencimento</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento}"></div>
-                    </div>
-                    ` : `
-                    <div class="grid-inputs mb-10">
-                        <div><label class="label-moderno">Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" class="input-moderno" value="${c.saldo}"></div>
-                    </div>
-                    `}
-                    <button class="btn-primary mt-10" onclick="salvarEdicaoConta('${c.id}')">Salvar Alterações</button>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    if (divBackups) {
-        let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-        if (hist.length === 0) { divBackups.innerHTML = '<p class="texto-vazio">Nenhum backup local salvo.</p>'; return; }
-        
-        divBackups.innerHTML = hist.map(b => `
-            <div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);">
-                <div>
-                    <strong style="font-size:12px;">${b.nome}</strong>
-                    <small style="display:block; font-size:10px; color:var(--texto-sec);">${b.data} • ${b.size}</small>
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})" title="Restaurar"><i class="fas fa-undo"></i></button>
-                    <button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})" title="Excluir"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        `).join('');
-    }
-}
-
 // --- GRÁFICOS ---
 function renderGrafico() {
     const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
     const mes = document.getElementById('filtro-mes').value;
     const labels = [], dados = []; const categorias = {};
-    
     db.lancamentos.forEach(l => { 
-        if(l.efetivado && l.data.substring(0,7) === mes && ['despesas_gerais', 'despesa'].includes(l.tipo)) { 
+        if(l.efetivado && l.data.substring(0,7) === mes && l.tipo === 'despesa') { 
             categorias[l.cat] = (categorias[l.cat] || 0) + l.valor; 
         } 
     });
     Object.keys(categorias).forEach(k => { labels.push(k); dados.push(categorias[k]); });
-    
     if(meuGrafico) meuGrafico.destroy();
-    if(dados.length === 0) return; 
     
-    const isDark = document.body.classList.contains('dark-mode');
-    const corTexto = isDark ? '#cbd5e1' : '#64748b'; 
-    const corBorda = isDark ? '#1e293b' : '#ffffff'; 
-    
+    // Cores Sóbrias Executive
     const bgColors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#6366f1', '#8b5cf6', '#14b8a6', '#64748b'];
     
     meuGrafico = new Chart(ctx, { 
         type: 'doughnut', 
-        data: { labels, datasets: [{ data: dados, backgroundColor: bgColors, borderWidth: 3, borderColor: corBorda }] }, 
-        options: { 
-            responsive: true, maintainAspectRatio: false,
-            layout: { padding: 15 },
-            plugins: { 
-                legend: { position: 'right', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, pointStyle: 'circle', padding: 15 } },
-                datalabels: { color: '#ffffff', font: {weight: 'bold', size: 11}, formatter: (val) => 'R$ ' + val.toFixed(0) }
-            }, 
-            cutout: '60%' 
-        } 
+        data: { labels, datasets: [{ data: dados, backgroundColor: bgColors, borderWidth: 0 }] }, 
+        options: { plugins: { legend: { position: 'right', labels: {font: {family: 'Inter', size: 11}, color: 'var(--texto-sec)'} } }, cutout: '70%' } 
     });
 }
 
 function renderGraficoEvolucao() {
     const ctx = document.getElementById('graficoEvolucao'); if(!ctx) return;
-    const labels = [], dadosDespesas = [], dadosReceitas = [];
-    
+    const labels = [], dados = [];
     for (let i = 2; i >= 0; i--) {
         let d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1);
         let mStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
-        labels.push(formatarMesFaturaLogico(`${mStr}-01`, 1).split('/')[0].trim()); 
-        
-        let totDesp = 0; 
-        let totRec = 0; 
-        
-        db.lancamentos.forEach(l => { 
-            if(l.efetivado && l.data.substring(0,7) === mStr) {
-                const valorNum = parseFloat(l.valor) || 0; 
-                if (T_DESPESAS.includes(l.tipo)) totDesp += valorNum;
-                if (T_RECEITAS.includes(l.tipo)) totRec += valorNum;
-            } 
-        });
-        dadosDespesas.push(totDesp);
-        dadosReceitas.push(totRec);
+        labels.push(formatarMesFaturaLogico(`${mStr}-01`, 1).split('-')[0]);
+        let total = 0; 
+        db.lancamentos.forEach(l => { if(l.efetivado && l.tipo === 'despesa' && l.data.substring(0,7) === mStr) total += l.valor; });
+        dados.push(total);
     }
-    
     if(meuGraficoEvolucao) meuGraficoEvolucao.destroy();
-    
-    const tituloEl = ctx.parentElement.previousElementSibling;
-    if(tituloEl && tituloEl.tagName === 'STRONG') tituloEl.innerText = "Evolução Financeira (3 Meses)";
-    
-    const isDark = document.body.classList.contains('dark-mode');
-    const corTexto = isDark ? '#94a3b8' : '#64748b';
-    const corGrid = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'; 
-    const corPontoBorda = isDark ? '#1e293b' : '#ffffff';
-    
     meuGraficoEvolucao = new Chart(ctx, { 
         type: 'line', 
-        data: { 
-            labels, 
-            datasets: [
-                { 
-                    label: 'Receitas',
-                    data: dadosReceitas, 
-                    borderColor: '#10b981', 
-                    tension: 0.4, 
-                    fill: true, 
-                    backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)', 
-                    pointBackgroundColor: '#10b981', 
-                    pointBorderColor: corPontoBorda, 
-                    pointBorderWidth: 2, 
-                    pointRadius: 4 
-                },
-                { 
-                    label: 'Despesas',
-                    data: dadosDespesas, 
-                    borderColor: '#ef4444', 
-                    tension: 0.4, 
-                    fill: true, 
-                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.1)', 
-                    pointBackgroundColor: '#ef4444', 
-                    pointBorderColor: corPontoBorda, 
-                    pointBorderWidth: 2, 
-                    pointRadius: 4 
-                }
-            ] 
-        }, 
-        options: { 
-            responsive: true, maintainAspectRatio: false,
-            layout: { padding: {top: 25, right: 45, left: 10} }, 
-            plugins: { 
-                legend: { display: true, position: 'bottom', labels: { font: {family: 'Inter', size: 11}, color: corTexto, usePointStyle: true, boxWidth: 6 } },
-                datalabels: { 
-                    align: 'top', 
-                    color: (context) => context.dataset.borderColor, 
-                    font: {weight: 'bold', size: 10}, 
-                    formatter: (val) => val > 0 ? 'R$ ' + val.toFixed(0) : '' 
-                }
-            }, 
-            scales: { 
-                y: { 
-                    type: 'linear', 
-                    beginAtZero: true, 
-                    display: true, 
-                    border: {display: false}, 
-                    grid: {color: corGrid}, 
-                    ticks: {font:{size:10, family:'Inter'}, color: corTexto, callback: (val) => 'R$ '+val} 
-                }, 
-                x: { 
-                    grid: { display: false }, 
-                    ticks: {font:{size:12, family:'Inter', weight: '600'}, color: corTexto} 
-                } 
-            } 
-        } 
+        data: { labels, datasets: [{ data: dados, borderColor: '#2563eb', tension: 0.4, fill: true, backgroundColor: 'rgba(37, 99, 235, 0.1)' }] }, 
+        options: { plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false } } } } 
     });
 }
