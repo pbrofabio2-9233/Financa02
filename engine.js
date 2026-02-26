@@ -2,8 +2,11 @@
 // ENGINE.JS - Lógica de Negócios e Cálculos
 // ==========================================
 
-let ultimoTipoSelecionado = ""; 
-let tempLancamentoEmprestimo = null;
+// BLINDAGEM NUCLEAR: Usando 'window.' e nomes inéditos para impedir 
+// conflitos com caches antigos ou variáveis perdidas em outros arquivos.
+window.ecoTempEmprestimo = null;
+window.ecoTiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
+window.ecoTiposDespesa = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca'];
 
 // --- 1. SISTEMA DE AVISOS (TOAST) ---
 function showToast(mensagem) {
@@ -119,8 +122,6 @@ function atualizarRegrasLancamento() {
     }
 
     if (!temConta) contaSelect.options.add(new Option('Sem conta compatível', ''));
-    
-    ultimoTipoSelecionado = tipo;
 
     // Pula para o Passo 3
     atualizarFormaPagamento();
@@ -182,9 +183,6 @@ function verificarDataFutura() {
 }
 
 // --- 3. MOTOR DE LANÇAMENTOS E "EFEITO LENE" ---
-const tiposReceitaParaSaldo = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca'];
-const tiposDespesaParaSaldo = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca'];
-
 function adicionarLancamento() {
     const data = document.getElementById('lanc-data').value; 
     const tipo = document.getElementById('lanc-tipo').value;
@@ -200,8 +198,8 @@ function adicionarLancamento() {
     const conta = db.contas.find(c => c.id === contaId);
     
     if (conta && conta.tipo !== 'cartao' && efetivado) {
-        if (tiposReceitaParaSaldo.includes(tipo)) conta.saldo += valor;
-        if (tiposDespesaParaSaldo.includes(tipo)) conta.saldo -= valor;
+        if (window.ecoTiposReceita.includes(tipo)) conta.saldo += valor;
+        if (window.ecoTiposDespesa.includes(tipo)) conta.saldo -= valor;
     }
     
     const novoLancamento = { id: Date.now(), data, tipo, contaId, forma, desc, valor, cat, efetivado };
@@ -228,7 +226,7 @@ function adicionarLancamento() {
 }
 
 function abrirModalEmprestimo(lancamentoBase) {
-    tempLancamentoEmprestimo = lancamentoBase;
+    window.ecoTempEmprestimo = lancamentoBase;
     const modal = document.getElementById('modal-emprestimo');
     const isTomada = lancamentoBase.tipo === 'tomei_emprestimo';
     const txtAcao = isTomada ? 'tomou emprestado' : 'emprestou';
@@ -239,19 +237,19 @@ function abrirModalEmprestimo(lancamentoBase) {
 }
 
 function fecharModalEmprestimo() {
-    tempLancamentoEmprestimo = null;
+    window.ecoTempEmprestimo = null;
     document.getElementById('modal-emprestimo').classList.remove('active');
 }
 
 function gerarParcelasEmprestimo() {
-    if (!tempLancamentoEmprestimo) return;
+    if (!window.ecoTempEmprestimo) return;
     const parcelas = parseInt(document.getElementById('emp-parcelas').value);
     const intervalo = parseInt(document.getElementById('emp-intervalo').value);
     
     if (parcelas >= 1) {
-        const valorParcela = tempLancamentoEmprestimo.valor / parcelas;
-        let dataAtual = new Date(tempLancamentoEmprestimo.data + 'T00:00:00');
-        const isTomada = tempLancamentoEmprestimo.tipo === 'tomei_emprestimo';
+        const valorParcela = window.ecoTempEmprestimo.valor / parcelas;
+        let dataAtual = new Date(window.ecoTempEmprestimo.data + 'T00:00:00');
+        const isTomada = window.ecoTempEmprestimo.tipo === 'tomei_emprestimo';
         
         for (let i = 1; i <= parcelas; i++) {
             dataAtual.setDate(dataAtual.getDate() + intervalo);
@@ -259,9 +257,9 @@ function gerarParcelasEmprestimo() {
                 id: Date.now() + i,
                 data: dataAtual.toISOString().split('T')[0],
                 tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', 
-                contaId: tempLancamentoEmprestimo.contaId,
-                forma: tempLancamentoEmprestimo.forma,
-                desc: `${isTomada ? 'Pag.' : 'Rec.'} ${tempLancamentoEmprestimo.desc} (${i}/${parcelas})`,
+                contaId: window.ecoTempEmprestimo.contaId,
+                forma: window.ecoTempEmprestimo.forma,
+                desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc} (${i}/${parcelas})`,
                 valor: valorParcela,
                 cat: 'Terceiros', 
                 efetivado: false
@@ -280,8 +278,8 @@ function excluirLancamento(id) {
     const c = db.contas.find(x => x.id === lanc.contaId);
     
     if(c && c.tipo !== 'cartao' && lanc.efetivado) {
-        if (tiposReceitaParaSaldo.includes(lanc.tipo)) c.saldo -= lanc.valor; 
-        if (tiposDespesaParaSaldo.includes(lanc.tipo)) c.saldo += lanc.valor; 
+        if (window.ecoTiposReceita.includes(lanc.tipo)) c.saldo -= lanc.valor; 
+        if (window.ecoTiposDespesa.includes(lanc.tipo)) c.saldo += lanc.valor; 
     }
     db.lancamentos = db.lancamentos.filter(l => l.id !== id); save(); showToast("Lançamento apagado!");
 }
@@ -297,8 +295,8 @@ function salvarEdicaoLancamento(id) {
     
     if(c && c.tipo !== 'cartao' && l.efetivado) {
         const diferenca = novoValor - l.valor;
-        if(tiposReceitaParaSaldo.includes(l.tipo)) c.saldo += diferenca;
-        if(tiposDespesaParaSaldo.includes(l.tipo)) c.saldo -= diferenca;
+        if(window.ecoTiposReceita.includes(l.tipo)) c.saldo += diferenca;
+        if(window.ecoTiposDespesa.includes(l.tipo)) c.saldo -= diferenca;
     }
     l.valor = novoValor; l.data = novaData; l.desc = novaDesc; save(); showToast("Movimentação Atualizada!");
 }
@@ -309,8 +307,8 @@ function confirmarPagamento(id) {
     const c = db.contas.find(x => x.id === l.contaId);
     
     if(c && c.tipo !== 'cartao') {
-        if (tiposReceitaParaSaldo.includes(l.tipo)) c.saldo += l.valor;
-        if (tiposDespesaParaSaldo.includes(l.tipo)) c.saldo -= l.valor;
+        if (window.ecoTiposReceita.includes(l.tipo)) c.saldo += l.valor;
+        if (window.ecoTiposDespesa.includes(l.tipo)) c.saldo -= l.valor;
     }
     save(); showToast("Pagamento Efetivado!");
 }
@@ -334,8 +332,8 @@ function processarRecorrencias() {
             
             const conta = db.contas.find(c => c.id === rec.contaId);
             if (conta && conta.tipo !== 'cartao' && isEfetivado) {
-                if (tiposReceitaParaSaldo.includes(rec.tipo)) conta.saldo += rec.valor;
-                if (tiposDespesaParaSaldo.includes(rec.tipo)) conta.saldo -= rec.valor;
+                if (window.ecoTiposReceita.includes(rec.tipo)) conta.saldo += rec.valor;
+                if (window.ecoTiposDespesa.includes(rec.tipo)) conta.saldo -= rec.valor;
             }
             rec.ultimoMesGerado = `${anoUltimo}-${mesStr}`; 
             gerouNovo = true;
@@ -370,7 +368,7 @@ function criarConta() {
     db.contas.push(nc); save(); 
     document.getElementById('nova-conta-nome').value=""; 
     showToast("Conta Criada!"); 
-    mudarDirecaoLancamento(); // Reinicia o formulário
+    mudarDirecaoLancamento(); 
 }
 
 function excluirConta(id) { 
