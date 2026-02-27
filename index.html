@@ -9,6 +9,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link rel="stylesheet" href="style.css?v=25.8">
+    <style>
+        /* Estilos para o Roadmap Interativo */
+        .roadmap-group { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--linha); }
+        .roadmap-header { 
+            background: var(--input-bg); 
+            padding: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer;
+        }
+        .roadmap-content { 
+            max-height: 0; 
+            overflow: hidden; 
+            transition: max-height 0.3s ease-out; 
+            background: var(--card-bg);
+            padding: 0 15px;
+        }
+        .roadmap-group.active .roadmap-content { max-height: 500px; padding: 15px; }
+        .roadmap-group.active .fa-chevron-down { transform: rotate(180deg); }
+        .rd-list { list-style: none; padding: 0; margin: 0; }
+        .rd-list li { font-size: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; color: var(--texto-sec); }
+        .status-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+    </style>
 </head>
 <body>
 
@@ -236,7 +260,12 @@
 
             <section id="aba-config" class="secao-app">
                 <div class="container">
-                    
+                    <div class="card mb-20" style="border: 1px solid var(--azul); background: rgba(37,99,235,0.05);">
+                        <strong class="titulo-sessao"><i class="fas fa-map-marked-alt"></i> Roadmap & Evolução</strong>
+                        <p style="font-size: 12px; color: var(--texto-sec); margin: 8px 0 15px 0;">Acompanhe o que já foi feito e o que está por vir.</p>
+                        <button class="btn-primary" onclick="navegar('roadmap', null)" style="width:100%;">Ver Planejamento do Projeto</button>
+                    </div>
+
                     <div class="card mb-20">
                         <strong class="titulo-sessao"><i class="fas fa-paint-roller"></i> Aparência e Interface</strong>
                         <div class="flex-between mt-15" style="padding: 10px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
@@ -270,6 +299,78 @@
                         </div>
 
                         <button class="btn-danger mt-20" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="aba-roadmap" class="secao-app">
+                <div class="container">
+                    <div class="card">
+                        <div class="flex-between mb-20">
+                            <h2 style="font-size: 18px; margin:0;"><i class="fas fa-road"></i> Mapa de Evolução</h2>
+                            <span style="background: var(--azul); color:white; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold;">v25.8</span>
+                        </div>
+
+                        <div class="roadmap-group">
+                            <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
+                                <div><strong style="font-size:13px;">🏗️ BASE & INFRAESTRUTURA</strong></div>
+                                <div><span class="status-badge" style="background: rgba(16,185,129,0.1); color: var(--sucesso);">OK</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
+                            </div>
+                            <div class="roadmap-content">
+                                <ul class="rd-list">
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Matriz em cascata (Lógica de Inputs)</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Motor de faturas lógicas</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Sistema de Amortização Parcial</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Blindagem Nuclear de Dados</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="roadmap-group">
+                            <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
+                                <div><strong style="font-size:13px;">🎨 LAYOUT & FORMATAÇÃO</strong></div>
+                                <div><span class="status-badge" style="background: rgba(245,158,11,0.1); color: var(--alerta);">ATIVO</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
+                            </div>
+                            <div class="roadmap-content">
+                                <ul class="rd-list">
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Tema Escuro (Dark Mode)</li>
+                                    <li><i class="fas fa-spinner fa-spin" style="color:var(--alerta);"></i> Inclusão de Labels (Foco Atual)</li>
+                                    <li><i class="fas fa-circle-notch"></i> Refinamento do Header Executivo</li>
+                                    <li><i class="fas fa-circle-notch"></i> Página de Roadmap Interativa</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="roadmap-group">
+                            <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
+                                <div><strong style="font-size:13px;">⚙️ MECÂNICA & ALERTAS</strong></div>
+                                <div><span class="status-badge" style="background: rgba(239,68,68,0.1); color: var(--perigo);">PEND.</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
+                            </div>
+                            <div class="roadmap-content">
+                                <ul class="rd-list">
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Radar de Vencimentos</li>
+                                    <li><i class="fas fa-exclamation-triangle" style="color:var(--perigo);"></i> Alerta de meta no lançamento</li>
+                                    <li><i class="fas fa-clock"></i> Lembrete de melhor dia de compra</li>
+                                    <li><i class="fas fa-tags"></i> Categorias Personalizadas (v25.9)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="roadmap-group">
+                            <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
+                                <div><strong style="font-size:13px;">🧠 INTELIGÊNCIA (BI)</strong></div>
+                                <div><span class="status-badge" style="background: #eee; color: #999;">FUTURO</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
+                            </div>
+                            <div class="roadmap-content">
+                                <ul class="rd-list">
+                                    <li><i class="fas fa-hourglass-start"></i> Índice de Comprometimento de Renda (ICR)</li>
+                                    <li><i class="fas fa-file-contract"></i> Relatório Humanizado de Saúde</li>
+                                    <li><i class="fas fa-cloud"></i> Sincronização em Nuvem (G-Drive)</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <button class="btn-outline mt-20" onclick="navegar('dashboard', null)" style="width:100%;">Fechar Roadmap</button>
                     </div>
                 </div>
             </section>
