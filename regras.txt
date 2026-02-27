@@ -1,0 +1,9 @@
+Siga essas regras ao pé da letra:
+1. Antes de atualizar qualquer arquivo, SEMPRE se basear pelo último arquivo considerado estável;
+2. Na falta deste arquivo estável, me solicite.
+3. Só é permitida a geração do arquivo após a minha confirmação.
+4. Só é permitida a geração de um arquivo por resposta do chat.
+5. Todos os arquivos que forem atualizados, deverão ser gerados por inteiro, sem quebras e sem "jeitinho de encaixar".
+6. Se o arquivo for muito grande, divida-o em partes. Utilize como referência uma média de 300 linhas por parte.
+7. Quando eu disser "considere este arquivo como estável", vc irá substituir a referência do último arquivo pelo novo.
+8. Quando ocorrer o passso nº7, atualize a nomeclatura da versão e atualize tambem na página do roadmap.
