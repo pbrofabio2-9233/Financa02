@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.8</title>
+    <title>EcoFinance Pro v25.8.5</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -204,9 +204,14 @@
             <section id="aba-historico" class="secao-app">
                 <div class="container">
                     
-                    <div class="flex-between mb-15" style="align-items: center;">
-                        <h2 style="font-size: 18px; margin: 0;"><i class="fas fa-list-ul"></i> Movimentações</h2>
-                        <input type="month" id="filtro-mes" class="input-moderno" onchange="if(typeof renderHistorico === 'function') renderHistorico()" style="width: auto; height: 36px; padding: 0 10px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-main); cursor: pointer;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); border: 1px solid var(--linha); border-radius: 12px; margin-bottom: 15px; padding: 6px; box-shadow: var(--shadow-sm);">
+                        <button class="btn-icon" onclick="mudarMesFiltro(-1)" style="padding: 10px 15px; color: var(--azul); background: var(--input-bg); border-radius: 8px; transition: 0.2s;"><i class="fas fa-chevron-left"></i></button>
+                        
+                        <div style="flex: 1; display: flex; justify-content: center; position: relative;">
+                            <input type="month" id="filtro-mes" class="input-moderno" onchange="if(typeof renderHistorico === 'function') renderHistorico(); if(typeof renderGrafico === 'function') renderGrafico();" style="width: 100%; border: none; background: transparent; color: var(--texto-main); font-weight: 700; font-size: 15px; text-align: center; box-shadow: none; padding: 0; outline: none; cursor: pointer;">
+                        </div>
+                        
+                        <button class="btn-icon" onclick="mudarMesFiltro(1)" style="padding: 10px 15px; color: var(--azul); background: var(--input-bg); border-radius: 8px; transition: 0.2s;"><i class="fas fa-chevron-right"></i></button>
                     </div>
 
                     <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
@@ -317,7 +322,7 @@
                     <div class="card">
                         <div class="flex-between mb-20">
                             <h2 style="font-size: 18px; margin:0;"><i class="fas fa-road"></i> Mapa de Evolução</h2>
-                            <span style="background: var(--azul); color:white; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold;">v25.8</span>
+                            <span style="background: var(--azul); color:white; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold;">v25.8.5</span>
                         </div>
 
                         <div class="roadmap-group">
@@ -330,22 +335,23 @@
                                     <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Matriz em cascata (Lógica de Inputs)</li>
                                     <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Motor de faturas lógicas</li>
                                     <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Sistema de Amortização Parcial</li>
-                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Blindagem Nuclear de Dados</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Blindagem Nuclear de Dados (Backups)</li>
                                 </ul>
                             </div>
                         </div>
 
                         <div class="roadmap-group">
                             <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
-                                <div><strong style="font-size:13px;">🎨 LAYOUT & FORMATAÇÃO</strong></div>
+                                <div><strong style="font-size:13px;">🎨 UI/UX PREMIUM</strong></div>
                                 <div><span class="status-badge" style="background: rgba(245,158,11,0.1); color: var(--alerta);">ATIVO</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
                             </div>
                             <div class="roadmap-content">
                                 <ul class="rd-list">
-                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Tema Escuro (Dark Mode)</li>
-                                    <li><i class="fas fa-spinner fa-spin" style="color:var(--alerta);"></i> Inclusão de Labels (Foco Atual)</li>
-                                    <li><i class="fas fa-circle-notch"></i> Refinamento do Header Executivo</li>
-                                    <li><i class="fas fa-circle-notch"></i> Página de Roadmap Interativa</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Tema Escuro Inteligente (Dark Mode)</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Segmented Control (Abas de Cartão)</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Cards Compactos Expansíveis (Accordion)</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Filtro Dinâmico de Meses (Botões Táteis)</li>
+                                    <li><i class="fas fa-spinner fa-spin" style="color:var(--alerta);"></i> Implementação de Responsividade</li>
                                 </ul>
                             </div>
                         </div>
@@ -353,33 +359,33 @@
                         <div class="roadmap-group">
                             <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
                                 <div><strong style="font-size:13px;">⚙️ MECÂNICA & ALERTAS</strong></div>
-                                <div><span class="status-badge" style="background: rgba(239,68,68,0.1); color: var(--perigo);">PEND.</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
+                                <div><span class="status-badge" style="background: rgba(245,158,11,0.1); color: var(--alerta);">ATIVO</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
                             </div>
                             <div class="roadmap-content">
                                 <ul class="rd-list">
-                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Radar de Vencimentos</li>
-                                    <li><i class="fas fa-exclamation-triangle" style="color:var(--perigo);"></i> Alerta de meta no lançamento</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Radar de Vencimentos (7 dias)</li>
+                                    <li><i class="fas fa-spinner fa-spin" style="color:var(--alerta);"></i> Categorias Personalizadas (v25.9)</li>
+                                    <li><i class="fas fa-exclamation-triangle" style="color:var(--perigo);"></i> Alerta de meta estourada no lançamento</li>
                                     <li><i class="fas fa-clock"></i> Lembrete de melhor dia de compra</li>
-                                    <li><i class="fas fa-tags"></i> Categorias Personalizadas (v25.9)</li>
                                 </ul>
                             </div>
                         </div>
 
                         <div class="roadmap-group">
                             <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
-                                <div><strong style="font-size:13px;">🧠 INTELIGÊNCIA (BI)</strong></div>
+                                <div><strong style="font-size:13px;">🧠 INTELIGÊNCIA (BI) & NUVEM</strong></div>
                                 <div><span class="status-badge" style="background: #eee; color: #999;">FUTURO</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
                             </div>
                             <div class="roadmap-content">
                                 <ul class="rd-list">
                                     <li><i class="fas fa-hourglass-start"></i> Índice de Comprometimento de Renda (ICR)</li>
-                                    <li><i class="fas fa-file-contract"></i> Relatório Humanizado de Saúde</li>
-                                    <li><i class="fas fa-cloud"></i> Sincronização em Nuvem (G-Drive)</li>
+                                    <li><i class="fas fa-file-contract"></i> Relatório Humanizado de Saúde Financeira</li>
+                                    <li><i class="fas fa-cloud"></i> Sincronização Automática (G-Drive)</li>
                                 </ul>
                             </div>
                         </div>
 
-                        <button class="btn-outline mt-20" onclick="navegar('dashboard', null)" style="width:100%;">Fechar Roadmap</button>
+                        <button class="btn-outline mt-20" onclick="navegar('dashboard', null)" style="width:100%;">Voltar para Visão Geral</button>
                     </div>
                 </div>
             </section>
