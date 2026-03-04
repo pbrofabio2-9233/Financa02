@@ -1,5 +1,5 @@
 // ==========================================
-// UI.JS - Renderização e Interface (v25.8.1)
+// UI.JS - Renderização e Interface (v25.8.4 - Cards Compactos)
 // ==========================================
 
 const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
@@ -135,6 +135,7 @@ function renderRadarVencimentos() {
     lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
 }
 
+// --- EXTRATO (HISTÓRICO) COM UI/UX PREMIUM E COMPACTO ---
 function renderHistorico() {
     const lista = document.getElementById('lista-historico-filtros'); 
     if(!lista) return;
@@ -200,52 +201,74 @@ function renderHistorico() {
             let chipHtml = ''; 
 
             if (c && c.tipo === 'cartao') {
-                if (l.statusCalculado === 'pago') chipHtml = `<span class="chip chip-verde"><i class="fas fa-check-circle"></i> Fatura Paga</span>`;
-                else if (l.statusCalculado === 'atencao') chipHtml = `<span class="chip chip-amarelo" style="background: rgba(245,158,11,0.1); color: var(--alerta); font-weight: 600;"><i class="fas fa-lock"></i> Fatura Fechada</span>`;
-                else chipHtml = `<span class="chip" style="background: rgba(37,99,235,0.1); color: var(--azul); font-weight: 600;"><i class="fas fa-circle-notch"></i> Fatura Aberta</span>`;
+                if (l.statusCalculado === 'pago') chipHtml = `<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px;">FATURA PAGA</span>`;
+                else if (l.statusCalculado === 'atencao') chipHtml = `<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px;">FATURA FECHADA</span>`;
+                else chipHtml = `<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px;">FATURA ABERTA</span>`;
             } else {
-                if (l.statusCalculado === 'receita') chipHtml = `<span class="chip chip-esmeralda"><i class="fas fa-check-circle"></i> Receita</span>`;
-                else if (l.statusCalculado === 'pago') chipHtml = `<span class="chip chip-verde"><i class="fas fa-check-circle"></i> Pago</span>`;
-                else if (l.statusCalculado === 'atrasado') chipHtml = `<span class="chip chip-vermelho"><i class="fas fa-exclamation-circle"></i> Atrasado</span>`;
-                else if (l.statusCalculado === 'atencao') chipHtml = `<span class="chip chip-amarelo"><i class="fas fa-clock"></i> Atenção</span>`;
-                else chipHtml = `<span class="chip" style="background: rgba(37,99,235,0.1); color: var(--azul); font-weight: 600;"><i class="fas fa-circle-notch"></i> Em Aberto</span>`;
+                if (l.statusCalculado === 'receita') chipHtml = `<span class="status-badge" style="background:var(--esmeralda); color:#fff; font-size:9px;">RECEITA</span>`;
+                else if (l.statusCalculado === 'pago') chipHtml = `<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px;">PAGO</span>`;
+                else if (l.statusCalculado === 'atrasado') chipHtml = `<span class="status-badge" style="background:var(--perigo); color:#fff; font-size:9px;">ATRASADO</span>`;
+                else if (l.statusCalculado === 'atencao') chipHtml = `<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px;">ATENÇÃO</span>`;
+                else chipHtml = `<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px;">EM ABERTO</span>`;
             }
 
             let infoDivida = '';
             if (l.rolagem && !l.efetivado) {
                 const vOrig = l.valorOriginal !== undefined ? l.valorOriginal : l.valor;
                 const vAmort = l.valorAmortizado || 0;
+                const pctAmortizado = vOrig > 0 ? Math.min((vAmort / vOrig) * 100, 100) : 0;
                 infoDivida = `
-                    <div style="background: var(--input-bg); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 11px;">
-                        <div class="flex-between" style="margin-bottom:4px;"><span>Original:</span> <strong style="color:var(--texto-main);">R$ ${vOrig.toFixed(2)}</strong></div>
-                        <div class="flex-between" style="margin-bottom:4px;"><span>Amortizado:</span> <strong class="txt-sucesso">R$ ${vAmort.toFixed(2)}</strong></div>
-                        <div class="flex-between pt-5" style="border-top: 1px dashed var(--linha);"><span>Restante:</span> <strong class="txt-perigo">R$ ${l.valor.toFixed(2)}</strong></div>
+                    <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);">
+                        <div class="flex-between" style="font-size:10px; color:var(--texto-sec); margin-bottom:4px;">
+                            <span>Amortizado: R$ ${vAmort.toFixed(2)} (de R$ ${vOrig.toFixed(2)})</span>
+                            <span class="txt-sucesso">${pctAmortizado.toFixed(0)}%</span>
+                        </div>
+                        <div class="micro-bar-bg"><div class="micro-bar-fill" style="width:${pctAmortizado}%"></div></div>
                     </div>`;
             }
 
             const corValor = T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)';
+            
             return `
-            <div class="card ${!l.efetivado ? 'opacity-90' : ''}" style="border-left: 4px solid ${c ? c.cor : '#ccc'}; padding:15px;">
-                <div class="flex-between">
-                    <div>
-                        <strong style="font-size:15px;">${l.desc || 'Sem descrição'} ${chipHtml}</strong>
-                        <small style="display:block; color:var(--texto-sec); margin-top:4px;"><i class="fas fa-calendar-alt"></i> ${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Conta Excluída'} • ${l.cat || 'Outros'}</small>
-                        ${infoDivida}
-                        ${(!l.efetivado && c && c.tipo !== 'cartao') ? `<div style="display:flex; gap:8px; margin-top:10px;">
-                            <button class="btn-primary" style="padding:6px 12px; font-size:11px; width:auto;" onclick="${l.rolagem ? `confirmarQuitacao(${l.id})` : `confirmarPagamento(${l.id})`}"><i class="fas fa-check"></i> ${l.rolagem ? 'Quitação' : 'Total'}</button>
-                            ${l.rolagem ? `<button class="btn-outline" style="padding:6px 12px; font-size:11px; width:auto;" onclick="abrirModalParcial(${l.id}, ${l.valor})"><i class="fas fa-adjust"></i> Parcial</button>` : ''}
-                        </div>` : ''}
+            <div class="card fatura-card ${!l.efetivado ? 'opacity-90' : ''}" style="padding:0; overflow:hidden; border:1px solid var(--linha); border-left: 4px solid ${c ? c.cor : '#ccc'}; margin-bottom: 12px;">
+                
+                <div style="padding:15px; cursor:pointer;" onclick="toggleEditLancamento(${l.id})">
+                    
+                    <div class="flex-between" style="margin-bottom: 8px;">
+                        <strong style="font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;">${l.desc || 'Sem descrição'}</strong>
+                        ${chipHtml}
                     </div>
-                    <div style="text-align: right;">
-                        <b style="color: ${corValor}; font-size:16px;">${l.isReceita ? '+' : '-'} R$ ${(l.valor || 0).toFixed(2)}</b>
-                        <div style="margin-top:10px; display:flex; gap:10px; justify-content:flex-end;"><button class="btn-icon" onclick="toggleEditLancamento(${l.id})"><i class="fas fa-pencil-alt"></i></button><button class="btn-icon txt-perigo" onclick="excluirLancamento(${l.id})"><i class="fas fa-trash"></i></button></div>
+                    
+                    <div class="flex-between" style="align-items: center;">
+                        <div style="display:flex; flex-direction:column; gap:2px;">
+                            <small style="color:var(--texto-sec); font-size:11px;">${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Excluída'} • ${l.cat || 'Outros'}</small>
+                            ${(!l.efetivado && c && c.tipo !== 'cartao') ? `
+                            <div style="display:flex; gap:6px; margin-top:6px;">
+                                <button class="btn-primary" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); ${l.rolagem ? `confirmarQuitacao(${l.id})` : `confirmarPagamento(${l.id})`}">${l.rolagem ? 'Quitar' : 'Pagar'}</button>
+                                ${l.rolagem ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); abrirModalParcial(${l.id}, ${l.valor})">Parcial</button>` : ''}
+                            </div>` : ''}
+                        </div>
+                        
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <strong style="color: ${corValor}; font-size:16px;">${l.isReceita ? '+' : '-'} R$ ${(l.valor || 0).toFixed(2)}</strong>
+                            <i class="fas fa-chevron-down fatura-chevron" id="icon-${l.id}" style="font-size:11px; color:var(--texto-sec);"></i>
+                        </div>
                     </div>
+
+                    ${infoDivida}
                 </div>
                 
-                <div id="edit-lanc-${l.id}" style="display:none; padding-top:15px; margin-top:15px; border-top:1px dashed var(--linha);">
-                    <label class="label-moderno">Descrição</label><input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc || ''}">
-                    <div class="grid-inputs mb-10"><div><label class="label-moderno">Data</label><input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data || ''}"></div><div><label class="label-moderno">Valor (R$)</label><input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor || 0}"></div></div>
-                    <button class="btn-primary" onclick="salvarEdicaoLancamento(${l.id})">Salvar Alterações</button>
+                <div id="edit-lanc-${l.id}" style="display:none; padding:15px; border-top:1px dashed var(--linha); background:var(--input-bg);">
+                    <label class="label-moderno">Editar Descrição</label>
+                    <input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc || ''}">
+                    <div class="grid-inputs mb-10">
+                        <div><label class="label-moderno">Data</label><input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data || ''}"></div>
+                        <div><label class="label-moderno">Valor (R$)</label><input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor || 0}"></div>
+                    </div>
+                    <div class="flex-between" style="gap:10px;">
+                        <button class="btn-outline txt-perigo" style="width:48%; border-color:var(--perigo);" onclick="excluirLancamento(${l.id})"><i class="fas fa-trash"></i> Excluir</button>
+                        <button class="btn-primary" style="width:48%;" onclick="salvarEdicaoLancamento(${l.id})">Salvar Mudanças</button>
+                    </div>
                 </div>
             </div>`;
         }).join('');
@@ -256,7 +279,19 @@ function renderHistorico() {
     }
 }
 
-function toggleEditLancamento(id) { const el = document.getElementById(`edit-lanc-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+// --- FUNÇÃO DE TOGGLE ATUALIZADA (Gira o Ícone) ---
+function toggleEditLancamento(id) { 
+    const el = document.getElementById(`edit-lanc-${id}`); 
+    if(el) {
+        el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
+    }
+    // Gira a seta da fatura ou do lançamento se ela existir
+    const icon = document.getElementById(`icon-${id}`);
+    if(icon) {
+        icon.classList.toggle('open');
+    }
+}
+
 function abrirModalParcial(id, valorAtual) { document.getElementById('hidden-id-parcial').value = id; document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`; document.getElementById('input-valor-parcial').value = ''; const modal = document.getElementById('modal-pagamento-parcial'); if(modal) { modal.style.display = 'flex'; modal.classList.add('active'); } }
 function fecharModalParcial() { const m = document.getElementById('modal-pagamento-parcial'); if(m) { m.style.display = 'none'; m.classList.remove('active'); } }
 function toggleCamposPrevisao() { const isChecked = document.getElementById('emp-sem-previsao').checked; const container = document.getElementById('container-campos-previsao'); if(container) container.style.display = isChecked ? 'none' : 'block'; }
@@ -287,17 +322,32 @@ function renderAbaContas() {
     });
 }
 
+// --- ABA DE FATURAS COM UI/UX PREMIUM E COMPACTO ---
 function renderAbaFaturas() {
-    const abas = document.getElementById('abas-cartoes-fatura'); const lista = document.getElementById('lista-faturas-agrupadas'); if(!abas || !lista) return;
+    const abas = document.getElementById('abas-cartoes-fatura'); 
+    const lista = document.getElementById('lista-faturas-agrupadas'); 
+    if(!abas || !lista) return;
+    
+    // Limpa estilos em linha antigos caso existam
+    abas.removeAttribute("style");
+
     const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
-    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; return; }
+    if(cartoes.length === 0) { 
+        abas.innerHTML = ""; 
+        lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; 
+        return; 
+    }
+    
     if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
-    abas.style = "display:flex; gap:10px; overflow-x:auto; padding:5px 15px 15px 15px; margin: 0 -15px 10px -15px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;";
-    abas.innerHTML = cartoes.map(c => `<button class="tab-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" style="flex: 0 0 auto; white-space:nowrap; padding:10px 20px; border-radius:25px; font-weight:600; font-size:13px; border:none; background:${c.id === cartaoAtivoFatura ? 'var(--azul)' : 'var(--input-bg)'}; color:${c.id === cartaoAtivoFatura ? '#fff' : 'var(--texto-sec)'}; cursor:pointer; box-shadow: ${c.id === cartaoAtivoFatura ? '0 4px 10px rgba(37,99,235,0.3)' : '0 2px 5px rgba(0,0,0,0.05)'}; transition:all 0.3s ease;" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('');
+    // 1. Renderiza os Cartões como Segmented Control
+    abas.innerHTML = `<div class="segmented-control">` + cartoes.map(c => 
+        `<button class="segmented-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`
+    ).join('') + `</div>`;
     
     const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return;
     let mesesFatura = {};
+    
     (db.lancamentos || []).forEach(l => {
         if(l.contaId !== c.id) return;
         const mesFat = getMesFaturaLogico(l.data, c.fechamento || 1);
@@ -306,26 +356,80 @@ function renderAbaFaturas() {
         mesesFatura[mesFat].lancamentos.push(l);
     });
 
-    let html = ''; const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
-    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Sem faturas registradas.</div>"; return; }
+    let html = ''; 
+    const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
+    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Sem faturas registradas neste cartão.</div>"; return; }
 
+    // 2. Renderiza os Cards Reorganizados e Compactos
     mesesOrdenados.forEach(mes => {
-        const fatID = `${c.id}-${mes}`; const estaPaga = (db.faturasPagas || []).includes(fatID);
+        const fatID = `${c.id}-${mes}`; 
+        const estaPaga = (db.faturasPagas || []).includes(fatID);
         const jaAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
-        const totalFinal = mesesFatura[mes].total - jaAmortizado;
+        const totalOriginal = mesesFatura[mes].total;
+        const totalFinal = totalOriginal - jaAmortizado;
         
         const [anoF, mesF] = mes.split('-');
         const dataFechamentoFatura = new Date(`${anoF}-${mesF}-${(c.fechamento || 1).toString().padStart(2, '0')}T00:00:00`);
         const hoje = new Date(); hoje.setHours(0,0,0,0);
         
+        // Tags de Status
         let statusTag = '';
-        if (estaPaga) statusTag = '<span style="background:var(--sucesso); color:#fff; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold; margin-left:10px;">PAGO</span>';
-        else if (hoje >= dataFechamentoFatura) statusTag = '<span style="background:var(--alerta); color:#fff; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold; margin-left:10px;">FECHADA</span>';
-        else statusTag = '<span style="background:var(--azul); color:#fff; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold; margin-left:10px;">EM ABERTO</span>';
+        if (estaPaga) statusTag = '<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px;">PAGO</span>';
+        else if (hoje >= dataFechamentoFatura) statusTag = '<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px;">FECHADA</span>';
+        else statusTag = '<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px;">EM ABERTO</span>';
 
-        const infoAmortizado = jaAmortizado > 0 ? `<small style="display:block; color:var(--texto-sec); font-size:11px; margin-top:4px;">Já Amortizado: <span class="txt-sucesso">R$ ${jaAmortizado.toFixed(2)}</span></small>` : '';
+        // Micro-barra de Progresso Compacta
+        const pctAmortizado = totalOriginal > 0 ? Math.min((jaAmortizado / totalOriginal) * 100, 100) : 0;
+        const infoAmortizado = jaAmortizado > 0 ? `
+            <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);">
+                <div class="flex-between" style="font-size:10px; color:var(--texto-sec); margin-bottom:4px;">
+                    <span>Amortizado: R$ ${jaAmortizado.toFixed(2)}</span>
+                    <span class="txt-sucesso">${pctAmortizado.toFixed(0)}%</span>
+                </div>
+                <div class="micro-bar-bg"><div class="micro-bar-fill" style="width:${pctAmortizado}%"></div></div>
+            </div>` : '';
 
-        html += `<div class="card" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'};"><div class="flex-between" style="padding:20px; cursor:pointer; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')"><div><div style="display:flex; align-items:center;"><strong>Fatura ${formatarMesFaturaLogico(mes)}</strong>${statusTag}</div><small style="display:block; margin-top:4px;">Venc: ${c.vencimento}/${mes.split('-')[1]}</small>${infoAmortizado}</div><div style="text-align:right;"><strong class="${estaPaga?'txt-sucesso':'txt-perigo'}" style="font-size:18px;">R$ ${totalFinal.toFixed(2)}</strong><br><div style="display:flex; gap:5px; margin-top:8px; justify-content:flex-end;">${!estaPaga && totalFinal > 0 ? `<button class="btn-outline" style="padding:5px 10px; font-size:10px;" onclick="event.stopPropagation(); amortizarFatura('${fatID}')">Amortizar</button>` : ''}<button class="${estaPaga?'btn-outline':'btn-primary'}" style="padding:5px 10px; font-size:10px;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga?'Reabrir':'Pagar'}</button></div></div></div><div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top:1px dashed var(--linha); background:var(--input-bg);">${mesesFatura[mes].lancamentos.map(l => `<div class="flex-between mb-10" style="font-size:12px; border-bottom:1px solid var(--linha); padding-bottom:5px;"><span>${(l.data || '').split('-').reverse().join('/')} ${l.desc}</span><strong class="${T_RECEITAS.includes(l.tipo)?'txt-sucesso':'txt-perigo'}">R$ ${(l.valor || 0).toFixed(2)}</strong></div>`).join('')}</div></div>`;
+        // Card Estruturado (Ultra Compacto)
+        html += `
+        <div class="card fatura-card ${estaPaga ? 'paga' : ''}" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'}; margin-bottom: 12px;">
+            
+            <div style="padding:15px; cursor:pointer; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
+                
+                <div class="flex-between" style="margin-bottom: 8px;">
+                    <strong style="font-size:14px; display:flex; align-items:center; gap:6px;">
+                        <i class="fas fa-file-invoice-dollar" style="color:var(--texto-sec);"></i> Fatura ${formatarMesFaturaLogico(mes)}
+                    </strong>
+                    ${statusTag}
+                </div>
+                
+                <div class="flex-between" style="align-items: center;">
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <small style="color:var(--texto-sec); font-size:11px;">Venc: ${(c.vencimento||1).toString().padStart(2,'0')}/${mes.split('-')[1]}</small>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <strong class="${estaPaga?'txt-sucesso':'txt-perigo'}" style="font-size:16px;">R$ ${totalFinal.toFixed(2)}</strong>
+                            <i class="fas fa-chevron-down fatura-chevron" id="icon-det-fat-${fatID}" style="font-size:11px; color:var(--texto-sec);"></i>
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; gap:6px;">
+                        ${!estaPaga && totalFinal > 0 ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); amortizarFatura('${fatID}')">Amortizar</button>` : ''}
+                        <button class="${estaPaga?'btn-outline':'btn-primary'}" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga?'Reabrir':'Pagar'}</button>
+                    </div>
+                </div>
+
+                ${infoAmortizado}
+            </div>
+
+            <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top:1px dashed var(--linha); background:var(--input-bg);">
+                ${mesesFatura[mes].lancamentos.map(l => `
+                    <div class="flex-between mb-10" style="font-size:12px; border-bottom:1px solid var(--linha); padding-bottom:5px;">
+                        <span>${(l.data || '').split('-').reverse().join('/')} - ${l.desc}</span>
+                        <strong class="${T_RECEITAS.includes(l.tipo)?'txt-sucesso':'txt-perigo'}">R$ ${(l.valor || 0).toFixed(2)}</strong>
+                    </div>
+                `).join('')}
+            </div>
+            
+        </div>`;
     });
     lista.innerHTML = html;
 }
