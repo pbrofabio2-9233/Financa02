@@ -141,3 +141,48 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .modal-body { padding: 20px; }
 .modal-footer { padding: 20px; border-top: 1px solid var(--linha); background: var(--input-bg); margin: 0; }
 .chart-container { position: relative; height: 220px; width: 100%; display: flex; justify-content: center; align-items: center; }
+/* ==========================================
+   MELHORIAS DE UI/UX - FATURAS (v25.8.2)
+   ========================================== */
+
+/* 1. Segmented Control (Abas dos Cartões) */
+.segmented-control { 
+    display: flex; 
+    background: var(--input-bg); 
+    border-radius: 12px; 
+    padding: 4px; 
+    margin-bottom: 20px; 
+    border: 1px solid var(--linha); 
+    width: 100%;
+}
+.segmented-btn { 
+    flex: 1; /* Divide o espaço igualmente */
+    text-align: center; 
+    padding: 10px 5px; 
+    font-size: 13px; 
+    font-weight: 600; 
+    border: none; 
+    background: transparent; 
+    color: var(--texto-sec); 
+    border-radius: 8px; 
+    cursor: pointer; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+.segmented-btn.active { 
+    background: var(--card-bg); 
+    color: var(--azul); 
+    box-shadow: var(--shadow-sm); 
+}
+
+/* 2. Reorganização dos Cards de Fatura */
+.fatura-card { transition: opacity 0.3s ease; }
+.fatura-card.paga { opacity: 0.75; } /* Ideia C: Escurece a fatura paga */
+.fatura-chevron { transition: transform 0.3s ease; display: inline-block; }
+.fatura-chevron.open { transform: rotate(180deg); color: var(--azul); }
+
+/* 3. Micro-Barra de Amortização (Ideia A) */
+.micro-bar-bg { background: var(--linha); height: 4px; border-radius: 4px; overflow: hidden; width: 100%; }
+.micro-bar-fill { height: 100%; background: var(--sucesso); transition: width 0.5s ease; }
