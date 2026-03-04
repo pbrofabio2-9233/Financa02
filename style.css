@@ -1,3 +1,7 @@
+/* ==========================================
+   STYLE.CSS - Design System e Responsividade (v25.8.6)
+   ========================================== */
+
 :root {
     /* Cores Executive Modern (Claro) */
     --fundo-app: #f4f5f7;
@@ -34,7 +38,30 @@
 
 * { box-sizing: border-box; font-family: 'Inter', -apple-system, sans-serif; }
 
-body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var(--texto-main); transition: background-color 0.3s ease, color 0.3s ease; }
+body { 
+    background: var(--fundo-app); 
+    margin: 0; 
+    padding-bottom: 85px; 
+    color: var(--texto-main); 
+    transition: background-color 0.3s ease, color 0.3s ease; 
+    /* Base para o layout Desktop/Mobile */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Base de layout Principal */
+#app {
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+#conteudo-principal {
+    flex: 1;
+}
 
 /* Header Minimalista */
 .header-modern { background: var(--header-bg); padding: 25px 20px 20px; border-bottom: 1px solid var(--linha); position: sticky; top: 0; z-index: 1000; transition: 0.3s; }
@@ -49,7 +76,7 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .secao-app.active { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-.mt-10 { margin-top: 10px; } .mt-15 { margin-top: 15px; } .mt-20 { margin-top: 20px; } .mb-10 { margin-bottom: 10px; } .mb-15 { margin-bottom: 15px; }
+.mt-10 { margin-top: 10px; } .mt-15 { margin-top: 15px; } .mt-20 { margin-top: 20px; } .mb-10 { margin-bottom: 10px; } .mb-15 { margin-bottom: 15px; } .mb-20 { margin-bottom: 20px; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
 
 /* Tipografia e Textos */
@@ -124,7 +151,7 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .limite-fill { height: 100%; background: #ffffff; width: 0%; border-radius: 10px; transition: 0.5s ease; }
 .limite-texto { display: flex; justify-content: space-between; font-size: 11px; font-weight: 500; opacity: 0.9; margin-top: 6px; }
 
-/* Menu Navegação */
+/* Menu Navegação (Mobile Padrão) */
 .menu-inferior { position: fixed; bottom: 0; width: 100%; background: var(--header-bg); display: flex; border-top: 1px solid var(--linha); z-index: 2000; height: 70px; padding-bottom: env(safe-area-inset-bottom); }
 .menu-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--texto-sec); font-size: 10px; font-weight: 600; cursor: pointer; transition: color 0.2s; }
 .menu-item.active { color: var(--azul); }
@@ -141,6 +168,7 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 .modal-body { padding: 20px; }
 .modal-footer { padding: 20px; border-top: 1px solid var(--linha); background: var(--input-bg); margin: 0; }
 .chart-container { position: relative; height: 220px; width: 100%; display: flex; justify-content: center; align-items: center; }
+
 /* ==========================================
    MELHORIAS DE UI/UX - FATURAS (v25.8.2)
    ========================================== */
@@ -179,10 +207,109 @@ body { background: var(--fundo-app); margin: 0; padding-bottom: 85px; color: var
 
 /* 2. Reorganização dos Cards de Fatura */
 .fatura-card { transition: opacity 0.3s ease; }
-.fatura-card.paga { opacity: 0.75; } /* Ideia C: Escurece a fatura paga */
+.fatura-card.paga { opacity: 0.75; } 
 .fatura-chevron { transition: transform 0.3s ease; display: inline-block; }
 .fatura-chevron.open { transform: rotate(180deg); color: var(--azul); }
 
-/* 3. Micro-Barra de Amortização (Ideia A) */
+/* 3. Micro-Barra de Amortização */
 .micro-bar-bg { background: var(--linha); height: 4px; border-radius: 4px; overflow: hidden; width: 100%; }
 .micro-bar-fill { height: 100%; background: var(--sucesso); transition: width 0.5s ease; }
+
+/* ==========================================
+   RESPONSIVIDADE: DESKTOP & TABLET (v25.8.6)
+   ========================================== */
+
+@media screen and (min-width: 768px) {
+    /* 1. Reset da base para Desktop */
+    body {
+        padding-bottom: 0; /* Remove espaço do menu inferior */
+        background: var(--input-bg); /* Fundo sutil para a área externa */
+    }
+
+    /* 2. Arquitetura Sidebar Lateral vs Main Content */
+    #app {
+        flex-direction: row; /* Coloca o menu ao lado do conteúdo */
+        max-width: 1200px; /* Largura máxima da aplicação */
+        margin: 0 auto;
+        height: 100vh;
+        overflow: hidden; /* O scroll será interno */
+    }
+
+    /* 3. O Menu Lateral (antigo inferior) */
+    .menu-inferior {
+        position: static;
+        width: 250px;
+        height: 100vh;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 30px;
+        border-top: none;
+        border-right: 1px solid var(--linha);
+        background: var(--card-bg);
+    }
+    
+    .menu-item {
+        flex: none; /* Não cresce loucamente */
+        flex-direction: row; /* Ícone do lado do texto */
+        justify-content: flex-start;
+        padding: 15px 25px;
+        font-size: 15px;
+        border-radius: 0;
+        margin-bottom: 5px;
+        border-left: 4px solid transparent;
+    }
+
+    .menu-item i {
+        margin-bottom: 0;
+        margin-right: 15px;
+        width: 20px;
+        text-align: center;
+    }
+
+    .menu-item.active {
+        background: rgba(37,99,235,0.05);
+        border-left: 4px solid var(--azul);
+        transform: none; /* Retira a animação mobile */
+    }
+    
+    .menu-item.active i {
+        transform: none;
+    }
+
+    /* 4. Área Principal (Onde as coisas rolam) */
+    #conteudo-principal {
+        flex: 1;
+        overflow-y: auto; /* Scroll apenas no conteúdo, o menu fica fixo */
+        background: var(--fundo-app);
+        position: relative;
+    }
+
+    /* Header acompanha o conteúdo */
+    .header-modern {
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(10px);
+        padding: 30px 40px;
+    }
+    .dark-mode .header-modern {
+        background: rgba(30,41,59,0.9);
+    }
+
+    /* 5. Limitando o crescimento interno para boa leitura */
+    .container {
+        max-width: 800px; 
+        margin: 0 auto; /* Centraliza no ecrã largo */
+        padding: 30px 40px;
+    }
+
+    /* 6. Grids mais espertos para Desktop */
+    .grid-resumo-2 { grid-template-columns: 1fr 1fr; }
+    .grid-resumo-4 { grid-template-columns: 1fr 1fr 1fr 1fr; } /* 4 colunas reais */
+    
+    /* Novo Lançamento e Gráficos lado a lado se possível */
+    .chart-container { height: 300px; } /* Gráficos maiores */
+
+    /* Modal centralizado sem esticar */
+    .modal-content {
+        max-width: 500px;
+    }
+}
