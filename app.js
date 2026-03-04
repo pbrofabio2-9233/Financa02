@@ -1,75 +1,72 @@
 // ==========================================
-// APP.JS - Inicialização, Navegação e Tema
+// APP.JS - Inicialização, Navegação e Tema (v25.8.1)
 // ==========================================
 
-// --- 1. NAVEGAÇÃO DE ABAS (MENU INFERIOR) ---
 function navegar(idSecao, elementoClicado) {
-    // Esconde todas as abas
     document.querySelectorAll('.secao-app').forEach(secao => {
         secao.classList.remove('active');
     });
 
-    // Remove o status de "ativo" de todos os botões do menu
     document.querySelectorAll('.menu-item').forEach(item => {
         item.classList.remove('active');
     });
 
-    // Mostra a aba correta
     const abaAlvo = document.getElementById(`aba-${idSecao}`);
-    if (abaAlvo) {
-        abaAlvo.classList.add('active');
+    if (abaAlvo) abaAlvo.classList.add('active');
+
+    if (elementoClicado) elementoClicado.classList.add('active');
+
+    // MÁGICA DO CABEÇALHO DINÂMICO
+    const titulos = {
+        'dashboard': { titulo: 'Visão Geral', sub: 'O seu copiloto financeiro' },
+        'faturas': { titulo: 'Faturas e Cartões', sub: 'Gestão de Crédito e Limites' },
+        'historico': { titulo: 'Extrato', sub: 'Histórico de Movimentações' },
+        'contas': { titulo: 'Minhas Contas', sub: 'Saldos, Poupança e Cartões' },
+        'config': { titulo: 'Ajustes', sub: 'Preferências e Segurança' },
+        'roadmap': { titulo: 'Mapa de Evolução', sub: 'O futuro do app' }
+    };
+    
+    const headerTitulo = document.getElementById('titulo-aba');
+    const headerSub = document.getElementById('subtitulo-header');
+    
+    if (headerTitulo && titulos[idSecao]) {
+        headerTitulo.innerText = titulos[idSecao].titulo;
+        if(headerSub) headerSub.innerText = titulos[idSecao].sub;
     }
 
-    // Destaca o botão clicado
-    if (elementoClicado) {
-        elementoClicado.classList.add('active');
-    }
-
-    // Força uma re-renderização para garantir que os dados estejam atualizados na aba
-    if (typeof render === 'function') {
-        render();
-    }
+    if (typeof render === 'function') render();
 }
 
-// --- 2. GESTÃO DO TEMA ESCURO (DARK MODE) ---
 function toggleDarkMode() {
-    // Alterna a classe global no corpo da página
     document.body.classList.toggle('dark-mode');
     const isDark = document.body.classList.contains('dark-mode');
-    
-    // Salva a preferência no armazenamento do celular/navegador
     localStorage.setItem('ecoDB_theme', isDark ? 'dark' : 'light');
     
-    // Sincroniza visualmente o botão (checkbox) lá na aba de Ajustes
-    const toggleAjustes = document.getElementById('toggle-tema-ajustes');
-    if (toggleAjustes) {
-        toggleAjustes.checked = isDark;
-    }
+    // CORREÇÃO UX: Força o navegador a inverter ícones nativos (como o calendário) e barras de rolagem
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
     
-    // Pede para os gráficos se redesenharem com as novas cores (linha clara ou escura)
+    const toggleAjustes = document.getElementById('toggle-tema-ajustes');
+    if (toggleAjustes) toggleAjustes.checked = isDark;
+    
     setTimeout(() => {
         if (typeof renderGrafico === 'function') renderGrafico();
         if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
     }, 50);
 }
 
-// --- 3. INICIALIZAÇÃO DO SISTEMA (BOOT) ---
 window.addEventListener('DOMContentLoaded', () => {
-    // A. Verifica a preferência de Tema do usuário
     const savedTheme = localStorage.getItem('ecoDB_theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
     if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
         document.body.classList.add('dark-mode');
-        // Deixa o toggle da aba Ajustes marcado, se já estiver na tela
+        document.documentElement.style.colorScheme = 'dark'; // Aplica no load
         const toggleAjustes = document.getElementById('toggle-tema-ajustes');
         if (toggleAjustes) toggleAjustes.checked = true;
     } else {
         document.body.classList.remove('dark-mode');
+        document.documentElement.style.colorScheme = 'light';
     }
-
-    // B. Dá a partida no motor principal (Puxa os dados e desenha a tela)
-    if (typeof render === 'function') {
-        render();
-    }
+    
+    if (typeof render === 'function') render();
 });
