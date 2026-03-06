@@ -1,5 +1,5 @@
 // ==========================================
-// CORE.JS - Banco de Dados e Funções Globais (v25.9.6 - Migração de Categorias)
+// CORE.JS - Banco de Dados e Funções Globais (v25.9.11 - Fix Backup Blob)
 // ==========================================
 
 let db = {
@@ -23,8 +23,6 @@ function load() {
             console.error("Erro ao carregar banco de dados", e);
         }
     }
-    
-    // MÁGICA: Varre o banco antigo e cria as categorias que faltam no painel novo
     migrarCategoriasAntigas();
 }
 
@@ -35,7 +33,6 @@ function save() {
 function migrarCategoriasAntigas() {
     if (!db.categorias) db.categorias = [];
     
-    // Mapeia o que já está cadastrado no painel novo (em minúsculas para não duplicar "Alimentação" e "alimentação")
     const nomesCadastrados = db.categorias.map(c => c.nome.toLowerCase());
     let novasMigradas = 0;
     
@@ -45,9 +42,9 @@ function migrarCategoriasAntigas() {
             
             db.categorias.push({
                 id: 'cat_mig_' + Date.now() + Math.floor(Math.random() * 1000),
-                nome: l.cat, // Mantém o nome exato que você usava
-                icone: '📌', // Emoji padrão para indicar que foi resgatada
-                cor: isReceita ? '#10b981' : '#64748b', // Verde se for receita, cinza se for despesa
+                nome: l.cat, 
+                icone: '📌', 
+                cor: isReceita ? '#10b981' : '#64748b', 
                 fixa: false,
                 tipo: isReceita ? 'receita' : 'despesa'
             });
@@ -79,25 +76,42 @@ function showToast(msg, tipo = 'sucesso') {
     }, 3000);
 }
 
-// --- FUNÇÕES DE BACKUP E RESET (Requeridas pelos Modais) ---
+// --- FUNÇÕES DE BACKUP E RESET (AGORA COM TECNOLOGIA BLOB) ---
 
 function exportarBackup() {
-    save();
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", "ecofinance_backup_" + new Date().toISOString().split('T')[0] + ".json");
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+    save(); // Garante que tudo está salvo antes
+    const dataStr = JSON.stringify(db, null, 2); // Formata bonitinho
+    const blob = new Blob([dataStr], { type: "application/json" }); // Empacota sem limites
+    const url = URL.createObjectURL(blob);
+    
+    const now = new Date();
+    // Nome limpo: EcoBKP_20260310_1530.json
+    const dataFormatada = `${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}`;
+    const nomeArquivo = `EcoBKP_${dataFormatada}.json`;
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nomeArquivo;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Limpeza de memória
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
     
     // Salva histórico local
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    hist.unshift({ id: Date.now(), nome: "Backup Manual", data: new Date().toLocaleString(), size: (JSON.stringify(db).length / 1024).toFixed(2) + " KB", dataObj: db });
+    hist.unshift({ 
+        id: Date.now(), 
+        nome: nomeArquivo, 
+        data: now.toLocaleDateString('pt-BR') + ' ' + now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), 
+        size: (blob.size / 1024).toFixed(1) + " KB", 
+        dataObj: db 
+    });
     if(hist.length > 5) hist.pop(); // Mantém os últimos 5
     localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
     
-    showToast("Backup gerado com sucesso!");
+    showToast("Backup gerado e salvo com sucesso!");
     if (typeof renderAbaConfig === 'function') renderAbaConfig();
 }
 
@@ -108,11 +122,14 @@ function importarArquivoJSON(event) {
     reader.onload = function(e) {
         try {
             const importedDB = JSON.parse(e.target.result);
-            if (importedDB && typeof importedDB === 'object') {
+            // Trava de segurança: verifica se o arquivo é do EcoFinance
+            if (importedDB && typeof importedDB === 'object' && importedDB.lancamentos) {
                 db = { ...db, ...importedDB };
                 save();
                 showToast("Dados restaurados com sucesso!");
                 setTimeout(() => location.reload(), 1500);
+            } else {
+                alert("O arquivo não possui o formato do EcoFinance.");
             }
         } catch (err) {
             alert("Arquivo inválido ou corrompido.");
@@ -146,6 +163,7 @@ function confirmarReset() {
     if(confirm("ATENÇÃO EXTREMA: Isso vai apagar TODOS os seus dados, contas e lançamentos. Deseja continuar?")) {
         if(confirm("Tem certeza absoluta? Esta ação não pode ser desfeita!")) {
             localStorage.removeItem('ecoDB');
+            localStorage.removeItem('ecoDB_backups'); // Limpa também o histórico de backups locais
             alert("Sistema resetado. O aplicativo será recarregado.");
             location.reload();
         }
