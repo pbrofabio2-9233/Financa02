@@ -1,5 +1,5 @@
 // ==========================================
-// UI.JS - Renderização e Interface (v25.9.1 - Nova Lógica de Limite/Meta Cartões)
+// UI.JS - Renderização e Interface (v25.9.2 - Ancoragem da Meta do Cartão)
 // ==========================================
 
 const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
@@ -24,7 +24,6 @@ function render() {
 
         if (conta.tipo === 'cartao') {
             const mesFatura = getMesFaturaLogico(l.data, conta.fechamento || 1);
-            const mesFaturaAtualLivre = getMesFaturaLogico(hoje.toISOString().split('T')[0], conta.fechamento || 1);
             const fatID = `${conta.id}-${mesFatura}`;
             
             if (!(db.faturasPagas || []).includes(fatID)) {
@@ -33,10 +32,16 @@ function render() {
                 else calc.faturas += valMutante;
             }
             
-            if (mesFatura === mesFaturaAtualLivre && ['despesas_gerais', 'despesa'].includes(l.tipo)) {
-                calc.usoMetaCartao += l.valor;
-                if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
-                else calc.gastosVariaveis += l.valor;
+            // CORREÇÃO: Ancorando a Meta APENAS na fatura que vence neste mês exato do calendário!
+            if (mesFatura === mesCorrente) {
+                if (['despesas_gerais', 'despesa'].includes(l.tipo)) {
+                    calc.usoMetaCartao += l.valor;
+                    if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
+                    else calc.gastosVariaveis += l.valor;
+                } else if (T_RECEITAS.includes(l.tipo)) {
+                    // Abate eventuais estornos/receitas da meta
+                    calc.usoMetaCartao -= l.valor;
+                }
             }
         } else {
             if (l.data.substring(0,7) === mesCorrente) {
@@ -54,6 +59,9 @@ function render() {
             }
         }
     });
+
+    // Se o uso da Meta for menor que 0 por conta de estornos, nivela a 0.
+    if (calc.usoMetaCartao < 0) calc.usoMetaCartao = 0;
 
     if (db.amortizacoesFaturas) {
         Object.keys(db.amortizacoesFaturas).forEach(fatID => {
@@ -315,8 +323,8 @@ function renderAbaContas() {
 
         if (isCartao) {
             const hoje = new Date(); 
-            // O mês fatura que vence AGORA neste mês
-            const mesCorrenteLogico = getMesFaturaLogico(hoje.toISOString().split('T')[0], c.fechamento || 1);
+            // CORREÇÃO: Pega o mês exato do calendário, independentemente de fechamento
+            const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
             
             (db.lancamentos || []).forEach(l => { 
                 if (l.contaId === c.id) {
@@ -329,8 +337,8 @@ function renderAbaContas() {
                     else if (T_RECEITAS.includes(l.tipo)) valorCalc = -l.valor;
 
                     if (valorCalc !== 0) {
-                        // META: Considera apenas a fatura do mês atual (independente de estar paga ou não)
-                        if (mesLancLogico === mesCorrenteLogico) {
+                        // META: Considera apenas a fatura designada para este mês exato!
+                        if (mesLancLogico === mesCorrente) {
                             usoMeta += valorCalc;
                         }
                         
