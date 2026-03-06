@@ -1,8 +1,8 @@
 // ==========================================
-// ENGINE.JS - Lógica de Negócios e Cálculos (v25.9.7 - Integração de Categorias e Fix de Gráficos)
+// ENGINE.JS - Lógica de Negócios e Cálculos (v25.9.9 - Carrossel de Categorias Premium)
 // ==========================================
 
-// BLINDAGEM NUCLEAR E VARIÁVEIS GLOBAIS (Resolve o erro dos Gráficos e Faturas)
+// BLINDAGEM NUCLEAR E VARIÁVEIS GLOBAIS
 window.ecoTempEmprestimo = null;
 window.ecoTiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
 window.ecoTiposDespesa = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
@@ -39,17 +39,23 @@ function atualizarRegrasLancamento() {
     const direcaoSelect = document.getElementById('lanc-direcao');
     const tipoSelect = document.getElementById('lanc-tipo');
     const contaSelect = document.getElementById('lanc-conta');
-    const catSelect = document.getElementById('lanc-cat');
     const boxFixo = document.getElementById('lanc-fixo');
-    if(!tipoSelect || !contaSelect || !catSelect || !boxFixo) return;
+    
+    // Elementos do novo Carrossel de Categorias
+    const catChipsContainer = document.getElementById('lanc-cat-chips');
+    const catInputHidden = document.getElementById('lanc-cat');
+    
+    if(!tipoSelect || !contaSelect || !catChipsContainer || !catInputHidden || !boxFixo) return;
 
     const tipo = tipoSelect.value;
     const direcao = direcaoSelect.value;
 
     contaSelect.options.length = 0; 
-    catSelect.options.length = 0;
 
-    // MAGIA NOVA: Puxa as categorias diretamente do banco de dados (com Emojis!)
+    // Limpa os chips atuais
+    catChipsContainer.innerHTML = '';
+
+    // Puxa as categorias diretamente do banco de dados
     let listaCategorias = [];
     if (db.categorias && db.categorias.length > 0) {
         const catFiltradas = db.categorias.filter(c => c.tipo === direcao);
@@ -59,12 +65,37 @@ function atualizarRegrasLancamento() {
         }));
     }
     
-    // Se o usuário apagar todas as categorias, garante que tenha uma opção genérica
+    // Categoria de segurança caso a lista esteja vazia
     if (listaCategorias.length === 0) {
         listaCategorias.push({ val: 'Outros', txt: '⚙️ Outros' });
     }
 
-    listaCategorias.forEach(cat => catSelect.options.add(new Option(cat.txt, cat.val)));
+    // GERA OS CHIPS (BOTÕES) NA TELA
+    listaCategorias.forEach((cat, index) => {
+        const btn = document.createElement('button');
+        // O primeiro item já fica ativo por padrão
+        btn.className = `chip-cat ${index === 0 ? 'active' : ''}`;
+        btn.innerHTML = cat.txt;
+        
+        // Ação ao clicar no chip
+        btn.onclick = function() {
+            // Remove a classe 'active' de todos os chips
+            document.querySelectorAll('#lanc-cat-chips .chip-cat').forEach(c => c.classList.remove('active'));
+            // Adiciona a classe 'active' no chip clicado
+            this.classList.add('active');
+            // Salva o valor da categoria no input escondido
+            catInputHidden.value = cat.val;
+        };
+        
+        catChipsContainer.appendChild(btn);
+    });
+
+    // Define o valor padrão no input escondido (o primeiro da lista)
+    if (listaCategorias.length > 0) {
+        catInputHidden.value = listaCategorias[0].val;
+    } else {
+        catInputHidden.value = '';
+    }
     
     // Regra do Checkbox de Repetir Mensalmente
     boxFixo.disabled = !(tipo === 'despesas_gerais' || tipo === 'salario'); 
@@ -170,7 +201,7 @@ function adicionarLancamento() {
     const efetivado = document.getElementById('lanc-efetivado').checked; 
     const forma = document.getElementById('lanc-forma').value;
 
-    if(!desc || isNaN(valor) || !data || !contaId) return alert("Preencha todos os dados corretamente.");
+    if(!desc || isNaN(valor) || !data || !contaId || !cat) return alert("Preencha todos os dados corretamente (incluindo a categoria).");
     const conta = db.contas.find(c => c.id === contaId);
     const parcelasSelect = document.getElementById('lanc-parcelas');
     const qtdParcelas = (forma === 'Crédito' && parcelasSelect.style.display !== 'none') ? parseInt(parcelasSelect.value) || 1 : 1;
@@ -207,7 +238,6 @@ function adicionarLancamento() {
     document.getElementById('lanc-data').valueAsDate = new Date(); verificarDataFutura();
     if(forma === 'Crédito') atualizarParcelasCartao();
     
-    // Atualiza a tela imediatamente para mostrar no extrato e nos gráficos
     if(typeof render === 'function') render();
     
     showToast(qtdParcelas > 1 ? `Compra parcelada em ${qtdParcelas}x com sucesso!` : "Lançamento Registrado com Sucesso!");
@@ -262,7 +292,6 @@ function gerarParcelasEmprestimo() {
     save(); fecharModalEmprestimo(); if(typeof render === 'function') render();
 }
 
-// --- AMORTIZAÇÃO AVANÇADA DE EMPRÉSTIMOS ---
 function confirmarPagamentoParcial() {
     const idInput = document.getElementById('hidden-id-parcial').value;
     const valorPago = parseFloat(document.getElementById('input-valor-parcial').value);
@@ -358,7 +387,6 @@ function salvarEdicaoLancamento(id) {
     l.valor = novoValor; l.data = novaData; l.desc = novaDesc; save(); showToast("Movimentação Atualizada!"); if(typeof render === 'function') render();
 }
 
-// --- AMORTIZAÇÃO DE FATURA DE CARTÃO ---
 function amortizarFatura(fatID) {
     const [contaId, mesRef] = fatID.split('-');
     const conta = db.contas.find(c => c.id === contaId);
@@ -413,7 +441,6 @@ function alternarPagamentoFatura(id) {
     save(); showToast("Fatura Atualizada!"); if(typeof render === 'function') render(); 
 }
 
-// --- ROTINAS DE VIRADA DE MÊS ---
 function processarRolagensPendentes() {
     const hoje = new Date();
     const anoAtual = hoje.getFullYear();
@@ -467,7 +494,6 @@ function ajustarDataDia(ano, mes, diaVencimentoOriginal) {
     return `${ano}-${mes.toString().padStart(2, '0')}-${diaReal.toString().padStart(2, '0')}`;
 }
 
-// --- GESTÃO E EDIÇÃO DE CONTAS ---
 function toggleCamposCartao() { document.getElementById('campos-cartao-add').style.display = document.getElementById('nova-conta-tipo').value === 'cartao' ? 'block' : 'none'; }
 
 function criarConta() { 
