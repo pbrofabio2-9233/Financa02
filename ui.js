@@ -1,5 +1,5 @@
 // ==========================================
-// UI.JS - Renderização e Interface (v25.8.4 - Cards Compactos)
+// UI.JS - Renderização e Interface (v25.9.1 - Nova Lógica de Limite/Meta Cartões)
 // ==========================================
 
 const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
@@ -110,10 +110,19 @@ function render() {
     }, 100);
 }
 
+// CORREÇÃO CRÍTICA DO MERCADO PAGO: Força conversão absoluta para números e ignora fusos
 function getMesFaturaLogico(dataLancamento, diaFechamento) {
-    const [anoStr, mesStr, diaStr] = dataLancamento.split('-');
-    let ano = parseInt(anoStr); let mes = parseInt(mesStr); let dia = parseInt(diaStr);
-    if (dia >= diaFechamento) { mes += 1; if (mes > 12) { mes = 1; ano += 1; } }
+    if (!dataLancamento) return "";
+    const [anoStr, mesStr, diaStr] = dataLancamento.split('T')[0].split('-');
+    let ano = parseInt(anoStr, 10); 
+    let mes = parseInt(mesStr, 10); 
+    let dia = parseInt(diaStr, 10);
+    let diaFech = parseInt(diaFechamento, 10) || 1;
+    
+    if (dia >= diaFech) { 
+        mes += 1; 
+        if (mes > 12) { mes = 1; ano += 1; } 
+    }
     return `${ano}-${mes.toString().padStart(2, '0')}`;
 }
 
@@ -135,7 +144,6 @@ function renderRadarVencimentos() {
     lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
 }
 
-// --- EXTRATO (HISTÓRICO) COM UI/UX PREMIUM E COMPACTO ---
 function renderHistorico() {
     const lista = document.getElementById('lista-historico-filtros'); 
     if(!lista) return;
@@ -279,13 +287,11 @@ function renderHistorico() {
     }
 }
 
-// --- FUNÇÃO DE TOGGLE ATUALIZADA (Gira o Ícone) ---
 function toggleEditLancamento(id) { 
     const el = document.getElementById(`edit-lanc-${id}`); 
     if(el) {
         el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
     }
-    // Gira a seta da fatura ou do lançamento se ela existir
     const icon = document.getElementById(`icon-${id}`);
     if(icon) {
         icon.classList.toggle('open');
@@ -296,22 +302,71 @@ function abrirModalParcial(id, valorAtual) { document.getElementById('hidden-id-
 function fecharModalParcial() { const m = document.getElementById('modal-pagamento-parcial'); if(m) { m.style.display = 'none'; m.classList.remove('active'); } }
 function toggleCamposPrevisao() { const isChecked = document.getElementById('emp-sem-previsao').checked; const container = document.getElementById('container-campos-previsao'); if(container) container.style.display = isChecked ? 'none' : 'block'; }
 
+// --- NOVA ABORDAGEM: LIMITE POR FATURAS NÃO PAGAS E META POR FATURA DO MÊS ---
 function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return;
     lista.innerHTML = ``;
+    
     (db.contas || []).forEach(c => {
-        const isCartao = c.tipo === 'cartao'; let extraHtml = ''; let totalGasto = 0;
+        const isCartao = c.tipo === 'cartao'; 
+        let extraHtml = ''; 
+        let usoLimite = 0;
+        let usoMeta = 0;
+
         if (isCartao) {
-            const hoje = new Date(); const mesCorrenteLogico = getMesFaturaLogico(hoje.toISOString().split('T')[0], c.fechamento || 1);
-            (db.lancamentos || []).forEach(l => { if (l.contaId === c.id && T_DESPESAS_CARTAO.includes(l.tipo) && getMesFaturaLogico(l.data, c.fechamento || 1) === mesCorrenteLogico) totalGasto += l.valor; });
-            const pLimite = c.limite > 0 ? (totalGasto / c.limite) * 100 : 0; const pMeta = c.meta > 0 ? (totalGasto / c.meta) * 100 : 0;
-            extraHtml = `<div style="margin-top: 15px; padding-right: 25px;"><div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9; font-size: 11px;"><span>Consumo (Limite): R$ ${totalGasto.toFixed(2)} (${pLimite.toFixed(1)}%)</span><span>R$ ${(c.limite || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pLimite,100)}%"></div></div><div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;"><span>Consumo (Meta): R$ ${totalGasto.toFixed(2)} (${pMeta.toFixed(1)}%)</span><span>R$ ${(c.meta || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pMeta,100)}%; background: ${pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div></div>`;
+            const hoje = new Date(); 
+            // O mês fatura que vence AGORA neste mês
+            const mesCorrenteLogico = getMesFaturaLogico(hoje.toISOString().split('T')[0], c.fechamento || 1);
+            
+            (db.lancamentos || []).forEach(l => { 
+                if (l.contaId === c.id) {
+                    const mesLancLogico = getMesFaturaLogico(l.data, c.fechamento || 1);
+                    const fatID = `${c.id}-${mesLancLogico}`;
+                    const isPaga = (db.faturasPagas || []).includes(fatID);
+                    
+                    let valorCalc = 0;
+                    if (T_DESPESAS_CARTAO.includes(l.tipo)) valorCalc = l.valor;
+                    else if (T_RECEITAS.includes(l.tipo)) valorCalc = -l.valor;
+
+                    if (valorCalc !== 0) {
+                        // META: Considera apenas a fatura do mês atual (independente de estar paga ou não)
+                        if (mesLancLogico === mesCorrenteLogico) {
+                            usoMeta += valorCalc;
+                        }
+                        
+                        // LIMITE: Considera TODAS as faturas que NÃO estão pagas
+                        if (!isPaga) {
+                            usoLimite += valorCalc;
+                        }
+                    }
+                }
+            });
+            
+            // Abate as amortizações parciais do limite
+            Object.keys(db.amortizacoesFaturas || {}).forEach(fatID => {
+                const [cId, mesFat] = fatID.split('-');
+                if (cId === c.id) {
+                    const isPaga = (db.faturasPagas || []).includes(fatID);
+                    if (!isPaga) {
+                        usoLimite -= db.amortizacoesFaturas[fatID];
+                    }
+                }
+            });
+
+            if (usoLimite < 0) usoLimite = 0;
+            if (usoMeta < 0) usoMeta = 0;
+
+            const pLimite = c.limite > 0 ? (usoLimite / c.limite) * 100 : 0; 
+            const pMeta = c.meta > 0 ? (usoMeta / c.meta) * 100 : 0;
+            
+            extraHtml = `<div style="margin-top: 15px; padding-right: 25px;"><div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9; font-size: 11px;"><span>Consumo (Limite): R$ ${usoLimite.toFixed(2)} (${pLimite.toFixed(1)}%)</span><span>R$ ${(c.limite || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pLimite,100)}%"></div></div><div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;"><span>Consumo (Meta): R$ ${usoMeta.toFixed(2)} (${pMeta.toFixed(1)}%)</span><span>R$ ${(c.meta || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pMeta,100)}%; background: ${pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div></div>`;
         }
+        
         lista.innerHTML += `
             <div class="cartao-banco" style="background: linear-gradient(135deg, ${c.cor}, #1e293b); position: relative; margin-bottom: 10px; transition: transform 0.2s;">
                 <button class="btn-icon" onclick="toggleEditConta('${c.id}')" style="position: absolute; top: 15px; right: 15px; color: white; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 2;"><i class="fas fa-cog"></i></button>
                 <div class="cartao-header" style="padding-right: 45px;"><span class="cartao-nome">${c.nome}</span><span class="cartao-tipo">${isCartao ? 'Crédito' : (c.tipo==='investimento' ? 'Investimento' : 'Conta Corrente')}</span></div>
-                <div class="cartao-saldo">R$ ${isCartao ? ((c.limite || 0) - totalGasto).toFixed(2) : (c.saldo || 0).toFixed(2)}</div>
+                <div class="cartao-saldo">R$ ${isCartao ? ((c.limite || 0) - usoLimite).toFixed(2) : (c.saldo || 0).toFixed(2)}</div>
                 ${isCartao ? '<small style="display:block; opacity:0.8; font-size:10px; margin-top:5px;">Limite Disponível</small>' : ''} ${extraHtml}
             </div>
             <div id="edit-conta-${c.id}" class="card" style="display:none; margin-top: -15px; margin-bottom: 20px; border-top-left-radius: 0; border-top-right-radius: 0; border: 1px dashed ${c.cor}; border-top: none;">
@@ -322,13 +377,11 @@ function renderAbaContas() {
     });
 }
 
-// --- ABA DE FATURAS COM UI/UX PREMIUM E COMPACTO ---
 function renderAbaFaturas() {
     const abas = document.getElementById('abas-cartoes-fatura'); 
     const lista = document.getElementById('lista-faturas-agrupadas'); 
     if(!abas || !lista) return;
     
-    // Limpa estilos em linha antigos caso existam
     abas.removeAttribute("style");
 
     const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
@@ -340,7 +393,6 @@ function renderAbaFaturas() {
     
     if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
-    // 1. Renderiza os Cartões como Segmented Control
     abas.innerHTML = `<div class="segmented-control">` + cartoes.map(c => 
         `<button class="segmented-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`
     ).join('') + `</div>`;
@@ -360,7 +412,6 @@ function renderAbaFaturas() {
     const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01'));
     if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Sem faturas registradas neste cartão.</div>"; return; }
 
-    // 2. Renderiza os Cards Reorganizados e Compactos
     mesesOrdenados.forEach(mes => {
         const fatID = `${c.id}-${mes}`; 
         const estaPaga = (db.faturasPagas || []).includes(fatID);
@@ -372,13 +423,11 @@ function renderAbaFaturas() {
         const dataFechamentoFatura = new Date(`${anoF}-${mesF}-${(c.fechamento || 1).toString().padStart(2, '0')}T00:00:00`);
         const hoje = new Date(); hoje.setHours(0,0,0,0);
         
-        // Tags de Status
         let statusTag = '';
         if (estaPaga) statusTag = '<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px;">PAGO</span>';
         else if (hoje >= dataFechamentoFatura) statusTag = '<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px;">FECHADA</span>';
         else statusTag = '<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px;">EM ABERTO</span>';
 
-        // Micro-barra de Progresso Compacta
         const pctAmortizado = totalOriginal > 0 ? Math.min((jaAmortizado / totalOriginal) * 100, 100) : 0;
         const infoAmortizado = jaAmortizado > 0 ? `
             <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);">
@@ -389,7 +438,6 @@ function renderAbaFaturas() {
                 <div class="micro-bar-bg"><div class="micro-bar-fill" style="width:${pctAmortizado}%"></div></div>
             </div>` : '';
 
-        // Card Estruturado (Ultra Compacto)
         html += `
         <div class="card fatura-card ${estaPaga ? 'paga' : ''}" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'}; margin-bottom: 12px;">
             
@@ -441,12 +489,10 @@ function renderAbaConfig() {
     divBackups.innerHTML = hist.length ? hist.map(b => `<div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);"><div><strong>${b.nome}</strong><small style="display:block; font-size:10px;">${b.data} • ${b.size}</small></div><div style="display:flex; gap:5px;"><button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button><button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})"><i class="fas fa-trash"></i></button></div></div>`).join('') : '<p class="texto-vazio">Sem backups.</p>';
 }
 
-// --- RENDERIZA O GRÁFICO DE PIZZA (DASHBOARD) ---
 function renderGrafico() {
     const ctx = document.getElementById('graficoCategorias'); if(!ctx) return;
     const inputFiltro = document.getElementById('filtro-mes'); 
     
-    // Blindagem: Se o filtro falhar, pega a data local da máquina
     const hojeLocal = new Date();
     const mesCorrenteLocal = `${hojeLocal.getFullYear()}-${(hojeLocal.getMonth() + 1).toString().padStart(2, '0')}`;
     const mes = (inputFiltro && inputFiltro.value) ? inputFiltro.value : mesCorrenteLocal;
@@ -487,7 +533,6 @@ function renderGrafico() {
     });
 }
 
-// --- FUNÇÃO PARA AS SETAS DO FILTRO DE MÊS NO EXTRATO ---
 function mudarMesFiltro(delta) {
     const input = document.getElementById('filtro-mes');
     if (!input) return;
@@ -503,12 +548,10 @@ function mudarMesFiltro(delta) {
     
     input.value = `${ano}-${mes.toString().padStart(2, '0')}`;
     
-    // Atualiza o Extrato e o Gráfico de Pizza ao mesmo tempo!
     if (typeof renderHistorico === 'function') renderHistorico();
     if (typeof renderGrafico === 'function') renderGrafico(); 
 }
 
-// --- FILTRO HORIZONTAL DE STATUS NO EXTRATO ---
 function mudarFiltroStatus(status, btnClicado) {
     document.querySelectorAll('.status-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -530,7 +573,6 @@ function mudarFiltroStatus(status, btnClicado) {
     if (typeof renderHistorico === 'function') renderHistorico();
 }
 
-// --- NOVO: GRÁFICO DE BARRAS (6 MESES) ---
 function renderGraficoEvolucao() {
     const ctx = document.getElementById('graficoEvolucao'); 
     if(!ctx) return;
