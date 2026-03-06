@@ -1,17 +1,32 @@
 // ==========================================
-// UI.JS - Renderização e Interface (v25.9.5 - Correção Modais Ajustes)
+// UI.JS - Renderização e Interface (v25.9.14 - Paleta de Cores e Ledger Individual)
 // ==========================================
 
 const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
 const T_DESPESAS = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
 const T_DESPESAS_CARTAO = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
 
+if (typeof ChartDataLabels !== 'undefined') {
+    Chart.register(ChartDataLabels);
+}
+
+if (!document.getElementById('css-extrato-mobile')) {
+    const style = document.createElement('style');
+    style.id = 'css-extrato-mobile';
+    style.innerHTML = `
+        @media (max-width: 768px) {
+            .cat-break-mobile { display: block !important; margin-top: 4px; color: var(--texto-sec); }
+            .val-nowrap-mobile { white-space: nowrap !important; }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 function render() {
     const hoje = new Date();
     const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
     let calc = { receitas: 0, prevReceitas: 0, despesas: 0, prevGastos: 0, faturas: 0, faturasFuturas: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0, gastosFixos: 0, gastosVariaveis: 0 };
     
-    // Busca as categorias fixas dinamicamente do banco
     const catFixas = (db.categorias || []).filter(c => c.fixa).map(c => c.nome);
 
     (db.contas || []).forEach(c => {
@@ -137,17 +152,54 @@ function toggleNovaContaArea() { const el = document.getElementById('area-nova-c
 
 function renderRadarVencimentos() {
     const lista = document.getElementById('lista-radar-vencimentos'); if(!lista) return;
-    const hoje = new Date(); hoje.setHours(0,0,0,0); const limite7 = new Date(hoje); limite7.setDate(hoje.getDate() + 7);
+    const hoje = new Date(); hoje.setHours(0,0,0,0); 
+    const limite7 = new Date(hoje); limite7.setDate(hoje.getDate() + 7);
     let alertas = [];
+
     (db.lancamentos || []).forEach(l => {
-        const d = new Date(l.data + 'T00:00:00'); const conta = (db.contas || []).find(c => c.id === l.contaId);
+        const conta = (db.contas || []).find(c => c.id === l.contaId);
         if (conta && conta.tipo === 'cartao') return; 
+        const d = new Date(l.data + 'T00:00:00');
         if (!l.efetivado && T_DESPESAS.includes(l.tipo) && d <= limite7) {
             const diasFaltando = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
-            alertas.push(`<div class="flex-between mb-10" style="padding-bottom:10px; border-bottom:1px solid var(--linha);"><div><strong style="font-size:14px;">${l.desc}</strong><small style="display:block; color: ${diasFaltando < 0 ? 'var(--perigo)' : 'var(--alerta)'}; font-weight:600;">${diasFaltando < 0 ? 'Atrasado' : (diasFaltando===0?'Vence HOJE':`Vence em ${diasFaltando} dia(s)`)}</small></div><b class="txt-perigo">R$ ${l.valor.toFixed(2)}</b></div>`);
+            alertas.push({ dataOrd: d, html: `<div class="flex-between mb-10" style="padding-bottom:10px; border-bottom:1px solid var(--linha);"><div><strong style="font-size:14px;">${l.desc}</strong><small style="display:block; color: ${diasFaltando < 0 ? 'var(--perigo)' : 'var(--alerta)'}; font-weight:600;">${diasFaltando < 0 ? 'Atrasado' : (diasFaltando===0?'Vence HOJE':`Vence em ${diasFaltando} dia(s)`)}</small></div><b class="txt-perigo val-nowrap-mobile">R$ ${l.valor.toFixed(2)}</b></div>`});
         }
     });
-    lista.innerHTML = alertas.length ? alertas.join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
+
+    (db.contas || []).filter(c => c.tipo === 'cartao').forEach(c => {
+        let mesesFatura = {};
+        (db.lancamentos || []).forEach(l => {
+            if(l.contaId !== c.id) return;
+            const mesFat = getMesFaturaLogico(l.data, c.fechamento || 1);
+            if(!mesesFatura[mesFat]) mesesFatura[mesFat] = 0;
+            mesesFatura[mesFat] += T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
+        });
+
+        Object.keys(mesesFatura).forEach(mes => {
+            const fatID = `${c.id}-${mes}`;
+            if ((db.faturasPagas || []).includes(fatID)) return;
+
+            const jaAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
+            const totalFinal = mesesFatura[mes] - jaAmortizado;
+            if (totalFinal <= 0) return;
+
+            let [anoF, mesF] = mes.split('-').map(Number);
+            let diaVenc = c.vencimento || 1;
+            let diaFech = c.fechamento || 1;
+
+            if (diaVenc < diaFech) { mesF += 1; if (mesF > 12) { mesF = 1; anoF += 1; } }
+            const dataVenc = new Date(anoF, mesF - 1, diaVenc);
+            dataVenc.setHours(0,0,0,0);
+
+            if (dataVenc <= limite7) {
+                const diasFaltando = Math.ceil((dataVenc - hoje) / (1000 * 60 * 60 * 24));
+                alertas.push({ dataOrd: dataVenc, html: `<div class="flex-between mb-10" style="padding-bottom:10px; border-bottom:1px solid var(--linha);"><div><strong style="font-size:14px;"><i class="fas fa-credit-card"></i> ${c.nome}</strong><small style="display:block; color: ${diasFaltando < 0 ? 'var(--perigo)' : 'var(--alerta)'}; font-weight:600;">${diasFaltando < 0 ? 'Fatura Atrasada' : (diasFaltando===0?'Fatura vence HOJE':`Fatura em ${diasFaltando} dia(s)`)}</small></div><b class="txt-perigo val-nowrap-mobile">R$ ${totalFinal.toFixed(2)}</b></div>`});
+            }
+        });
+    });
+
+    alertas.sort((a, b) => a.dataOrd - b.dataOrd); 
+    lista.innerHTML = alertas.length ? alertas.map(a => a.html).join('') : '<p class="texto-vazio">Tudo tranquilo por aqui.</p>';
 }
 
 function renderHistorico() {
@@ -203,7 +255,11 @@ function renderHistorico() {
             const isMesmoMes = l.data.substring(0,7) === mesFiltro;
             const isStatusCerto = (statusFiltro === 'todos') || (l.statusCalculado === statusFiltro);
             return isMesmoMes && isStatusCerto;
-        }).sort((a, b) => new Date(b.data) - new Date(a.data));
+        }).sort((a, b) => {
+            const diffData = new Date(b.data) - new Date(a.data);
+            if (diffData !== 0) return diffData;
+            return b.id - a.id; 
+        });
         
         if(lancs.length === 0) { 
             lista.innerHTML = "<div class='card texto-vazio'>Nenhum registro encontrado para este filtro.</div>"; 
@@ -242,7 +298,6 @@ function renderHistorico() {
             }
 
             const corValor = T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)';
-            
             const catDB = (db.categorias || []).find(cat => cat.nome === l.cat);
             const iconeCat = catDB && catDB.icone ? catDB.icone + ' ' : '';
             
@@ -255,7 +310,10 @@ function renderHistorico() {
                     </div>
                     <div class="flex-between" style="align-items: center;">
                         <div style="display:flex; flex-direction:column; gap:2px;">
-                            <small style="color:var(--texto-sec); font-size:11px;">${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Excluída'} • ${iconeCat}${l.cat || 'Outros'}</small>
+                            <small style="color:var(--texto-sec); font-size:11px;">
+                                ${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Excluída'} 
+                                <span class="cat-break-mobile" style="display:inline;">• ${iconeCat}${l.cat || 'Outros'}</span>
+                            </small>
                             ${(!l.efetivado && c && c.tipo !== 'cartao') ? `
                             <div style="display:flex; gap:6px; margin-top:6px;">
                                 <button class="btn-primary" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); ${l.rolagem ? `confirmarQuitacao(${l.id})` : `confirmarPagamento(${l.id})`}">${l.rolagem ? 'Quitar' : 'Pagar'}</button>
@@ -263,7 +321,7 @@ function renderHistorico() {
                             </div>` : ''}
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <strong style="color: ${corValor}; font-size:16px;">${l.isReceita ? '+' : '-'} R$ ${(l.valor || 0).toFixed(2)}</strong>
+                            <strong class="val-nowrap-mobile" style="color: ${corValor}; font-size:16px;">${l.isReceita ? '+' : '-'} R$ ${(l.valor || 0).toFixed(2)}</strong>
                             <i class="fas fa-chevron-down fatura-chevron" id="icon-${l.id}" style="font-size:11px; color:var(--texto-sec);"></i>
                         </div>
                     </div>
@@ -286,7 +344,6 @@ function renderHistorico() {
 
     } catch (error) {
         console.error("Erro Crítico no Extrato:", error);
-        lista.innerHTML = `<div class='card' style='border: 1px solid var(--perigo); background: rgba(239, 68, 68, 0.1);'><h3 style='color: var(--perigo);'><i class="fas fa-bug"></i> Oops! Algo quebrou.</h3><code style='display:block; margin-top: 10px; font-size: 10px; color: var(--perigo);'>${error.message}</code></div>`;
     }
 }
 
@@ -301,6 +358,7 @@ function abrirModalParcial(id, valorAtual) { document.getElementById('hidden-id-
 function fecharModalParcial() { const m = document.getElementById('modal-pagamento-parcial'); if(m) { m.classList.remove('active'); setTimeout(()=>m.style.display = 'none', 300); } }
 function toggleCamposPrevisao() { const isChecked = document.getElementById('emp-sem-previsao').checked; const container = document.getElementById('container-campos-previsao'); if(container) container.style.display = isChecked ? 'none' : 'block'; }
 
+// ITEM 5: Extrato Individual de Contas (Ledger com Saldo Progressivo)
 function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return;
     lista.innerHTML = ``;
@@ -311,6 +369,7 @@ function renderAbaContas() {
         let usoLimite = 0;
         let usoMeta = 0;
 
+        // Cálculos gerais do cartão
         if (isCartao) {
             const hoje = new Date(); 
             const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -346,22 +405,91 @@ function renderAbaContas() {
             const pLimite = c.limite > 0 ? (usoLimite / c.limite) * 100 : 0; 
             const pMeta = c.meta > 0 ? (usoMeta / c.meta) * 100 : 0;
             
-            extraHtml = `<div style="margin-top: 15px; padding-right: 25px;"><div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9; font-size: 11px;"><span>Consumo (Limite): R$ ${usoLimite.toFixed(2)} (${pLimite.toFixed(1)}%)</span><span>R$ ${(c.limite || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pLimite,100)}%"></div></div><div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;"><span>Consumo (Meta): R$ ${usoMeta.toFixed(2)} (${pMeta.toFixed(1)}%)</span><span>R$ ${(c.meta || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pMeta,100)}%; background: ${pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div></div>`;
+            extraHtml = `<div style="margin-top: 15px; padding-right: 5px;"><div class="limite-texto" style="margin-bottom: 4px; opacity: 0.9; font-size: 11px;"><span>Consumo (Limite): R$ ${usoLimite.toFixed(2)} (${pLimite.toFixed(1)}%)</span><span>R$ ${(c.limite || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pLimite,100)}%"></div></div><div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;"><span>Consumo (Meta): R$ ${usoMeta.toFixed(2)} (${pMeta.toFixed(1)}%)</span><span>R$ ${(c.meta || 0).toFixed(2)}</span></div><div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pMeta,100)}%; background: ${pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div></div>`;
+        }
+
+        // MOTOR DO LEDGER: Saldo Progressivo
+        let saldoCalc = 0;
+        let lancsAsc = (db.lancamentos || []).filter(l => l.contaId === c.id).sort((a,b) => new Date(a.data) - new Date(b.data) || a.id - b.id);
+        let ledgerItems = [];
+        
+        lancsAsc.forEach(l => {
+            if (l.efetivado) {
+                if (isCartao) {
+                    if (T_DESPESAS_CARTAO.includes(l.tipo)) saldoCalc += l.valor; // Aumenta a dívida da fatura
+                    else if (T_RECEITAS.includes(l.tipo)) saldoCalc -= l.valor; // Paga a fatura
+                } else {
+                    if (T_RECEITAS.includes(l.tipo)) saldoCalc += l.valor;
+                    if (T_DESPESAS.includes(l.tipo)) saldoCalc -= l.valor;
+                }
+            }
+            ledgerItems.push({...l, saldoApos: saldoCalc});
+        });
+        
+        ledgerItems.reverse(); // Mostra do mais novo para o mais antigo
+
+        let htmlLedger = ledgerItems.length ? ledgerItems.map(l => {
+            const isDesp = isCartao ? T_DESPESAS_CARTAO.includes(l.tipo) : T_DESPESAS.includes(l.tipo);
+            const isRec = isCartao ? T_RECEITAS.includes(l.tipo) : T_RECEITAS.includes(l.tipo);
+            const sinal = isDesp ? (isCartao ? '+' : '-') : (isRec ? (isCartao ? '-' : '+') : '');
+            const corClass = isDesp ? (isCartao ? 'txt-perigo' : 'txt-perigo') : (isCartao ? 'txt-sucesso' : 'txt-sucesso');
+            
+            return `
+            <div class="flex-between mb-10" style="font-size:12px; border-bottom:1px solid var(--linha); padding-bottom:8px;">
+                <div style="flex:1; padding-right:10px;">
+                    <strong style="display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:180px;">${l.desc}</strong>
+                    <small style="color:var(--texto-sec);">${l.data.split('-').reverse().join('/')}</small>
+                </div>
+                <div style="text-align:right;">
+                    <strong class="${corClass}">
+                        ${sinal} R$ ${l.valor.toFixed(2)}
+                    </strong>
+                    <small style="display:block; color:var(--texto-sec); font-size:10px;">${isCartao ? 'Fatura' : 'Saldo'}: R$ ${l.saldoApos.toFixed(2)}</small>
+                </div>
+            </div>`;
+        }).join('') : '<p class="texto-vazio" style="font-size:12px; margin: 10px 0;">Nenhuma movimentação registrada.</p>';
+
+        let avisoSaldoDivergente = '';
+        if (!isCartao && ledgerItems.length > 0) {
+            const saldoFinalCalculado = ledgerItems[0].saldoApos;
+            if (Math.abs(saldoFinalCalculado - (c.saldo || 0)) > 0.01) {
+                avisoSaldoDivergente = `<div style="background: rgba(245, 158, 11, 0.1); border-left: 3px solid var(--alerta); padding: 8px; font-size: 10px; color: var(--texto-sec); margin-bottom: 10px; border-radius: 4px;"><strong>Nota de Ajuste:</strong> O saldo atual (R$ ${(c.saldo||0).toFixed(2)}) foi editado manualmente nas configurações e diverge do histórico de transações somado (R$ ${saldoFinalCalculado.toFixed(2)}).</div>`;
+            }
         }
         
         lista.innerHTML += `
-            <div class="cartao-banco" style="background: linear-gradient(135deg, ${c.cor}, #1e293b); position: relative; margin-bottom: 10px; transition: transform 0.2s;">
-                <button class="btn-icon" onclick="toggleEditConta('${c.id}')" style="position: absolute; top: 15px; right: 15px; color: white; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 2;"><i class="fas fa-cog"></i></button>
-                <div class="cartao-header" style="padding-right: 45px;"><span class="cartao-nome">${c.nome}</span><span class="cartao-tipo">${isCartao ? 'Crédito' : (c.tipo==='investimento' ? 'Investimento' : 'Conta Corrente')}</span></div>
+            <div class="cartao-banco" onclick="toggleExtratoConta('${c.id}')" style="cursor:pointer; background: linear-gradient(135deg, ${c.cor}, #1e293b); position: relative; margin-bottom: 10px; transition: transform 0.2s;">
+                <div class="cartao-header"><span class="cartao-nome">${c.nome}</span><span class="cartao-tipo">${isCartao ? 'Crédito' : (c.tipo==='investimento' ? 'Investimento' : 'Conta Corrente')}</span></div>
                 <div class="cartao-saldo">R$ ${isCartao ? ((c.limite || 0) - usoLimite).toFixed(2) : (c.saldo || 0).toFixed(2)}</div>
                 ${isCartao ? '<small style="display:block; opacity:0.8; font-size:10px; margin-top:5px;">Limite Disponível</small>' : ''} ${extraHtml}
+                <div style="text-align:center; margin-top: 10px; opacity: 0.5;"><i class="fas fa-chevron-down"></i></div>
             </div>
+            
+            <div id="extrato-conta-${c.id}" class="card" style="display:none; margin-top: -15px; margin-bottom: 20px; border-top-left-radius: 0; border-top-right-radius: 0; border: 1px solid var(--linha); border-top: none; background: var(--card-bg);">
+                <div class="flex-between mb-15" style="border-bottom: 1px dashed var(--linha); padding-bottom: 10px;">
+                    <strong style="font-size:13px; color: var(--texto-main);"><i class="fas fa-list-ul"></i> Histórico da Conta</strong>
+                    <button class="btn-icon" onclick="toggleEditConta('${c.id}')" style="color:var(--texto-sec); font-size:13px; background: var(--input-bg); padding: 6px 10px; border-radius: 6px;"><i class="fas fa-cog"></i> Ajustes</button>
+                </div>
+                ${avisoSaldoDivergente}
+                <div style="max-height: 250px; overflow-y: auto; padding-right: 5px;">
+                    ${htmlLedger}
+                </div>
+            </div>
+
             <div id="edit-conta-${c.id}" class="card" style="display:none; margin-top: -15px; margin-bottom: 20px; border-top-left-radius: 0; border-top-right-radius: 0; border: 1px dashed ${c.cor}; border-top: none;">
+                <h4 class="mb-10" style="font-size: 13px;"><i class="fas fa-cog"></i> Ajustes da Conta</h4>
                 <div class="grid-inputs mb-10"><div><label class="label-moderno">Nome</label><input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}"></div><div><label class="label-moderno">Cor</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px;"></div></div>
-                ${isCartao ? `<div class="grid-inputs mb-10"><div><label class="label-moderno">Limite</label><input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite || 0}"></div><div><label class="label-moderno">Meta</label><input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta || 0}"></div></div><div class="grid-inputs"><div><label class="label-moderno">Fecha</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento || 1}"></div><div><label class="label-moderno">Venc</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento || 1}"></div></div>` : `<label class="label-moderno">Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" class="input-moderno" value="${(c.saldo || 0).toFixed(2)}" step="0.01">`}
+                ${isCartao ? `<div class="grid-inputs mb-10"><div><label class="label-moderno">Limite</label><input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite || 0}"></div><div><label class="label-moderno">Meta</label><input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta || 0}"></div></div><div class="grid-inputs"><div><label class="label-moderno">Fecha</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento || 1}"></div><div><label class="label-moderno">Venc</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento || 1}"></div></div>` : `<label class="label-moderno">Ajustar Saldo Atual (R$)</label><input type="number" id="edit-saldo-${c.id}" class="input-moderno" value="${(c.saldo || 0).toFixed(2)}" step="0.01">`}
                 <div class="flex-between mt-15"><button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i> Excluir</button><button class="btn-primary" onclick="salvarEdicaoConta('${c.id}')">Salvar</button></div>
             </div>`;
     });
+}
+
+function toggleExtratoConta(id) { 
+    const el = document.getElementById(`extrato-conta-${id}`); 
+    if(el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
+    const editEl = document.getElementById(`edit-conta-${id}`);
+    if(editEl) { editEl.style.display = 'none'; }
 }
 
 function renderAbaFaturas() {
@@ -462,7 +590,6 @@ function renderAbaFaturas() {
     lista.innerHTML = html;
 }
 
-// --- FUNÇÕES DOS NOVOS MODAIS (Animações de Aparecer/Sumir Corrigidas) ---
 function abrirModalAparencia() { const m = document.getElementById('modal-aparencia'); if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); } }
 function fecharModalAparencia() { const m = document.getElementById('modal-aparencia'); if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } }
 
@@ -477,6 +604,17 @@ function renderAbaConfig() {
     const divBackups = document.getElementById('lista-backups'); if(!divBackups) return;
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
     divBackups.innerHTML = hist.length ? hist.map(b => `<div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);"><div><strong>${b.nome}</strong><small style="display:block; font-size:10px;">${b.data} • ${b.size}</small></div><div style="display:flex; gap:5px;"><button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button><button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})"><i class="fas fa-trash"></i></button></div></div>`).join('') : '<p class="texto-vazio" style="margin:0;">Sem backups.</p>';
+}
+
+// ITEM 6: Funções da Paleta de Cores Premium
+function selecionarCorCat(cor, elemento) {
+    document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active'));
+    if(elemento) elemento.classList.add('active');
+    document.getElementById('nova-cat-cor').value = cor;
+}
+
+function removerSelecaoPaleta() {
+    document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active'));
 }
 
 function renderModalCategorias() {
@@ -515,6 +653,8 @@ function editarCategoria(id) {
     document.getElementById('nova-cat-tipo').value = cat.tipo;
     document.getElementById('nova-cat-cor').value = cat.cor || '#94a3b8';
     document.getElementById('nova-cat-fixa').checked = !!cat.fixa;
+    
+    removerSelecaoPaleta();
     
     document.getElementById('label-form-cat').innerText = "Editar Categoria";
     document.getElementById('btn-salvar-cat').innerText = "Salvar Alterações";
@@ -617,7 +757,7 @@ function renderGrafico() {
             maintainAspectRatio:false, 
             plugins:{ 
                 legend:{ position:'right', labels:{ color:isDark?'#cbd5e1':'#64748b', usePointStyle:true, font:{size:11} } }, 
-                datalabels:{ color:'#fff', font:{weight:'bold', size:11}, formatter:(v)=>'R$ '+v.toFixed(0) } 
+                datalabels:{ display: function() { return window.innerWidth <= 768; }, color:'#fff', font:{weight:'bold', size:11}, formatter:(v)=>'R$ '+v.toFixed(0) } 
             }, 
             cutout:'60%' 
         } 
@@ -695,20 +835,8 @@ function renderGraficoEvolucao() {
         data: { 
             labels, 
             datasets: [ 
-                { 
-                    label: 'Receitas', 
-                    data: dRec, 
-                    backgroundColor: '#10b981', 
-                    borderRadius: 4,
-                    datalabels: { align: 'top', anchor: 'end' } 
-                }, 
-                { 
-                    label: 'Despesas', 
-                    data: dDesp, 
-                    backgroundColor: '#ef4444', 
-                    borderRadius: 4,
-                    datalabels: { align: 'top', anchor: 'end' } 
-                } 
+                { label: 'Receitas', data: dRec, backgroundColor: '#10b981', borderRadius: 4 }, 
+                { label: 'Despesas', data: dDesp, backgroundColor: '#ef4444', borderRadius: 4 } 
             ] 
         }, 
         options: { 
@@ -717,21 +845,11 @@ function renderGraficoEvolucao() {
             layout: { padding: { top: 20, right: 10, left: 0, bottom: 0 } }, 
             plugins: { 
                 legend: { position: 'bottom', labels: { color: isDark ? '#94a3b8' : '#64748b', usePointStyle: true } }, 
-                datalabels: { 
-                    color: isDark ? '#cbd5e1' : '#475569', 
-                    font: { weight: 'bold', size: 9 }, 
-                    formatter: v => v > 0 ? Math.round(v) : '' 
-                } 
+                datalabels: { display: function() { return window.innerWidth <= 768; }, color: isDark ? '#cbd5e1' : '#475569', font: { weight: 'bold', size: 9 }, formatter: v => v > 0 ? 'R$ ' + Math.round(v) : '' } 
             }, 
             scales: { 
-                y: { 
-                    grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, 
-                    ticks: { color: isDark ? '#94a3b8' : '#64748b' } 
-                }, 
-                x: { 
-                    grid: { display: false }, 
-                    ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { weight: 'bold' } } 
-                } 
+                y: { grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }, ticks: { color: isDark ? '#94a3b8' : '#64748b' } }, 
+                x: { grid: { display: false }, ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { weight: 'bold' } } } 
             } 
         } 
     });
