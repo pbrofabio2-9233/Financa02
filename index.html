@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.9.8</title>
+    <title>EcoFinance Pro v25.9.13</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,7 +20,7 @@
         .rd-list li { font-size: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; color: var(--texto-sec); }
         .status-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
 
-        /* Chips das Categorias com Emojis (Ajustes) */
+        /* Chips das Categorias com Emojis */
         .cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; color: white; margin-bottom: 10px; margin-right: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .cat-chip:hover { transform: translateY(-2px); }
         .cat-chip .fa-times { background: rgba(0,0,0,0.2); border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; margin-left: 4px; transition: 0.2s; }
@@ -31,20 +31,95 @@
         .menu-ajuste-card:hover { border-color: var(--azul); background: var(--input-bg); }
         .menu-ajuste-icon { width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 15px; }
 
-        /* NOVO: Carrossel de Chips para Novo Lançamento */
+        /* Carrossel de Chips para Novo Lançamento */
         .carrossel-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .carrossel-chips::-webkit-scrollbar { display: none; } /* Oculta a barra de rolagem */
+        .carrossel-chips::-webkit-scrollbar { display: none; }
         .chip-cat { flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer; transition: all 0.2s; }
         .chip-cat.active { background: var(--azul); color: #fff; border: none; box-shadow: 0 2px 5px rgba(37,99,235,0.3); }
+
+        /* Paleta de Cores Premium */
+        .color-palette { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; }
+        .color-swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+        .color-swatch:hover { transform: scale(1.1); }
+        .color-swatch.active { border-color: var(--texto-main); transform: scale(1.15); box-shadow: 0 0 8px rgba(0,0,0,0.3); }
+        .color-picker-custom { width: 32px; height: 32px; padding: 0; border: none; border-radius: 50%; cursor: pointer; overflow: hidden; background: transparent; }
+        .color-picker-custom::-webkit-color-swatch-wrapper { padding: 0; }
+        .color-picker-custom::-webkit-color-swatch { border: none; border-radius: 50%; border: 1px dashed var(--texto-sec); }
+
+        /* UI DESKTOP PREMIUM (Item 8 - Layout 60% e Menu Lateral Retrátil) */
+        @media (min-width: 1024px) {
+            body { display: flex; justify-content: center; background-color: #0f172a; margin: 0; padding: 0; }
+            
+            #app { 
+                width: 60%; /* 60% da tela do PC */
+                max-width: 1200px;
+                min-width: 800px;
+                position: relative; 
+                height: 100vh; 
+                display: flex; 
+                flex-direction: column; 
+                box-shadow: 0 0 40px rgba(0,0,0,0.6); 
+                background: var(--fundo); 
+                border-left: 1px solid var(--linha); 
+                border-right: 1px solid var(--linha);
+                overflow: hidden; /* Mantém o menu retrátil contido */
+            }
+            
+            #conteudo-principal { flex: 1; overflow-y: auto; padding-bottom: 40px; }
+            header, main, nav { position: static !important; }
+            
+            .hamburger-desktop { display: block !important; }
+            
+            /* Sidebar Retrátil */
+            #menu-lateral {
+                position: absolute !important;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 250px;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                background: var(--card-bg) !important;
+                border-right: 1px solid var(--linha);
+                border-top: none !important;
+                padding-top: 85px; /* Abre espaço para o cabeçalho não ser coberto */
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                z-index: 100 !important;
+            }
+            
+            #menu-lateral.open {
+                transform: translateX(0);
+                box-shadow: 10px 0 25px rgba(0,0,0,0.3);
+            }
+            
+            #menu-lateral .menu-item {
+                width: 100%;
+                flex-direction: row !important;
+                justify-content: flex-start !important;
+                padding: 15px 25px !important;
+                gap: 15px;
+                border-radius: 0 !important;
+                border-bottom: 1px solid var(--linha);
+            }
+            
+            #menu-lateral .menu-item i { margin-bottom: 0 !important; font-size: 18px !important; }
+            #menu-lateral .menu-item span { font-size: 14px !important; font-weight: 600; }
+        }
     </style>
 </head>
 <body>
 
     <div id="app">
-        <header class="header-modern" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--card-bg); border-bottom: 1px solid var(--linha);">
-            <div>
-                <h1 id="titulo-aba" style="font-size: 20px; font-weight: 700; color: var(--texto-main); margin: 0;">Visão Geral</h1>
-                <small id="subtitulo-header" style="color: var(--texto-sec); font-size: 12px; font-weight: 500;">O seu copiloto financeiro</small>
+        <header class="header-modern" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--card-bg); border-bottom: 1px solid var(--linha); position: relative; z-index: 101;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <button class="btn-icon hamburger-desktop" onclick="document.getElementById('menu-lateral').classList.toggle('open')" style="display: none; background: var(--input-bg); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--linha); color: var(--azul); cursor: pointer;">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div>
+                    <h1 id="titulo-aba" style="font-size: 20px; font-weight: 700; color: var(--texto-main); margin: 0;">Visão Geral</h1>
+                    <small id="subtitulo-header" style="color: var(--texto-sec); font-size: 12px; font-weight: 500;">O seu copiloto financeiro</small>
+                </div>
             </div>
             <button class="btn-icon" onclick="location.reload()" aria-label="Atualizar Sistema" style="background: var(--input-bg); padding: 10px; border-radius: 10px; border: 1px solid var(--linha);">
                 <i class="fas fa-sync-alt" style="color: var(--azul);"></i>
@@ -188,8 +263,7 @@
 
                         <div class="mt-10 mb-10">
                             <label class="label-moderno" style="margin-bottom:8px; display:block;">Categoria</label>
-                            <div id="lanc-cat-chips" class="carrossel-chips">
-                                </div>
+                            <div id="lanc-cat-chips" class="carrossel-chips"></div>
                             <input type="hidden" id="lanc-cat" value="">
                         </div>
 
@@ -337,7 +411,7 @@
                     <div class="card">
                         <div class="flex-between mb-20">
                             <h2 style="font-size: 18px; margin:0;"><i class="fas fa-road"></i> Mapa de Evolução</h2>
-                            <span style="background: var(--azul); color:white; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold;">v25.9.8</span>
+                            <span style="background: var(--azul); color:white; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold;">v25.9.13</span>
                         </div>
 
                         <div class="roadmap-group">
@@ -365,8 +439,7 @@
                                     <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Tema Escuro Inteligente (Dark Mode)</li>
                                     <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Segmented Control & Extrato Compacto</li>
                                     <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Filtro Dinâmico de Meses (Botões Táteis)</li>
-                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Implementação de Responsividade (Desktop/Tablet)</li>
-                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Padronização da Aba Ajustes em Cards</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> UI App Desktop Centralizado (Sidebar)</li>
                                 </ul>
                             </div>
                         </div>
@@ -378,25 +451,9 @@
                             </div>
                             <div class="roadmap-content">
                                 <ul class="rd-list">
-                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Radar de Vencimentos (7 dias)</li>
-                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Categorias Personalizadas (Emojis e Cores)</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Radar de Faturas e Vencimentos</li>
+                                    <li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Categorias Personalizadas (Chips e Paleta)</li>
                                     <li><i class="fas fa-spinner fa-spin" style="color:var(--alerta);"></i> Motor de Ciclos (Vínculo c/ Salário) (v26.0)</li>
-                                    <li><i class="fas fa-exclamation-triangle" style="color:var(--perigo);"></i> Alerta de meta estourada no lançamento</li>
-                                </ul>
-                            </div>
-                        </div>
-                        
-                        <div class="roadmap-group">
-                            <div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')">
-                                <div><strong style="font-size:13px;">📊 RELATÓRIOS & EXPORTAÇÃO</strong></div>
-                                <div><span class="status-badge" style="background: #eee; color: #999;">FUTURO</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div>
-                            </div>
-                            <div class="roadmap-content">
-                                <ul class="rd-list">
-                                    <li><i class="fas fa-file-pdf"></i> Exportação em PDF com Layout Executivo</li>
-                                    <li><i class="fas fa-file-excel"></i> Planilhas Excel (CSV) para Contabilidade</li>
-                                    <li><i class="fas fa-filter"></i> Filtros por período, conta e categoria</li>
-                                    <li><i class="fas fa-receipt"></i> Geração de Recibos/Comprovantes Individuais</li>
                                 </ul>
                             </div>
                         </div>
@@ -429,12 +486,27 @@
                             <option value="receita">💰 Receita</option>
                         </select>
                         
+                        <label class="label-moderno mb-10">Cor da Categoria</label>
+                        <div class="color-palette" id="paleta-cores-cat">
+                            <div class="color-swatch active" style="background-color: #ef4444;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#ef4444', this)"></div>
+                            <div class="color-swatch" style="background-color: #f97316;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f97316', this)"></div>
+                            <div class="color-swatch" style="background-color: #f59e0b;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f59e0b', this)"></div>
+                            <div class="color-swatch" style="background-color: #10b981;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#10b981', this)"></div>
+                            <div class="color-swatch" style="background-color: #06b6d4;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#06b6d4', this)"></div>
+                            <div class="color-swatch" style="background-color: #3b82f6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#3b82f6', this)"></div>
+                            <div class="color-swatch" style="background-color: #8b5cf6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#8b5cf6', this)"></div>
+                            <div class="color-swatch" style="background-color: #ec4899;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#ec4899', this)"></div>
+                            <div class="color-swatch" style="background-color: #64748b;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#64748b', this)"></div>
+                            
+                            <input type="color" id="nova-cat-cor" value="#ef4444" class="color-picker-custom" title="Cor personalizada" onchange="if(typeof removerSelecaoPaleta === 'function') removerSelecaoPaleta()">
+                        </div>
+
                         <div class="flex-between mb-15">
-                            <input type="color" id="nova-cat-cor" value="#94a3b8" style="width:48%; height:45px; border:none; border-radius:8px; cursor:pointer;">
-                            <label class="checkbox-moderno" style="width:48%; justify-content: flex-end;">
-                                <input type="checkbox" id="nova-cat-fixa"><span>Custo Fixo?</span>
+                            <label class="checkbox-moderno" style="width:100%;">
+                                <input type="checkbox" id="nova-cat-fixa"><span>Marcar como Custo Fixo</span>
                             </label>
                         </div>
+
                         <div class="flex-between">
                             <button class="btn-outline" id="btn-cancelar-edicao-cat" style="width:48%; display:none;" onclick="if(typeof cancelarEdicaoCategoria === 'function') cancelarEdicaoCategoria()">Cancelar</button>
                             <button class="btn-primary" id="btn-salvar-cat" style="width:100%; background: var(--esmeralda);" onclick="if(typeof salvarConfigNovaCategoria === 'function') salvarConfigNovaCategoria()">Adicionar</button>
@@ -555,12 +627,12 @@
             </div>
         </div>
 
-        <nav class="menu-inferior">
-            <div class="menu-item active" onclick="navegar('dashboard', this)"><i class="fas fa-chart-pie"></i><span>Visão</span></div>
-            <div class="menu-item" onclick="navegar('faturas', this)"><i class="fas fa-credit-card"></i><span>Faturas</span></div>
-            <div class="menu-item" onclick="navegar('historico', this)"><i class="fas fa-list-ul"></i><span>Extrato</span></div>
-            <div class="menu-item" onclick="navegar('contas', this)"><i class="fas fa-wallet"></i><span>Contas</span></div>
-            <div class="menu-item" onclick="navegar('config', this)"><i class="fas fa-sliders-h"></i><span>Ajustes</span></div>
+        <nav id="menu-lateral" class="menu-inferior">
+            <div class="menu-item active" onclick="navegar('dashboard', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-chart-pie"></i><span>Visão</span></div>
+            <div class="menu-item" onclick="navegar('faturas', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-credit-card"></i><span>Faturas</span></div>
+            <div class="menu-item" onclick="navegar('historico', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-list-ul"></i><span>Extrato</span></div>
+            <div class="menu-item" onclick="navegar('contas', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-wallet"></i><span>Contas</span></div>
+            <div class="menu-item" onclick="navegar('config', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-sliders-h"></i><span>Ajustes</span></div>
         </nav>
     </div>
 
