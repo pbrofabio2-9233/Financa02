@@ -1,5 +1,5 @@
 // ==========================================
-// UI.JS - Renderização e Interface (v25.9.2 - Ancoragem da Meta do Cartão)
+// UI.JS - Renderização e Interface (v25.9.5 - Correção Modais Ajustes)
 // ==========================================
 
 const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
@@ -10,7 +10,9 @@ function render() {
     const hoje = new Date();
     const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
     let calc = { receitas: 0, prevReceitas: 0, despesas: 0, prevGastos: 0, faturas: 0, faturasFuturas: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0, gastosFixos: 0, gastosVariaveis: 0 };
-    const catFixas = ['Moradia', 'Energia', 'Assinaturas', 'Consórcio', 'Saúde', 'Educação'];
+    
+    // Busca as categorias fixas dinamicamente do banco
+    const catFixas = (db.categorias || []).filter(c => c.fixa).map(c => c.nome);
 
     (db.contas || []).forEach(c => {
         if(c.tipo === 'movimentacao') calc.saldoLivre += c.saldo;
@@ -32,14 +34,12 @@ function render() {
                 else calc.faturas += valMutante;
             }
             
-            // CORREÇÃO: Ancorando a Meta APENAS na fatura que vence neste mês exato do calendário!
             if (mesFatura === mesCorrente) {
                 if (['despesas_gerais', 'despesa'].includes(l.tipo)) {
                     calc.usoMetaCartao += l.valor;
                     if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor;
                     else calc.gastosVariaveis += l.valor;
                 } else if (T_RECEITAS.includes(l.tipo)) {
-                    // Abate eventuais estornos/receitas da meta
                     calc.usoMetaCartao -= l.valor;
                 }
             }
@@ -60,7 +60,6 @@ function render() {
         }
     });
 
-    // Se o uso da Meta for menor que 0 por conta de estornos, nivela a 0.
     if (calc.usoMetaCartao < 0) calc.usoMetaCartao = 0;
 
     if (db.amortizacoesFaturas) {
@@ -118,7 +117,6 @@ function render() {
     }, 100);
 }
 
-// CORREÇÃO CRÍTICA DO MERCADO PAGO: Força conversão absoluta para números e ignora fusos
 function getMesFaturaLogico(dataLancamento, diaFechamento) {
     if (!dataLancamento) return "";
     const [anoStr, mesStr, diaStr] = dataLancamento.split('T')[0].split('-');
@@ -245,35 +243,32 @@ function renderHistorico() {
 
             const corValor = T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)';
             
+            const catDB = (db.categorias || []).find(cat => cat.nome === l.cat);
+            const iconeCat = catDB && catDB.icone ? catDB.icone + ' ' : '';
+            
             return `
             <div class="card fatura-card ${!l.efetivado ? 'opacity-90' : ''}" style="padding:0; overflow:hidden; border:1px solid var(--linha); border-left: 4px solid ${c ? c.cor : '#ccc'}; margin-bottom: 12px;">
-                
                 <div style="padding:15px; cursor:pointer;" onclick="toggleEditLancamento(${l.id})">
-                    
                     <div class="flex-between" style="margin-bottom: 8px;">
                         <strong style="font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;">${l.desc || 'Sem descrição'}</strong>
                         ${chipHtml}
                     </div>
-                    
                     <div class="flex-between" style="align-items: center;">
                         <div style="display:flex; flex-direction:column; gap:2px;">
-                            <small style="color:var(--texto-sec); font-size:11px;">${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Excluída'} • ${l.cat || 'Outros'}</small>
+                            <small style="color:var(--texto-sec); font-size:11px;">${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Excluída'} • ${iconeCat}${l.cat || 'Outros'}</small>
                             ${(!l.efetivado && c && c.tipo !== 'cartao') ? `
                             <div style="display:flex; gap:6px; margin-top:6px;">
                                 <button class="btn-primary" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); ${l.rolagem ? `confirmarQuitacao(${l.id})` : `confirmarPagamento(${l.id})`}">${l.rolagem ? 'Quitar' : 'Pagar'}</button>
                                 ${l.rolagem ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); abrirModalParcial(${l.id}, ${l.valor})">Parcial</button>` : ''}
                             </div>` : ''}
                         </div>
-                        
                         <div style="display:flex; align-items:center; gap:8px;">
                             <strong style="color: ${corValor}; font-size:16px;">${l.isReceita ? '+' : '-'} R$ ${(l.valor || 0).toFixed(2)}</strong>
                             <i class="fas fa-chevron-down fatura-chevron" id="icon-${l.id}" style="font-size:11px; color:var(--texto-sec);"></i>
                         </div>
                     </div>
-
                     ${infoDivida}
                 </div>
-                
                 <div id="edit-lanc-${l.id}" style="display:none; padding:15px; border-top:1px dashed var(--linha); background:var(--input-bg);">
                     <label class="label-moderno">Editar Descrição</label>
                     <input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc || ''}">
@@ -297,20 +292,15 @@ function renderHistorico() {
 
 function toggleEditLancamento(id) { 
     const el = document.getElementById(`edit-lanc-${id}`); 
-    if(el) {
-        el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
-    }
+    if(el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
     const icon = document.getElementById(`icon-${id}`);
-    if(icon) {
-        icon.classList.toggle('open');
-    }
+    if(icon) { icon.classList.toggle('open'); }
 }
 
-function abrirModalParcial(id, valorAtual) { document.getElementById('hidden-id-parcial').value = id; document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`; document.getElementById('input-valor-parcial').value = ''; const modal = document.getElementById('modal-pagamento-parcial'); if(modal) { modal.style.display = 'flex'; modal.classList.add('active'); } }
-function fecharModalParcial() { const m = document.getElementById('modal-pagamento-parcial'); if(m) { m.style.display = 'none'; m.classList.remove('active'); } }
+function abrirModalParcial(id, valorAtual) { document.getElementById('hidden-id-parcial').value = id; document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`; document.getElementById('input-valor-parcial').value = ''; const modal = document.getElementById('modal-pagamento-parcial'); if(modal) { modal.style.display = 'flex'; setTimeout(()=>modal.classList.add('active'), 10); } }
+function fecharModalParcial() { const m = document.getElementById('modal-pagamento-parcial'); if(m) { m.classList.remove('active'); setTimeout(()=>m.style.display = 'none', 300); } }
 function toggleCamposPrevisao() { const isChecked = document.getElementById('emp-sem-previsao').checked; const container = document.getElementById('container-campos-previsao'); if(container) container.style.display = isChecked ? 'none' : 'block'; }
 
-// --- NOVA ABORDAGEM: LIMITE POR FATURAS NÃO PAGAS E META POR FATURA DO MÊS ---
 function renderAbaContas() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return;
     lista.innerHTML = ``;
@@ -323,7 +313,6 @@ function renderAbaContas() {
 
         if (isCartao) {
             const hoje = new Date(); 
-            // CORREÇÃO: Pega o mês exato do calendário, independentemente de fechamento
             const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
             
             (db.lancamentos || []).forEach(l => { 
@@ -337,27 +326,17 @@ function renderAbaContas() {
                     else if (T_RECEITAS.includes(l.tipo)) valorCalc = -l.valor;
 
                     if (valorCalc !== 0) {
-                        // META: Considera apenas a fatura designada para este mês exato!
-                        if (mesLancLogico === mesCorrente) {
-                            usoMeta += valorCalc;
-                        }
-                        
-                        // LIMITE: Considera TODAS as faturas que NÃO estão pagas
-                        if (!isPaga) {
-                            usoLimite += valorCalc;
-                        }
+                        if (mesLancLogico === mesCorrente) { usoMeta += valorCalc; }
+                        if (!isPaga) { usoLimite += valorCalc; }
                     }
                 }
             });
             
-            // Abate as amortizações parciais do limite
             Object.keys(db.amortizacoesFaturas || {}).forEach(fatID => {
                 const [cId, mesFat] = fatID.split('-');
                 if (cId === c.id) {
                     const isPaga = (db.faturasPagas || []).includes(fatID);
-                    if (!isPaga) {
-                        usoLimite -= db.amortizacoesFaturas[fatID];
-                    }
+                    if (!isPaga) { usoLimite -= db.amortizacoesFaturas[fatID]; }
                 }
             });
 
@@ -448,16 +427,13 @@ function renderAbaFaturas() {
 
         html += `
         <div class="card fatura-card ${estaPaga ? 'paga' : ''}" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'}; margin-bottom: 12px;">
-            
             <div style="padding:15px; cursor:pointer; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
-                
                 <div class="flex-between" style="margin-bottom: 8px;">
                     <strong style="font-size:14px; display:flex; align-items:center; gap:6px;">
                         <i class="fas fa-file-invoice-dollar" style="color:var(--texto-sec);"></i> Fatura ${formatarMesFaturaLogico(mes)}
                     </strong>
                     ${statusTag}
                 </div>
-                
                 <div class="flex-between" style="align-items: center;">
                     <div style="display:flex; flex-direction:column; gap:2px;">
                         <small style="color:var(--texto-sec); font-size:11px;">Venc: ${(c.vencimento||1).toString().padStart(2,'0')}/${mes.split('-')[1]}</small>
@@ -466,16 +442,13 @@ function renderAbaFaturas() {
                             <i class="fas fa-chevron-down fatura-chevron" id="icon-det-fat-${fatID}" style="font-size:11px; color:var(--texto-sec);"></i>
                         </div>
                     </div>
-                    
                     <div style="display:flex; gap:6px;">
                         ${!estaPaga && totalFinal > 0 ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); amortizarFatura('${fatID}')">Amortizar</button>` : ''}
                         <button class="${estaPaga?'btn-outline':'btn-primary'}" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga?'Reabrir':'Pagar'}</button>
                     </div>
                 </div>
-
                 ${infoAmortizado}
             </div>
-
             <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top:1px dashed var(--linha); background:var(--input-bg);">
                 ${mesesFatura[mes].lancamentos.map(l => `
                     <div class="flex-between mb-10" style="font-size:12px; border-bottom:1px solid var(--linha); padding-bottom:5px;">
@@ -484,17 +457,119 @@ function renderAbaFaturas() {
                     </div>
                 `).join('')}
             </div>
-            
         </div>`;
     });
     lista.innerHTML = html;
 }
 
+// --- FUNÇÕES DOS NOVOS MODAIS (Animações de Aparecer/Sumir Corrigidas) ---
+function abrirModalAparencia() { const m = document.getElementById('modal-aparencia'); if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); } }
+function fecharModalAparencia() { const m = document.getElementById('modal-aparencia'); if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } }
+
+function abrirModalSistema() { const m = document.getElementById('modal-sistema'); if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); renderAbaConfig(); } }
+function fecharModalSistema() { const m = document.getElementById('modal-sistema'); if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } }
+
+function abrirModalCategorias() { const m = document.getElementById('modal-categorias'); if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); renderModalCategorias(); } }
+function fecharModalCategorias() { const m = document.getElementById('modal-categorias'); if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); cancelarEdicaoCategoria(); } }
+
 function renderAbaConfig() {
     const toggleTema = document.getElementById('toggle-tema-ajustes'); if (toggleTema) toggleTema.checked = document.body.classList.contains('dark-mode');
     const divBackups = document.getElementById('lista-backups'); if(!divBackups) return;
     let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    divBackups.innerHTML = hist.length ? hist.map(b => `<div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);"><div><strong>${b.nome}</strong><small style="display:block; font-size:10px;">${b.data} • ${b.size}</small></div><div style="display:flex; gap:5px;"><button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button><button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})"><i class="fas fa-trash"></i></button></div></div>`).join('') : '<p class="texto-vazio">Sem backups.</p>';
+    divBackups.innerHTML = hist.length ? hist.map(b => `<div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);"><div><strong>${b.nome}</strong><small style="display:block; font-size:10px;">${b.data} • ${b.size}</small></div><div style="display:flex; gap:5px;"><button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button><button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})"><i class="fas fa-trash"></i></button></div></div>`).join('') : '<p class="texto-vazio" style="margin:0;">Sem backups.</p>';
+}
+
+function renderModalCategorias() {
+    const lDespesas = document.getElementById('lista-categorias-despesas');
+    const lReceitas = document.getElementById('lista-categorias-receitas');
+    const cDespesas = document.getElementById('count-cat-desp');
+    const cReceitas = document.getElementById('count-cat-rec');
+
+    if(lDespesas && lReceitas) {
+        const catDesp = (db.categorias || []).filter(c => c.tipo === 'despesa');
+        const catRec = (db.categorias || []).filter(c => c.tipo === 'receita');
+        if (cDespesas) cDespesas.innerText = catDesp.length;
+        if (cReceitas) cReceitas.innerText = catRec.length;
+
+        lDespesas.innerHTML = catDesp.length ? catDesp.map(c => `
+            <div class="cat-chip" style="background-color: ${c.cor};" onclick="editarCategoria('${c.id}')">
+                ${c.icone || ''} ${c.fixa ? '<i class="fas fa-lock" style="font-size:9px;"></i>' : ''} ${c.nome} 
+                <i class="fas fa-times" onclick="event.stopPropagation(); excluirCategoria('${c.id}'); setTimeout(renderModalCategorias, 100);"></i>
+            </div>`).join('') : '<span style="font-size:11px; color:var(--texto-sec); width:100%;">Nenhuma.</span>';
+            
+        lReceitas.innerHTML = catRec.length ? catRec.map(c => `
+            <div class="cat-chip" style="background-color: ${c.cor};" onclick="editarCategoria('${c.id}')">
+                ${c.icone || ''} ${c.nome} 
+                <i class="fas fa-times" onclick="event.stopPropagation(); excluirCategoria('${c.id}'); setTimeout(renderModalCategorias, 100);"></i>
+            </div>`).join('') : '<span style="font-size:11px; color:var(--texto-sec); width:100%;">Nenhuma.</span>';
+    }
+}
+
+function editarCategoria(id) {
+    const cat = (db.categorias || []).find(c => c.id === id);
+    if(!cat) return;
+    
+    document.getElementById('nova-cat-id').value = cat.id;
+    document.getElementById('nova-cat-icone').value = cat.icone || '';
+    document.getElementById('nova-cat-nome').value = cat.nome;
+    document.getElementById('nova-cat-tipo').value = cat.tipo;
+    document.getElementById('nova-cat-cor').value = cat.cor || '#94a3b8';
+    document.getElementById('nova-cat-fixa').checked = !!cat.fixa;
+    
+    document.getElementById('label-form-cat').innerText = "Editar Categoria";
+    document.getElementById('btn-salvar-cat').innerText = "Salvar Alterações";
+    document.getElementById('btn-cancelar-edicao-cat').style.display = 'block';
+}
+
+function cancelarEdicaoCategoria() {
+    document.getElementById('nova-cat-id').value = '';
+    document.getElementById('nova-cat-icone').value = '';
+    document.getElementById('nova-cat-nome').value = '';
+    document.getElementById('nova-cat-fixa').checked = false;
+    
+    document.getElementById('label-form-cat').innerText = "Criar Nova Categoria";
+    document.getElementById('btn-salvar-cat').innerText = "Adicionar";
+    document.getElementById('btn-cancelar-edicao-cat').style.display = 'none';
+}
+
+function salvarConfigNovaCategoria() {
+    const idEdicao = document.getElementById('nova-cat-id').value;
+    const icone = document.getElementById('nova-cat-icone').value.trim();
+    const nome = document.getElementById('nova-cat-nome').value.trim();
+    const tipo = document.getElementById('nova-cat-tipo').value;
+    const cor = document.getElementById('nova-cat-cor').value;
+    const fixa = document.getElementById('nova-cat-fixa').checked;
+
+    if(!nome) { alert("Dê um nome para a categoria."); return; }
+    db.categorias = db.categorias || [];
+
+    if (idEdicao) {
+        const cat = db.categorias.find(c => c.id === idEdicao);
+        if (cat) {
+            const existe = db.categorias.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== idEdicao && c.tipo === tipo);
+            if (existe) { alert("Já existe outra categoria com este nome."); return; }
+            
+            if (cat.nome !== nome) {
+                db.lancamentos.forEach(l => { if (l.cat === cat.nome) l.cat = nome; });
+            }
+            
+            cat.nome = nome; cat.icone = icone; cat.tipo = tipo; cat.cor = cor; cat.fixa = fixa;
+            save(); if(typeof showToast === 'function') showToast("Categoria atualizada!");
+        }
+    } else {
+        const existe = db.categorias.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.tipo === tipo);
+        if (existe) { alert("Já existe uma categoria com este nome."); return; }
+        
+        db.categorias.push({ id: 'cat_' + Date.now(), nome: nome, icone: icone, cor: cor, fixa: fixa, tipo: tipo });
+        save(); if(typeof showToast === 'function') showToast("Nova categoria criada!");
+    }
+    cancelarEdicaoCategoria(); renderModalCategorias(); if(typeof render === 'function') render();
+}
+
+function excluirCategoria(id) {
+    if(!confirm("Excluir esta categoria? Os lançamentos antigos vão perder a cor no gráfico, mas o nome continua no extrato.")) return;
+    db.categorias = db.categorias.filter(c => c.id !== id);
+    save(); renderModalCategorias(); if(typeof render === 'function') render();
 }
 
 function renderGrafico() {
@@ -505,14 +580,22 @@ function renderGrafico() {
     const mesCorrenteLocal = `${hojeLocal.getFullYear()}-${(hojeLocal.getMonth() + 1).toString().padStart(2, '0')}`;
     const mes = (inputFiltro && inputFiltro.value) ? inputFiltro.value : mesCorrenteLocal;
     
-    const labels = [], dados = []; const categorias = {};
+    const labels = [], dados = [], bgColors = []; 
+    const categorias = {};
+    
     (db.lancamentos || []).forEach(l => { 
         if(l.efetivado && l.data && l.data.substring(0,7) === mes && ['despesas_gerais','despesa'].includes(l.tipo)) { 
             categorias[l.cat] = (categorias[l.cat]||0) + l.valor; 
         } 
     });
     
-    Object.keys(categorias).forEach(k => { labels.push(k); dados.push(categorias[k]); });
+    Object.keys(categorias).forEach(k => { 
+        labels.push(k); 
+        dados.push(categorias[k]); 
+        
+        const catDB = (db.categorias || []).find(c => c.nome === k);
+        bgColors.push(catDB ? catDB.cor : '#94a3b8'); 
+    });
     
     if(meuGrafico) meuGrafico.destroy(); 
     if(dados.length === 0) return; 
@@ -524,7 +607,7 @@ function renderGrafico() {
             labels, 
             datasets:[{ 
                 data:dados, 
-                backgroundColor:['#2563eb','#10b981','#f59e0b','#ef4444','#6366f1','#8b5cf6','#14b8a6','#64748b'], 
+                backgroundColor: bgColors, 
                 borderWidth:3, 
                 borderColor:isDark?'#1e293b':'#fff' 
             }] 
