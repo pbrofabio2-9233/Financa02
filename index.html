@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v26.0.6</title>
+    <title>EcoFinance Pro v26.0.10</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -43,9 +43,13 @@
         .color-picker-custom::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker-custom::-webkit-color-swatch { border: none; border-radius: 50%; border: 1px dashed var(--texto-sec); }
 
-        /* Botão Flutuante Mobile (FAB) VERDE */
+        /* Botões Flutuantes (Voltar ao Topo e FAB Mobile) */
         .fab-mobile { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--esmeralda); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); z-index: 99; border: none; cursor: pointer; transition: 0.3s; }
         .fab-mobile:active { transform: scale(0.90); }
+        
+        .btn-scroll-top { position: fixed; bottom: 80px; left: 20px; width: 45px; height: 45px; border-radius: 50%; background: var(--azul); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; cursor: pointer; z-index: 98; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(20px); }
+        .btn-scroll-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
+        .btn-scroll-top:hover { filter: brightness(1.1); transform: translateY(-3px); }
 
         /* Botão Header Desktop VERDE */
         .btn-header-desktop { display: none; background: var(--esmeralda); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.4); margin-right: 10px; }
@@ -59,7 +63,8 @@
         .drawer-header { padding: 20px; border-bottom: 1px solid var(--linha); display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); }
         .drawer-body { flex: 1; overflow-y: auto; padding: 20px; background: var(--fundo); }
         
-        .notif-card { padding: 15px; border-radius: 12px; border: 1px solid var(--linha); background: var(--card-bg); margin-bottom: 12px; position: relative; box-shadow: var(--shadow-sm); }
+        .notif-card { padding: 15px; border-radius: 12px; border: 1px solid var(--linha); background: var(--card-bg); margin-bottom: 12px; position: relative; box-shadow: var(--shadow-sm); transition: 0.2s; }
+        .notif-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .notif-card.unread { border-left: 4px solid var(--azul); }
         .notif-card.warning { border-left: 4px solid var(--alerta); }
         .notif-card.sucess { border-left: 4px solid var(--sucesso); }
@@ -70,13 +75,21 @@
         .salario-card { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .salario-badge { background: rgba(16, 185, 129, 0.1); color: var(--esmeralda); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
 
-        /* UI DESKTOP PREMIUM - ROLAGEM NATIVA */
+        /* UI DESKTOP PREMIUM - ROLAGEM NATIVA E CABEÇALHO FIXO */
         @media (min-width: 1024px) {
-            body { background-color: #0f172a; margin: 0; padding: 0; overflow-x: hidden; }
-            #app { width: 60%; max-width: 1200px; min-width: 800px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); }
+            /* Clip em vez de hidden resolve o problema do sticky no body */
+            html, body { overflow-x: clip !important; }
+            body { background-color: #0f172a; margin: 0; padding: 0; }
+            
+            #app { width: 60%; max-width: 1200px; min-width: 800px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); overflow: visible !important; }
             #conteudo-principal { flex: 1; padding-bottom: 40px; } 
-            header.header-modern { position: sticky !important; top: 0; z-index: 101; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+            
+            /* CABEÇALHO FIXO GARANTIDO */
+            header.header-modern { position: sticky !important; top: 0 !important; z-index: 999 !important; background: var(--card-bg) !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; align-self: flex-start; width: 100%; box-sizing: border-box; }
+            
             .fab-mobile { display: none !important; } 
+            .btn-scroll-top { bottom: 30px; left: auto; right: 30px; width: 50px; height: 50px; font-size: 20px; }
+            
             .btn-header-desktop { display: flex; } 
             .hamburger-desktop { display: block !important; }
             #menu-lateral { position: fixed !important; top: 0; left: 0; height: 100vh; width: 250px; flex-direction: column !important; justify-content: flex-start !important; background: var(--card-bg) !important; border-right: 1px solid var(--linha); border-top: none !important; padding-top: 85px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 102 !important; box-shadow: none; }
@@ -650,7 +663,9 @@
         </div>
 
         <div id="toast-container" class="toast-container"></div>
+        
         <button class="fab-mobile" onclick="abrirModalLancamento()"><i class="fas fa-plus"></i></button>
+        <button id="btn-scroll-top" class="btn-scroll-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" aria-label="Voltar ao topo"><i class="fas fa-arrow-up"></i></button>
 
         <nav id="menu-lateral" class="menu-inferior">
             <div class="menu-item active" onclick="navegar('dashboard', this); document.getElementById('menu-lateral').classList.remove('open');">
@@ -682,6 +697,18 @@
     </div>
 
     <script>
+        // Lógica do Botão Voltar ao Topo
+        window.addEventListener('scroll', () => {
+            const btnTopo = document.getElementById('btn-scroll-top');
+            if(btnTopo) {
+                if(window.scrollY > 300) {
+                    btnTopo.classList.add('show');
+                } else {
+                    btnTopo.classList.remove('show');
+                }
+            }
+        });
+
         // Funções de Modais Básicos
         function abrirModalLancamento() { 
             const m = document.getElementById('modal-lancamento'); m.style.display = 'flex'; 
