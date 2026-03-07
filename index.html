@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v25.9.17</title>
+    <title>EcoFinance Pro v26.0.6</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=25.9">
+    <link rel="stylesheet" href="style.css?v=26.0">
     <style>
         /* Estilos Base e Roadmap */
         .roadmap-group { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--linha); }
@@ -35,6 +35,7 @@
         .carrossel-chips::-webkit-scrollbar { display: none; }
         .chip-cat { flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer; transition: all 0.2s; }
         .chip-cat.active { background: var(--azul); color: #fff; border: none; box-shadow: 0 2px 5px rgba(37,99,235,0.3); }
+        
         .color-palette { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; }
         .color-swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
         .color-swatch.active { border-color: var(--texto-main); transform: scale(1.15); box-shadow: 0 0 8px rgba(0,0,0,0.3); }
@@ -42,62 +43,43 @@
         .color-picker-custom::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker-custom::-webkit-color-swatch { border: none; border-radius: 50%; border: 1px dashed var(--texto-sec); }
 
-        /* Botão Flutuante Mobile (FAB) */
-        .fab-mobile { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--esmeralda); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(37,99,235,0.5); z-index: 99; border: none; cursor: pointer; transition: 0.3s; }
+        /* Botão Flutuante Mobile (FAB) VERDE */
+        .fab-mobile { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--esmeralda); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); z-index: 99; border: none; cursor: pointer; transition: 0.3s; }
         .fab-mobile:active { transform: scale(0.90); }
 
-        /* Botão Header Desktop */
-        .btn-header-desktop { display: none; background: var(--esmeralda); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(37,99,235,0.3); margin-right: 10px; }
+        /* Botão Header Desktop VERDE */
+        .btn-header-desktop { display: none; background: var(--esmeralda); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.4); margin-right: 10px; }
         .btn-header-desktop:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
-        /* UI DESKTOP PREMIUM - ROLAGEM NATIVA CORRIGIDA */
+        /* Central de Notificações (Gaveta Lateral) */
+        .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s ease; }
+        .drawer-overlay.active { opacity: 1; visibility: visible; }
+        .notification-drawer { position: fixed; top: 0; right: 0; width: 100%; max-width: 360px; height: 100%; background: var(--card-bg); box-shadow: -5px 0 25px rgba(0,0,0,0.3); z-index: 1001; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; border-left: 1px solid var(--linha); }
+        .notification-drawer.open { transform: translateX(0); }
+        .drawer-header { padding: 20px; border-bottom: 1px solid var(--linha); display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); }
+        .drawer-body { flex: 1; overflow-y: auto; padding: 20px; background: var(--fundo); }
+        
+        .notif-card { padding: 15px; border-radius: 12px; border: 1px solid var(--linha); background: var(--card-bg); margin-bottom: 12px; position: relative; box-shadow: var(--shadow-sm); }
+        .notif-card.unread { border-left: 4px solid var(--azul); }
+        .notif-card.warning { border-left: 4px solid var(--alerta); }
+        .notif-card.sucess { border-left: 4px solid var(--sucesso); }
+        .sino-btn { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--input-bg); transition: 0.2s; margin-right: 15px; border: 1px solid var(--linha); }
+        .sino-btn:hover { background: var(--linha); }
+
+        /* Lista de Salários UI */
+        .salario-card { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .salario-badge { background: rgba(16, 185, 129, 0.1); color: var(--esmeralda); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+
+        /* UI DESKTOP PREMIUM - ROLAGEM NATIVA */
         @media (min-width: 1024px) {
-            /* Deixa a página rolar naturalmente */
             body { background-color: #0f172a; margin: 0; padding: 0; overflow-x: hidden; }
-            
-            #app { 
-                width: 60%; 
-                max-width: 1200px; 
-                min-width: 800px; 
-                margin: 0 auto; /* Centraliza o app na tela */
-                position: relative; 
-                min-height: 100vh; /* Permite crescer conforme o conteúdo */
-                display: flex; 
-                flex-direction: column; 
-                box-shadow: 0 0 40px rgba(0,0,0,0.6); 
-                background: var(--fundo); 
-                border-left: 1px solid var(--linha); 
-                border-right: 1px solid var(--linha); 
-            }
-            
+            #app { width: 60%; max-width: 1200px; min-width: 800px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); }
             #conteudo-principal { flex: 1; padding-bottom: 40px; } 
-            
-            /* Cabeçalho colado no topo do App */
             header.header-modern { position: sticky !important; top: 0; z-index: 101; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-            
             .fab-mobile { display: none !important; } 
             .btn-header-desktop { display: flex; } 
             .hamburger-desktop { display: block !important; }
-            
-            /* Sidebar Retrátil Fixa (acompanha a rolagem) */
-            #menu-lateral { 
-                position: fixed !important; 
-                top: 0; 
-                left: 0; 
-                height: 100vh; 
-                width: 250px; 
-                flex-direction: column !important; 
-                justify-content: flex-start !important; 
-                background: var(--card-bg) !important; 
-                border-right: 1px solid var(--linha); 
-                border-top: none !important; 
-                padding-top: 85px; 
-                transform: translateX(-100%); 
-                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-                z-index: 102 !important; 
-                box-shadow: none;
-            }
-            
+            #menu-lateral { position: fixed !important; top: 0; left: 0; height: 100vh; width: 250px; flex-direction: column !important; justify-content: flex-start !important; background: var(--card-bg) !important; border-right: 1px solid var(--linha); border-top: none !important; padding-top: 85px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 102 !important; box-shadow: none; }
             #menu-lateral.open { transform: translateX(0); box-shadow: 10px 0 25px rgba(0,0,0,0.5); }
             #menu-lateral .menu-item { width: 100%; flex-direction: row !important; justify-content: flex-start !important; padding: 15px 25px !important; gap: 15px; border-radius: 0 !important; border-bottom: 1px solid var(--linha); }
             #menu-lateral .menu-item i { margin-bottom: 0 !important; font-size: 18px !important; }
@@ -120,6 +102,11 @@
             </div>
             
             <div style="display: flex; align-items: center;">
+                <div class="sino-btn" onclick="abrirNotificacoes()">
+                    <i class="fas fa-bell" style="font-size: 16px; color: var(--texto-main);"></i>
+                    <span id="badge-notificacao" style="display:none; position: absolute; top: -4px; right: -4px; background: var(--perigo); color: white; font-size: 9px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid var(--card-bg);">0</span>
+                </div>
+
                 <button class="btn-header-desktop" onclick="abrirModalLancamento()">
                     <i class="fas fa-plus"></i> Novo
                 </button>
@@ -130,9 +117,9 @@
         </header>
 
         <main id="conteudo-principal">
+            
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
-                    
                     <div class="executive-panel">
                         <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; box-shadow: 0 10px 20px rgba(37,99,235,0.2);">
                             <div class="flex-between">
@@ -211,6 +198,7 @@
                         <strong class="titulo-sessao">Gastos por Categoria</strong>
                         <div class="chart-container"><canvas id="graficoCategorias"></canvas></div>
                     </div>
+                    
                     <div class="card">
                         <strong class="titulo-sessao">Evolução Financeira (3 Meses)</strong>
                         <div class="chart-container"><canvas id="graficoEvolucao"></canvas></div>
@@ -237,6 +225,7 @@
                         <button class="status-btn" onclick="mudarFiltroStatus('atencao', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⚠️ Atenção</button>
                         <button class="status-btn" onclick="mudarFiltroStatus('atrasado', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">🚨 Atrasado</button>
                     </div>
+                    
                     <div id="lista-historico-filtros"></div>
                 </div>
             </section>
@@ -249,8 +238,10 @@
             <section id="aba-contas" class="secao-app">
                 <div class="container">
                     <button class="btn-primary mb-15" onclick="toggleNovaContaArea()" style="width: 100%;"><i class="fas fa-plus-circle"></i> Cadastrar Nova Conta ou Cartão</button>
+                    
                     <div id="area-nova-conta" class="card mb-20" style="display: none; border: 1px solid var(--azul);">
                         <strong class="titulo-sessao mb-10">Nova Conta</strong>
+                        
                         <div class="grid-inputs mt-10">
                             <input type="text" id="nova-conta-nome" class="input-moderno" placeholder="Nome (Ex: Nubank, C6)">
                             <select id="nova-conta-tipo" class="input-moderno" onchange="toggleCamposCartao()">
@@ -259,42 +250,88 @@
                                 <option value="cartao">Cartão de Crédito</option>
                             </select>
                         </div>
+                        
                         <div id="campos-cartao-add" style="display:none;" class="mt-10">
-                            <div class="grid-inputs mb-10"><input type="number" id="nova-conta-limite" class="input-moderno" placeholder="Limite Total"><input type="number" id="nova-conta-meta" class="input-moderno" placeholder="Meta de Gasto"></div>
-                            <div class="grid-inputs"><input type="number" id="nova-conta-fecha" class="input-moderno" placeholder="Dia Fechamento (Ex: 5)"><input type="number" id="nova-conta-venc" class="input-moderno" placeholder="Dia Vencimento (Ex: 10)"></div>
+                            <div class="grid-inputs mb-10">
+                                <input type="number" id="nova-conta-limite" class="input-moderno" placeholder="Limite Total">
+                                <input type="number" id="nova-conta-meta" class="input-moderno" placeholder="Meta de Gasto">
+                            </div>
+                            <div class="grid-inputs">
+                                <input type="number" id="nova-conta-fecha" class="input-moderno" placeholder="Dia Fechamento (Ex: 5)">
+                                <input type="number" id="nova-conta-venc" class="input-moderno" placeholder="Dia Vencimento (Ex: 10)">
+                            </div>
                         </div>
-                        <div class="mt-10 mb-15"><label class="label-moderno">Cor de Identificação</label><input type="color" id="nova-conta-cor" style="width:100%; height:40px; border:none; border-radius:8px; cursor:pointer;" value="#2563eb"></div>
-                        <div class="flex-between"><button class="btn-outline" onclick="toggleNovaContaArea()" style="width: 48%;">Cancelar</button><button class="btn-primary" onclick="criarConta()" style="width: 48%;">Salvar</button></div>
+                        
+                        <div class="mt-10 mb-15">
+                            <label class="label-moderno">Cor de Identificação</label>
+                            <input type="color" id="nova-conta-cor" style="width:100%; height:40px; border:none; border-radius:8px; cursor:pointer;" value="#2563eb">
+                        </div>
+                        
+                        <div class="flex-between">
+                            <button class="btn-outline" onclick="toggleNovaContaArea()" style="width: 48%;">Cancelar</button>
+                            <button class="btn-primary" onclick="criarConta()" style="width: 48%;">Salvar</button>
+                        </div>
                     </div>
+
                     <div id="lista-contas-saldos"></div>
                 </div>
             </section>
 
             <section id="aba-config" class="secao-app">
                 <div class="container">
-                    <div class="menu-ajuste-card" onclick="if(typeof abrirModalCategorias === 'function') abrirModalCategorias()">
-                        <div style="display:flex; align-items:center;"><div class="menu-ajuste-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--esmeralda);"><i class="fas fa-tags"></i></div><div><strong style="font-size: 14px; display:block;">Categorias</strong><small style="color:var(--texto-sec); font-size: 11px;">Crie, edite e adicione ícones</small></div></div><i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
+                    <div class="menu-ajuste-card" onclick="abrirModalSalarios()">
+                        <div style="display:flex; align-items:center;">
+                            <div class="menu-ajuste-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--esmeralda);"><i class="fas fa-money-check-alt"></i></div>
+                            <div>
+                                <strong style="font-size: 14px; display:block;">Rendas e Salários</strong>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Motor de recebimentos automáticos</small>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
                     </div>
-                    <div class="menu-ajuste-card" onclick="if(typeof abrirModalAparencia === 'function') abrirModalAparencia()">
-                        <div style="display:flex; align-items:center;"><div class="menu-ajuste-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--azul);"><i class="fas fa-paint-roller"></i></div><div><strong style="font-size: 14px; display:block;">Aparência</strong><small style="color:var(--texto-sec); font-size: 11px;">Tema escuro e visual</small></div></div><i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
-                    </div>
-                    <div class="menu-ajuste-card" onclick="if(typeof abrirModalSistema === 'function') abrirModalSistema()">
-                        <div style="display:flex; align-items:center;"><div class="menu-ajuste-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--perigo);"><i class="fas fa-shield-alt"></i></div><div><strong style="font-size: 14px; display:block;">Sistema e Dados</strong><small style="color:var(--texto-sec); font-size: 11px;">Backups, restauração e reset</small></div></div><i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
-                    </div>
-                    <div class="menu-ajuste-card" onclick="navegar('roadmap', null)">
-                        <div style="display:flex; align-items:center;"><div class="menu-ajuste-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;"><i class="fas fa-map-marked-alt"></i></div><div><strong style="font-size: 14px; display:block;">Roadmap do Projeto</strong><small style="color:var(--texto-sec); font-size: 11px;">Próximas atualizações (v26)</small></div></div><i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
-                    </div>
-                </div>
-            </section>
 
-            <section id="aba-roadmap" class="secao-app">
-                <div class="container">
-                    <div class="card">
-                        <div class="flex-between mb-20"><h2 style="font-size: 18px; margin:0;"><i class="fas fa-road"></i> Mapa de Evolução</h2><span style="background: var(--azul); color:white; font-size:10px; padding:3px 8px; border-radius:10px; font-weight:bold;">v25.9.17</span></div>
-                        <div class="roadmap-group"><div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')"><div><strong style="font-size:13px;">🏗️ BASE & INFRAESTRUTURA</strong></div><div><span class="status-badge" style="background: rgba(16,185,129,0.1); color: var(--sucesso);">OK</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div></div><div class="roadmap-content"><ul class="rd-list"><li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Matriz em cascata e Motor Lógico</li><li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Blindagem Nuclear de Dados (Backups)</li></ul></div></div>
-                        <div class="roadmap-group"><div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')"><div><strong style="font-size:13px;">🎨 UI/UX PREMIUM</strong></div><div><span class="status-badge" style="background: rgba(16,185,129,0.1); color: var(--sucesso);">OK</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div></div><div class="roadmap-content"><ul class="rd-list"><li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> UI App Desktop Centralizado & Botão Novo</li><li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Lançamento via FAB (Botão Flutuante)</li><li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Rolagem Nativa (Fix Scroll Desktop)</li></ul></div></div>
-                        <div class="roadmap-group"><div class="roadmap-header" onclick="this.parentElement.classList.toggle('active')"><div><strong style="font-size:13px;">⚙️ MECÂNICA & ALERTAS</strong></div><div><span class="status-badge" style="background: rgba(245,158,11,0.1); color: var(--alerta);">ATIVO</span> <i class="fas fa-chevron-down" style="font-size:10px; margin-left:5px;"></i></div></div><div class="roadmap-content"><ul class="rd-list"><li><i class="fas fa-check-circle" style="color:var(--sucesso);"></i> Radar de Faturas e Vencimentos</li><li><i class="fas fa-spinner fa-spin" style="color:var(--alerta);"></i> Central de Notificações Ativa (Sino)</li><li><i class="fas fa-spinner fa-spin" style="color:var(--alerta);"></i> Motor de Ciclos (Mercado Pago) (v26)</li></ul></div></div>
-                        <button class="btn-outline mt-20" onclick="navegar('config', null)" style="width:100%;">Voltar para Ajustes</button>
+                    <div class="menu-ajuste-card" onclick="abrirModalContratos()">
+                        <div style="display:flex; align-items:center;">
+                            <div class="menu-ajuste-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--alerta);"><i class="fas fa-file-signature"></i></div>
+                            <div>
+                                <strong style="font-size: 14px; display:block;">Fixos & Parcelamentos</strong>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Contas Mensais e consórcios em andamento</small>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
+                    </div>
+
+                    <div class="menu-ajuste-card" onclick="if(typeof abrirModalCategorias === 'function') abrirModalCategorias()">
+                        <div style="display:flex; align-items:center;">
+                            <div class="menu-ajuste-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--azul);"><i class="fas fa-tags"></i></div>
+                            <div>
+                                <strong style="font-size: 14px; display:block;">Categorias</strong>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Crie, edite e adicione ícones</small>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
+                    </div>
+
+                    <div class="menu-ajuste-card" onclick="if(typeof abrirModalAparencia === 'function') abrirModalAparencia()">
+                        <div style="display:flex; align-items:center;">
+                            <div class="menu-ajuste-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;"><i class="fas fa-paint-roller"></i></div>
+                            <div>
+                                <strong style="font-size: 14px; display:block;">Aparência</strong>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Tema escuro e visual</small>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
+                    </div>
+
+                    <div class="menu-ajuste-card" onclick="if(typeof abrirModalSistema === 'function') abrirModalSistema()">
+                        <div style="display:flex; align-items:center;">
+                            <div class="menu-ajuste-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--perigo);"><i class="fas fa-shield-alt"></i></div>
+                            <div>
+                                <strong style="font-size: 14px; display:block;">Sistema e Dados</strong>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Backups, restauração e reset</small>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
                     </div>
                 </div>
             </section>
@@ -314,18 +351,22 @@
                         </select>
                         <input type="date" id="lanc-data" class="input-moderno" onchange="if(typeof verificarDataFutura === 'function') verificarDataFutura(); if(typeof atualizarParcelasCartao === 'function') atualizarParcelasCartao();">
                     </div>
+                    
                     <div class="grid-inputs mb-10">
                         <select id="lanc-tipo" class="input-moderno" onchange="if(typeof atualizarRegrasLancamento === 'function') atualizarRegrasLancamento()"></select>
                         <select id="lanc-conta" class="input-moderno" onchange="if(typeof atualizarFormaPagamento === 'function') atualizarFormaPagamento()"></select>
                     </div>
+                    
                     <div class="mb-10">
                         <select id="lanc-forma" class="input-moderno" onchange="if(typeof verificarFormaCredito === 'function') verificarFormaCredito()"></select>
                     </div>
+                    
                     <div class="mb-10">
                         <label class="label-moderno" style="margin-bottom:8px; display:block;">Categoria</label>
                         <div id="lanc-cat-chips" class="carrossel-chips"></div>
                         <input type="hidden" id="lanc-cat" value="">
                     </div>
+                    
                     <div class="mb-10">
                         <input type="text" id="lanc-desc" class="input-moderno mb-10" placeholder="Descrição da movimentação">
                         <div class="grid-inputs">
@@ -333,54 +374,477 @@
                             <select id="lanc-parcelas" class="input-moderno" style="display:none;"></select>
                         </div>
                     </div>
+                    
                     <div class="opcoes-lancamento mb-15">
-                        <label class="checkbox-moderno"><input type="checkbox" id="lanc-fixo"><span>Repetir Mensalmente</span></label>
-                        <label class="checkbox-moderno"><input type="checkbox" id="lanc-efetivado" checked><span>Efetivado (Pago/Recebido)</span></label>
+                        <label class="checkbox-moderno">
+                            <input type="checkbox" id="lanc-fixo">
+                            <span>Repetir Mensalmente</span>
+                        </label>
+                        <label class="checkbox-moderno">
+                            <input type="checkbox" id="lanc-efetivado" checked>
+                            <span>Efetivado (Pago/Recebido)</span>
+                        </label>
                     </div>
+                    
                     <button class="btn-primary" style="width: 100%; padding: 12px; font-size: 15px;" onclick="if(typeof adicionarLancamento === 'function') adicionarLancamento()">Registrar Movimentação</button>
                 </div>
             </div>
         </div>
 
-        <div id="modal-categorias" class="modal-overlay"><div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;"><div class="modal-header flex-between"><h3 id="titulo-modal-cat"><i class="fas fa-tags" style="color:var(--esmeralda);"></i> Gestão de Categorias</h3><button class="btn-icon" onclick="if(typeof fecharModalCategorias === 'function') fecharModalCategorias()"><i class="fas fa-times"></i></button></div><div class="modal-body" style="overflow-y: auto; flex: 1;"><div style="background: var(--input-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--linha); margin-bottom: 20px;"><strong id="label-form-cat" style="font-size:14px; display:block; margin-bottom:10px;">Criar Nova Categoria</strong><input type="hidden" id="nova-cat-id"><div class="grid-inputs mb-10" style="grid-template-columns: 60px 1fr;"><input type="text" id="nova-cat-icone" class="input-moderno" placeholder="🍔" maxlength="2" style="text-align:center; font-size:20px; padding: 0;"><input type="text" id="nova-cat-nome" class="input-moderno" placeholder="Nome da Categoria"></div><select id="nova-cat-tipo" class="input-moderno mb-10"><option value="despesa">💸 Despesa</option><option value="receita">💰 Receita</option></select><label class="label-moderno mb-10">Cor da Categoria</label><div class="color-palette" id="paleta-cores-cat"><div class="color-swatch active" style="background-color: #ef4444;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#ef4444', this)"></div><div class="color-swatch" style="background-color: #f97316;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f97316', this)"></div><div class="color-swatch" style="background-color: #f59e0b;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f59e0b', this)"></div><div class="color-swatch" style="background-color: #10b981;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#10b981', this)"></div><div class="color-swatch" style="background-color: #06b6d4;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#06b6d4', this)"></div><div class="color-swatch" style="background-color: #3b82f6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#3b82f6', this)"></div><div class="color-swatch" style="background-color: #8b5cf6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#8b5cf6', this)"></div><div class="color-swatch" style="background-color: #ec4899;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#ec4899', this)"></div><div class="color-swatch" style="background-color: #64748b;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#64748b', this)"></div><input type="color" id="nova-cat-cor" value="#ef4444" class="color-picker-custom" title="Cor personalizada" onchange="if(typeof removerSelecaoPaleta === 'function') removerSelecaoPaleta()"></div><div class="flex-between mb-15"><label class="checkbox-moderno" style="width:100%;"><input type="checkbox" id="nova-cat-fixa"><span>Marcar como Custo Fixo</span></label></div><div class="flex-between"><button class="btn-outline" id="btn-cancelar-edicao-cat" style="width:48%; display:none;" onclick="if(typeof cancelarEdicaoCategoria === 'function') cancelarEdicaoCategoria()">Cancelar</button><button class="btn-primary" id="btn-salvar-cat" style="width:100%; background: var(--esmeralda);" onclick="if(typeof salvarConfigNovaCategoria === 'function') salvarConfigNovaCategoria()">Adicionar</button></div></div><strong class="label-moderno mb-10">Despesas (<span id="count-cat-desp">0</span>)</strong><div id="lista-categorias-despesas" style="margin-bottom: 20px; display:flex; flex-wrap:wrap;"></div><strong class="label-moderno mb-10">Receitas (<span id="count-cat-rec">0</span>)</strong><div id="lista-categorias-receitas" style="display:flex; flex-wrap:wrap;"></div></div></div></div>
-        <div id="modal-aparencia" class="modal-overlay"><div class="modal-content"><div class="modal-header flex-between"><h3><i class="fas fa-paint-roller" style="color:var(--azul);"></i> Aparência</h3><button class="btn-icon" onclick="if(typeof fecharModalAparencia === 'function') fecharModalAparencia()"><i class="fas fa-times"></i></button></div><div class="modal-body"><div class="flex-between" style="padding: 15px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);"><span style="font-weight: 500; font-size: 14px;"><i class="fas fa-moon" style="color: var(--texto-sec); margin-right: 8px;"></i> Tema Escuro</span><label class="checkbox-moderno" style="margin: 0; padding: 0;"><input type="checkbox" id="toggle-tema-ajustes" onchange="toggleDarkMode()"><span></span></label></div></div></div></div>
-        <div id="modal-sistema" class="modal-overlay"><div class="modal-content" style="max-height: 90vh;"><div class="modal-header flex-between"><h3><i class="fas fa-shield-alt" style="color:var(--perigo);"></i> Sistema e Dados</h3><button class="btn-icon" onclick="if(typeof fecharModalSistema === 'function') fecharModalSistema()"><i class="fas fa-times"></i></button></div><div class="modal-body" style="overflow-y: auto;"><div class="grid-inputs mb-20"><button class="btn-outline" onclick="exportarBackup()"><i class="fas fa-download"></i> Gerar Backup</button><button class="btn-outline" onclick="document.getElementById('file-upload').click()"><i class="fas fa-upload"></i> Restaurar</button><input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)"></div><strong class="label-moderno mb-10">Histórico de Backups Locais</strong><div id="lista-backups" style="margin-bottom: 20px;"></div><button class="btn-danger mt-20" style="width: 100%;" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica do App</button></div></div></div>
-        <div id="modal-emprestimo" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3>🤝 Detalhes do Recebimento/Pagamento</h3></div><div class="modal-body"><p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p><label class="checkbox-moderno mb-15" style="background: var(--input-bg); padding: 10px; border-radius: 8px;"><input type="checkbox" id="emp-sem-previsao" onchange="if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao()"><span style="font-weight: 500;">Sem previsão exata de quitação (Rolar mensalmente)</span></label><div id="container-campos-previsao"><label class="label-moderno">Número de Parcelas</label><input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1"><label class="label-moderno mt-10">Intervalo (Dias)</label><input type="number" id="emp-intervalo" class="input-moderno" value="30"></div></div><div class="modal-footer grid-inputs mt-20"><button class="btn-outline" onclick="fecharModalEmprestimo()">Cancelar</button><button class="btn-primary" onclick="gerarParcelasEmprestimo()">Confirmar Regras</button></div></div></div>
-        <div id="modal-pagamento-parcial" class="modal-overlay"><div class="modal-content"><div class="modal-header"><h3>💸 Pagamento Parcial</h3></div><div class="modal-body"><p class="mb-15" style="font-size:13px; color:var(--texto-sec);">Valor original pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong></p><label class="label-moderno">Valor Pago/Recebido Agora (R$)</label><input type="number" id="input-valor-parcial" class="input-moderno" placeholder="0.00" step="0.01"><input type="hidden" id="hidden-id-parcial"></div><div class="modal-footer grid-inputs mt-20"><button class="btn-outline" onclick="fecharModalParcial()">Cancelar</button><button class="btn-primary" onclick="confirmarPagamentoParcial()">Amortizar</button></div></div></div>
-        <div id="modal-fatura-parcial" class="modal-overlay" style="display: none;"><div class="modal-content"><div class="modal-header"><h3>💸 Amortizar Fatura</h3></div><div class="modal-body"><p style="font-size:12px; color:var(--texto-sec); margin-bottom:10px;">Fatura: <strong id="txt-fatura-id-parcial"></strong><br>Restante: <strong id="txt-valor-fatura-original"></strong></p><label class="label-moderno">Valor a Amortizar (R$)</label><input type="number" id="input-amortizar-fatura" class="input-moderno" placeholder="0.00" step="0.01"><input type="hidden" id="hidden-fat-id"></div><div class="modal-footer grid-inputs mt-20"><button class="btn-outline" onclick="fecharModalFaturaParcial()">Sair</button><button class="btn-primary" onclick="confirmarAmortizacaoFatura()">Amortizar</button></div></div></div>
-        
-        <div id="toast-container" class="toast-container"></div>
+        <div id="modal-categorias" class="modal-overlay">
+            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header flex-between">
+                    <h3 id="titulo-modal-cat"><i class="fas fa-tags" style="color:var(--esmeralda);"></i> Gestão de Categorias</h3>
+                    <button class="btn-icon" onclick="if(typeof fecharModalCategorias === 'function') fecharModalCategorias()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                    <div style="background: var(--input-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--linha); margin-bottom: 20px;">
+                        <strong id="label-form-cat" style="font-size:14px; display:block; margin-bottom:10px;">Criar Nova Categoria</strong>
+                        <input type="hidden" id="nova-cat-id">
+                        
+                        <div class="grid-inputs mb-10" style="grid-template-columns: 60px 1fr;">
+                            <input type="text" id="nova-cat-icone" class="input-moderno" placeholder="🍔" maxlength="2" style="text-align:center; font-size:20px; padding: 0;">
+                            <input type="text" id="nova-cat-nome" class="input-moderno" placeholder="Nome da Categoria">
+                        </div>
+                        
+                        <select id="nova-cat-tipo" class="input-moderno mb-10">
+                            <option value="despesa">💸 Despesa</option>
+                            <option value="receita">💰 Receita</option>
+                        </select>
+                        
+                        <label class="label-moderno mb-10">Cor da Categoria</label>
+                        <div class="color-palette" id="paleta-cores-cat">
+                            <div class="color-swatch active" style="background-color: #ef4444;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#ef4444', this)"></div>
+                            <div class="color-swatch" style="background-color: #f97316;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f97316', this)"></div>
+                            <div class="color-swatch" style="background-color: #f59e0b;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f59e0b', this)"></div>
+                            <div class="color-swatch" style="background-color: #10b981;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#10b981', this)"></div>
+                            <div class="color-swatch" style="background-color: #06b6d4;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#06b6d4', this)"></div>
+                            <div class="color-swatch" style="background-color: #3b82f6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#3b82f6', this)"></div>
+                            <div class="color-swatch" style="background-color: #8b5cf6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#8b5cf6', this)"></div>
+                            <div class="color-swatch" style="background-color: #ec4899;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#ec4899', this)"></div>
+                            <div class="color-swatch" style="background-color: #64748b;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#64748b', this)"></div>
+                            <input type="color" id="nova-cat-cor" value="#ef4444" class="color-picker-custom" title="Cor personalizada" onchange="if(typeof removerSelecaoPaleta === 'function') removerSelecaoPaleta()">
+                        </div>
+                        
+                        <div class="flex-between mb-15">
+                            <label class="checkbox-moderno" style="width:100%;">
+                                <input type="checkbox" id="nova-cat-fixa">
+                                <span>Marcar como Custo Fixo</span>
+                            </label>
+                        </div>
+                        
+                        <div class="flex-between">
+                            <button class="btn-outline" id="btn-cancelar-edicao-cat" style="width:48%; display:none;" onclick="if(typeof cancelarEdicaoCategoria === 'function') cancelarEdicaoCategoria()">Cancelar</button>
+                            <button class="btn-primary" id="btn-salvar-cat" style="width:100%; background: var(--esmeralda);" onclick="if(typeof salvarConfigNovaCategoria === 'function') salvarConfigNovaCategoria()">Adicionar</button>
+                        </div>
+                    </div>
+                    
+                    <strong class="label-moderno mb-10">Despesas (<span id="count-cat-desp">0</span>)</strong>
+                    <div id="lista-categorias-despesas" style="margin-bottom: 20px; display:flex; flex-wrap:wrap;"></div>
+                    
+                    <strong class="label-moderno mb-10">Receitas (<span id="count-cat-rec">0</span>)</strong>
+                    <div id="lista-categorias-receitas" style="display:flex; flex-wrap:wrap;"></div>
+                </div>
+            </div>
+        </div>
 
-        <button class="fab-mobile" onclick="abrirModalLancamento()">
-            <i class="fas fa-plus"></i>
-        </button>
+        <div id="modal-aparencia" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-paint-roller" style="color:var(--azul);"></i> Aparência</h3>
+                    <button class="btn-icon" onclick="if(typeof fecharModalAparencia === 'function') fecharModalAparencia()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <div class="flex-between" style="padding: 15px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
+                        <span style="font-weight: 500; font-size: 14px;"><i class="fas fa-moon" style="color: var(--texto-sec); margin-right: 8px;"></i> Tema Escuro</span>
+                        <label class="checkbox-moderno" style="margin: 0; padding: 0;">
+                            <input type="checkbox" id="toggle-tema-ajustes" onchange="toggleDarkMode()">
+                            <span></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="modal-sistema" class="modal-overlay">
+            <div class="modal-content" style="max-height: 90vh;">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-shield-alt" style="color:var(--perigo);"></i> Sistema e Dados</h3>
+                    <button class="btn-icon" onclick="if(typeof fecharModalSistema === 'function') fecharModalSistema()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto;">
+                    <div class="grid-inputs mb-20">
+                        <button class="btn-outline" onclick="exportarBackup()"><i class="fas fa-download"></i> Gerar Backup</button>
+                        <button class="btn-outline" onclick="document.getElementById('file-upload').click()"><i class="fas fa-upload"></i> Restaurar</button>
+                        <input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)">
+                    </div>
+                    
+                    <strong class="label-moderno mb-10">Histórico de Backups Locais</strong>
+                    <div id="lista-backups" style="margin-bottom: 20px;"></div>
+                    
+                    <button class="btn-danger mt-20" style="width: 100%;" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica do App</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-emprestimo" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header"><h3>🤝 Detalhes</h3></div>
+                <div class="modal-body">
+                    <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
+                    <label class="checkbox-moderno mb-15" style="background: var(--input-bg); padding: 10px; border-radius: 8px;">
+                        <input type="checkbox" id="emp-sem-previsao" onchange="if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao()">
+                        <span style="font-weight: 500;">Sem previsão exata (Rolar mensalmente)</span>
+                    </label>
+                    <div id="container-campos-previsao">
+                        <label class="label-moderno">Número de Parcelas</label>
+                        <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
+                        <label class="label-moderno mt-10">Intervalo (Dias)</label>
+                        <input type="number" id="emp-intervalo" class="input-moderno" value="30">
+                    </div>
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalEmprestimo()">Cancelar</button>
+                    <button class="btn-primary" onclick="gerarParcelasEmprestimo()">Confirmar Regras</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-pagamento-parcial" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header"><h3>💸 Pagamento Parcial</h3></div>
+                <div class="modal-body">
+                    <p class="mb-15" style="font-size:13px; color:var(--texto-sec);">Valor original pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong></p>
+                    <label class="label-moderno">Valor Pago/Recebido Agora (R$)</label>
+                    <input type="number" id="input-valor-parcial" class="input-moderno" placeholder="0.00" step="0.01">
+                    <input type="hidden" id="hidden-id-parcial">
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalParcial()">Cancelar</button>
+                    <button class="btn-primary" onclick="confirmarPagamentoParcial()">Amortizar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-fatura-parcial" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header"><h3>💸 Amortizar Fatura</h3></div>
+                <div class="modal-body">
+                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:10px;">Fatura: <strong id="txt-fatura-id-parcial"></strong><br>Restante: <strong id="txt-valor-fatura-original"></strong></p>
+                    <label class="label-moderno">Valor a Amortizar (R$)</label>
+                    <input type="number" id="input-amortizar-fatura" class="input-moderno" placeholder="0.00" step="0.01">
+                    <input type="hidden" id="hidden-fat-id">
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalFaturaParcial()">Sair</button>
+                    <button class="btn-primary" onclick="confirmarAmortizacaoFatura()">Amortizar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-salarios" class="modal-overlay">
+            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-money-check-alt" style="color:var(--esmeralda);"></i> Rendas e Salários</h3>
+                    <button class="btn-icon" onclick="fecharModalSalarios()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px;">Cadastre as suas fontes de rendimento. O motor irá avisá-lo e lançar o dinheiro automaticamente nos dias programados.</p>
+                    
+                    <div id="lista-salarios-cadastrados" style="margin-bottom: 20px;"></div>
+                    
+                    <div class="card" style="border: 1px dashed var(--esmeralda); background: transparent;">
+                        <strong style="font-size: 14px; display:block; margin-bottom: 12px;"><i class="fas fa-plus-circle text-esmeralda"></i> Adicionar Nova Renda</strong>
+                        
+                        <div class="grid-inputs mb-10">
+                            <div><label class="label-moderno">Nome da Renda</label><input type="text" id="sal-nome" class="input-moderno" placeholder="Ex: Salário Principal, Freela"></div>
+                            <div><label class="label-moderno">Valor TOTAL (R$)</label><input type="number" id="sal-valor" class="input-moderno" placeholder="Ex: 5000" oninput="atualizarDiasSalario()"></div>
+                        </div>
+                        
+                        <div class="mb-10">
+                            <label class="label-moderno">Frequência de Recebimento</label>
+                            <select id="sal-freq" class="input-moderno" onchange="atualizarDiasSalario()">
+                                <option value="mensal">Mensal (1 recebimento no mês)</option>
+                                <option value="quinzenal">Quinzenal (2 recebimentos no mês)</option>
+                                <option value="semanal">Semanal (4 recebimentos no mês)</option>
+                            </select>
+                        </div>
+                        
+                        <label class="label-moderno" style="margin-bottom: 8px; display:block;">Quais dias do mês cai na conta?</label>
+                        <div id="sal-dias-container" class="grid-inputs mb-10"></div>
+                        <p id="sal-resumo-calculo" style="font-size:11px; color:var(--esmeralda); font-weight:bold; margin-bottom: 15px; text-align:right;"></p>
+                        
+                        <div class="mb-15">
+                            <label class="label-moderno">Conta de Destino</label>
+                            <select id="sal-conta" class="input-moderno"></select>
+                        </div>
+                        <button class="btn-primary" style="width: 100%; background: var(--esmeralda);" onclick="salvarNovoSalario()">Salvar Rendimento</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-contratos" class="modal-overlay">
+            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-file-signature" style="color:var(--alerta);"></i> Fixos & Parcelamentos</h3>
+                    <button class="btn-icon" onclick="fecharModalContratos()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px;">Registe contas de consumo (água, luz) ou os seus consórcios e compras parceladas em andamento.</p>
+                    
+                    <div class="segmented-control mb-15">
+                        <button class="segmented-btn active" id="tab-fixa" onclick="mudarAbaContrato('fixa')">Conta Fixa (Mensal)</button>
+                        <button class="segmented-btn" id="tab-parc" onclick="mudarAbaContrato('parc')">Parcelamento em Andamento</button>
+                    </div>
+                    
+                    <div id="area-conta-fixa">
+                        <div class="grid-inputs mb-10">
+                            <div><label class="label-moderno">Descrição</label><input type="text" id="fixa-desc" class="input-moderno" placeholder="Ex: Energia, Internet"></div>
+                            <div><label class="label-moderno">Valor (R$)</label><input type="number" id="fixa-valor" class="input-moderno" placeholder="0.00"></div>
+                        </div>
+                        <div class="grid-inputs mb-10">
+                            <div><label class="label-moderno">Vencimento (Dia)</label><input type="number" id="fixa-dia" class="input-moderno" min="1" max="31" placeholder="Ex: 10"></div>
+                            <div><label class="label-moderno">Categoria</label><select id="fixa-cat" class="input-moderno"></select></div>
+                        </div>
+                        <div class="mb-15">
+                            <label class="label-moderno">Forma de Pagamento Base</label>
+                            <select id="fixa-conta" class="input-moderno"></select>
+                        </div>
+                        <button class="btn-primary" style="width: 100%; background: var(--alerta);" onclick="if(typeof salvarContaFixa === 'function') salvarContaFixa()">Registar Conta Fixa</button>
+                    </div>
+                    
+                    <div id="area-parcelamento-antigo" style="display: none;">
+                        <div style="background: rgba(37, 99, 235, 0.1); padding: 10px; border-radius: 8px; border-left: 3px solid var(--azul); font-size: 11px; color: var(--texto-sec); margin-bottom: 15px;">
+                            <strong>Atenção:</strong> Lança as parcelas pendentes no seu extrato. Suporta Cartões, Contas Correntes (Boletos) e Pix.
+                        </div>
+                        
+                        <div class="mb-10">
+                            <label class="label-moderno">O que você comprou / Consórcio?</label>
+                            <input type="text" id="parc-desc" class="input-moderno" placeholder="Ex: Consórcio, Geladeira">
+                        </div>
+                        
+                        <div class="grid-inputs mb-10">
+                            <div><label class="label-moderno">Valor da Parcela (R$)</label><input type="number" id="parc-valor" class="input-moderno" placeholder="Ex: 150.00"></div>
+                            <div><label class="label-moderno">Dia Vencimento</label><input type="number" id="parc-dia" class="input-moderno" min="1" max="31" placeholder="Ex: 10"></div>
+                        </div>
+                        
+                        <div class="grid-inputs mb-10">
+                            <div><label class="label-moderno">Parcela Atual</label><input type="number" id="parc-atual" class="input-moderno" min="1" placeholder="Ex: 5"></div>
+                            <div><label class="label-moderno">Total Parcelas</label><input type="number" id="parc-total" class="input-moderno" min="1" placeholder="Ex: 60"></div>
+                        </div>
+                        
+                        <div class="grid-inputs mb-10">
+                            <div><label class="label-moderno">Mês Parcela Atual</label><input type="month" id="parc-mes" class="input-moderno"></div>
+                            <div><label class="label-moderno">Categoria</label><select id="parc-cat" class="input-moderno"></select></div>
+                        </div>
+                        
+                        <div class="mb-15">
+                            <label class="label-moderno">Em qual Conta / Cartão?</label>
+                            <select id="parc-conta" class="input-moderno"></select>
+                        </div>
+                        <button class="btn-primary" style="width: 100%;" onclick="if(typeof salvarParcelamentoAndamento === 'function') salvarParcelamentoAndamento()">Gerar Parcelamento</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast-container" class="toast-container"></div>
+        <button class="fab-mobile" onclick="abrirModalLancamento()"><i class="fas fa-plus"></i></button>
 
         <nav id="menu-lateral" class="menu-inferior">
-            <div class="menu-item active" onclick="navegar('dashboard', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-chart-pie"></i><span>Visão</span></div>
-            <div class="menu-item" onclick="navegar('faturas', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-credit-card"></i><span>Faturas</span></div>
-            <div class="menu-item" onclick="navegar('historico', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-list-ul"></i><span>Extrato</span></div>
-            <div class="menu-item" onclick="navegar('contas', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-wallet"></i><span>Contas</span></div>
-            <div class="menu-item" onclick="navegar('config', this); document.getElementById('menu-lateral').classList.remove('open');"><i class="fas fa-sliders-h"></i><span>Ajustes</span></div>
+            <div class="menu-item active" onclick="navegar('dashboard', this); document.getElementById('menu-lateral').classList.remove('open');">
+                <i class="fas fa-chart-pie"></i><span>Visão</span>
+            </div>
+            <div class="menu-item" onclick="navegar('faturas', this); document.getElementById('menu-lateral').classList.remove('open');">
+                <i class="fas fa-credit-card"></i><span>Faturas</span>
+            </div>
+            <div class="menu-item" onclick="navegar('historico', this); document.getElementById('menu-lateral').classList.remove('open');">
+                <i class="fas fa-list-ul"></i><span>Extrato</span>
+            </div>
+            <div class="menu-item" onclick="navegar('contas', this); document.getElementById('menu-lateral').classList.remove('open');">
+                <i class="fas fa-wallet"></i><span>Contas</span>
+            </div>
+            <div class="menu-item" onclick="navegar('config', this); document.getElementById('menu-lateral').classList.remove('open');">
+                <i class="fas fa-sliders-h"></i><span>Ajustes</span>
+            </div>
         </nav>
+        
+        <div class="drawer-overlay" id="drawer-notificacoes-overlay" onclick="fecharNotificacoes()"></div>
+        <div class="notification-drawer" id="gaveta-notificacoes">
+            <div class="drawer-header">
+                <h3 style="margin: 0; font-size: 16px; color: var(--texto-main);"><i class="fas fa-bell" style="color: var(--azul); margin-right: 8px;"></i> Notificações</h3>
+                <button class="btn-icon" onclick="fecharNotificacoes()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="drawer-body" id="lista-notificacoes">
+                </div>
+        </div>
     </div>
 
     <script>
-        function abrirModalLancamento() {
-            const m = document.getElementById('modal-lancamento');
-            m.style.display = 'flex';
-            setTimeout(() => m.classList.add('active'), 10);
-            if(typeof mudarDirecaoLancamento === 'function') mudarDirecaoLancamento();
+        // Funções de Modais Básicos
+        function abrirModalLancamento() { 
+            const m = document.getElementById('modal-lancamento'); m.style.display = 'flex'; 
+            setTimeout(() => m.classList.add('active'), 10); 
+            if(typeof mudarDirecaoLancamento === 'function') mudarDirecaoLancamento(); 
         }
-        function fecharModalLancamento() {
-            const m = document.getElementById('modal-lancamento');
-            m.classList.remove('active');
-            setTimeout(() => m.style.display = 'none', 300);
+        function fecharModalLancamento() { 
+            const m = document.getElementById('modal-lancamento'); m.classList.remove('active'); 
+            setTimeout(() => m.style.display = 'none', 300); 
+        }
+        function abrirNotificacoes() { 
+            document.getElementById('drawer-notificacoes-overlay').classList.add('active'); 
+            document.getElementById('gaveta-notificacoes').classList.add('open'); 
+            if(typeof verificarNotificacoesMotor === 'function') verificarNotificacoesMotor(); 
+        }
+        function fecharNotificacoes() { 
+            document.getElementById('drawer-notificacoes-overlay').classList.remove('active'); 
+            document.getElementById('gaveta-notificacoes').classList.remove('open'); 
+        }
+        
+        // Funções do Modal de Salários
+        function abrirModalSalarios() { 
+            const m = document.getElementById('modal-salarios'); m.style.display = 'flex'; 
+            setTimeout(() => m.classList.add('active'), 10); 
+            const selectConta = document.getElementById('sal-conta'); selectConta.options.length = 0; 
+            const contasCC = (db.contas || []).filter(c => c.tipo !== 'cartao'); 
+            contasCC.forEach(c => selectConta.options.add(new Option(c.nome, c.id))); 
+            if(contasCC.length === 0) selectConta.options.add(new Option('Crie uma conta corrente', '')); 
+            atualizarDiasSalario(); 
+            renderListaSalarios(); 
+        }
+        function fecharModalSalarios() { 
+            const m = document.getElementById('modal-salarios'); m.classList.remove('active'); 
+            setTimeout(() => m.style.display = 'none', 300); 
+        }
+        function atualizarDiasSalario() { 
+            const freq = document.getElementById('sal-freq').value; 
+            const container = document.getElementById('sal-dias-container'); 
+            const resumo = document.getElementById('sal-resumo-calculo'); 
+            const valorTotal = parseFloat(document.getElementById('sal-valor').value) || 0; 
+            let inputs = ''; let vezes = 1; 
+            
+            if (freq === 'mensal') { 
+                inputs = '<div><input type="number" id="sal-dia-1" class="input-moderno" placeholder="Dia" min="1" max="31"></div>'; 
+                vezes = 1; 
+            } else if (freq === 'quinzenal') { 
+                inputs = '<div><input type="number" id="sal-dia-1" class="input-moderno" placeholder="1º Dia"></div><div><input type="number" id="sal-dia-2" class="input-moderno" placeholder="2º Dia"></div>'; 
+                vezes = 2; 
+            } else if (freq === 'semanal') { 
+                inputs = '<div><input type="number" id="sal-dia-1" class="input-moderno" placeholder="1º"></div><div><input type="number" id="sal-dia-2" class="input-moderno" placeholder="2º"></div><div><input type="number" id="sal-dia-3" class="input-moderno" placeholder="3º"></div><div><input type="number" id="sal-dia-4" class="input-moderno" placeholder="4º"></div>'; 
+                vezes = 4; 
+            } 
+            
+            container.innerHTML = inputs; 
+            if (valorTotal > 0) { 
+                resumo.innerText = `${vezes} recebimento(s) de R$ ${(valorTotal / vezes).toFixed(2)}`; 
+            } else { 
+                resumo.innerText = ''; 
+            } 
+        }
+        function renderListaSalarios() { 
+            const lista = document.getElementById('lista-salarios-cadastrados'); 
+            if (!db.salarios || db.salarios.length === 0) { 
+                lista.innerHTML = '<p class="texto-vazio" style="font-size:12px;">Nenhum salário cadastrado.</p>'; 
+                return; 
+            } 
+            lista.innerHTML = db.salarios.map(s => { 
+                const c = db.contas.find(x => x.id === s.contaId); 
+                return `
+                <div class="salario-card">
+                    <div>
+                        <strong style="font-size: 13px; color: var(--texto-main);">${s.nome}</strong>
+                        <small style="display:block; font-size: 11px; color: var(--texto-sec);">${s.frequencia.toUpperCase()} • R$ ${s.valorTotal.toFixed(2)} (${c?c.nome:'S/ Conta'})</small>
+                        <span class="salario-badge mt-10">Dias: ${s.dias.join(', ')}</span>
+                    </div>
+                    <button class="btn-icon txt-perigo" onclick="excluirSalario(${s.id})"><i class="fas fa-trash"></i></button>
+                </div>`; 
+            }).join(''); 
+        }
+        function salvarNovoSalario() { 
+            const nome = document.getElementById('sal-nome').value; 
+            const valorTotal = parseFloat(document.getElementById('sal-valor').value); 
+            const freq = document.getElementById('sal-freq').value; 
+            const contaId = document.getElementById('sal-conta').value; 
+            
+            if (!nome || isNaN(valorTotal) || !contaId) return alert("Preencha Nome, Valor e Conta."); 
+            
+            let dias = []; 
+            let qtdDias = freq === 'mensal' ? 1 : (freq === 'quinzenal' ? 2 : 4); 
+            for(let i=1; i<=qtdDias; i++) { 
+                const d = parseInt(document.getElementById(`sal-dia-${i}`).value); 
+                if(!d || d < 1 || d > 31) return alert(`Preencha o ${i}º Dia corretamente.`); 
+                dias.push(d); 
+            } 
+            
+            db.salarios.push({ id: Date.now(), nome, valorTotal, frequencia: freq, dias, contaId }); 
+            save(); 
+            
+            document.getElementById('sal-nome').value = ''; 
+            document.getElementById('sal-valor').value = ''; 
+            atualizarDiasSalario(); 
+            renderListaSalarios(); 
+            
+            if(typeof showToast === 'function') showToast("Salário adicionado ao Motor!"); 
+            if(typeof verificarNotificacoesMotor === 'function') verificarNotificacoesMotor(); 
+        }
+        function excluirSalario(id) { 
+            if(!confirm("Remover este salário do Motor Automático?")) return; 
+            db.salarios = db.salarios.filter(s => s.id !== id); 
+            save(); 
+            renderListaSalarios(); 
+            if(typeof verificarNotificacoesMotor === 'function') verificarNotificacoesMotor(); 
+        }
+
+        // Funções do Modal de Contratos e Parcelamentos
+        function abrirModalContratos() { 
+            const m = document.getElementById('modal-contratos'); m.style.display = 'flex'; 
+            setTimeout(() => m.classList.add('active'), 10); 
+            
+            const selectCatFixa = document.getElementById('fixa-cat'); 
+            const selectCatParc = document.getElementById('parc-cat'); 
+            selectCatFixa.options.length = 0; selectCatParc.options.length = 0; 
+            const catDesp = (db.categorias || []).filter(c => c.tipo === 'despesa'); 
+            catDesp.forEach(c => { 
+                selectCatFixa.options.add(new Option(c.nome, c.nome)); 
+                selectCatParc.options.add(new Option(c.nome, c.nome)); 
+            }); 
+            
+            const selectContaFixa = document.getElementById('fixa-conta'); 
+            const selectContaParc = document.getElementById('parc-conta'); 
+            selectContaFixa.options.length = 0; selectContaParc.options.length = 0; 
+            (db.contas || []).forEach(c => { 
+                const nm = `${c.tipo==='cartao'?'💳':(c.tipo==='investimento'?'📈':'🏦')} ${c.nome}`;
+                selectContaFixa.options.add(new Option(nm, c.id)); 
+                selectContaParc.options.add(new Option(nm, c.id)); 
+            }); 
+            
+            const hoje = new Date(); 
+            document.getElementById('parc-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2,'0')}`; 
+        }
+        function fecharModalContratos() { 
+            const m = document.getElementById('modal-contratos'); m.classList.remove('active'); 
+            setTimeout(() => m.style.display = 'none', 300); 
+        }
+        function mudarAbaContrato(aba) { 
+            document.getElementById('tab-fixa').classList.remove('active'); 
+            document.getElementById('tab-parc').classList.remove('active'); 
+            document.getElementById('area-conta-fixa').style.display = 'none'; 
+            document.getElementById('area-parcelamento-antigo').style.display = 'none'; 
+            
+            if (aba === 'fixa') { 
+                document.getElementById('tab-fixa').classList.add('active'); 
+                document.getElementById('area-conta-fixa').style.display = 'block'; 
+            } else { 
+                document.getElementById('tab-parc').classList.add('active'); 
+                document.getElementById('area-parcelamento-antigo').style.display = 'block'; 
+            } 
         }
     </script>
 
-    <script src="core.js?v=25.9"></script>
-    <script src="engine.js?v=25.9"></script>
-    <script src="ui.js?v=25.9"></script>
-    <script src="app.js?v=25.9"></script>
+    <script src="core.js?v=26.0"></script>
+    <script src="engine.js?v=26.0"></script>
+    <script src="ui.js?v=26.0"></script>
+    <script src="app.js?v=26.0"></script>
 </body>
 </html>
