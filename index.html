@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v26.0.10</title>
+    <title>EcoFinance Pro v27.0.5</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=26.0">
+    <link rel="stylesheet" href="style.css?v=27.0">
     <style>
         /* Estilos Base e Roadmap */
         .roadmap-group { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--linha); }
@@ -43,7 +43,7 @@
         .color-picker-custom::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker-custom::-webkit-color-swatch { border: none; border-radius: 50%; border: 1px dashed var(--texto-sec); }
 
-        /* Botões Flutuantes (Voltar ao Topo e FAB Mobile) */
+        /* Botões Flutuantes */
         .fab-mobile { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--esmeralda); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); z-index: 99; border: none; cursor: pointer; transition: 0.3s; }
         .fab-mobile:active { transform: scale(0.90); }
         
@@ -55,7 +55,7 @@
         .btn-header-desktop { display: none; background: var(--esmeralda); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.4); margin-right: 10px; }
         .btn-header-desktop:hover { filter: brightness(1.1); transform: translateY(-1px); }
 
-        /* Central de Notificações (Gaveta Lateral) */
+        /* Central de Notificações */
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s ease; }
         .drawer-overlay.active { opacity: 1; visibility: visible; }
         .notification-drawer { position: fixed; top: 0; right: 0; width: 100%; max-width: 360px; height: 100%; background: var(--card-bg); box-shadow: -5px 0 25px rgba(0,0,0,0.3); z-index: 1001; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; border-left: 1px solid var(--linha); }
@@ -75,21 +75,28 @@
         .salario-card { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .salario-badge { background: rgba(16, 185, 129, 0.1); color: var(--esmeralda); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
 
-        /* UI DESKTOP PREMIUM - ROLAGEM NATIVA E CABEÇALHO FIXO */
+        /* Insight Card */
+        .insight-card { padding: 12px 15px; border-radius: 12px; display: flex; gap: 12px; align-items: center; font-size: 13px; line-height: 1.4; border-left: 4px solid; background: var(--card-bg); box-shadow: var(--shadow-sm); }
+        .insight-card.sucesso { border-left-color: var(--sucesso); background: rgba(16, 185, 129, 0.05); }
+        .insight-card.perigo { border-left-color: var(--perigo); background: rgba(239, 68, 68, 0.05); }
+        .insight-card.info { border-left-color: var(--azul); background: rgba(59, 130, 246, 0.05); }
+
+        /* NOVO: Scroll horizontal para o gráfico anual */
+        .chart-scroll-wrapper { width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .chart-scroll-wrapper::-webkit-scrollbar { height: 6px; }
+        .chart-scroll-wrapper::-webkit-scrollbar-track { background: var(--input-bg); border-radius: 4px; }
+        .chart-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--linha); border-radius: 4px; }
+        
+        .card-meta-individual { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 15px; margin-bottom: 12px; position: relative; overflow: hidden; }
+
         @media (min-width: 1024px) {
-            /* Clip em vez de hidden resolve o problema do sticky no body */
             html, body { overflow-x: clip !important; }
             body { background-color: #0f172a; margin: 0; padding: 0; }
-            
             #app { width: 60%; max-width: 1200px; min-width: 800px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); overflow: visible !important; }
             #conteudo-principal { flex: 1; padding-bottom: 40px; } 
-            
-            /* CABEÇALHO FIXO GARANTIDO */
             header.header-modern { position: sticky !important; top: 0 !important; z-index: 999 !important; background: var(--card-bg) !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; align-self: flex-start; width: 100%; box-sizing: border-box; }
-            
             .fab-mobile { display: none !important; } 
             .btn-scroll-top { bottom: 30px; left: auto; right: 30px; width: 50px; height: 50px; font-size: 20px; }
-            
             .btn-header-desktop { display: flex; } 
             .hamburger-desktop { display: block !important; }
             #menu-lateral { position: fixed !important; top: 0; left: 0; height: 100vh; width: 250px; flex-direction: column !important; justify-content: flex-start !important; background: var(--card-bg) !important; border-right: 1px solid var(--linha); border-top: none !important; padding-top: 85px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 102 !important; box-shadow: none; }
@@ -133,18 +140,22 @@
             
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
+                    
                     <div class="executive-panel">
-                        <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; box-shadow: 0 10px 20px rgba(37,99,235,0.2);">
+                        <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; box-shadow: 0 10px 20px rgba(37,99,235,0.2); cursor: pointer; transition: transform 0.2s;" onclick="if(typeof abrirModalMetasCartoes === 'function') abrirModalMetasCartoes()">
                             <div class="flex-between">
                                 <small style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-bullseye"></i> Consumo da Meta (Cartões)</small>
                                 <span id="meta-percentual" style="background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 13px; color: white;">0%</span>
                             </div>
                             <h2 id="uso-meta-texto" style="margin: 12px 0 15px 0; font-size: 28px; color: white; letter-spacing: -1px;">R$ 0,00 / R$ 0,00</h2>
-                            <div class="progress-bg" style="background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; overflow: hidden;">
+                            <div class="progress-bg" style="background: rgba(255,255,255,0.2); height: 8px; border-radius: 10px; overflow: hidden; margin-bottom: 5px;">
                                 <div id="meta-bar" style="height: 100%; background: #10b981; width: 0%; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);"></div>
                             </div>
+                            <small style="color: rgba(255,255,255,0.7); font-size: 10px; text-align: center; display: block;">Toque para ver metas individuais <i class="fas fa-hand-pointer"></i></small>
                         </div>
                     </div>
+
+                    <div id="painel-insights" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
 
                     <div class="grid-resumo-2" style="margin-bottom: 15px;">
                         <div class="card-simples">
@@ -213,8 +224,16 @@
                     </div>
                     
                     <div class="card">
-                        <strong class="titulo-sessao">Evolução Financeira (3 Meses)</strong>
-                        <div class="chart-container"><canvas id="graficoEvolucao"></canvas></div>
+                        <div class="flex-between mb-15">
+                            <strong class="titulo-sessao" style="margin-bottom: 0;">Evolução Financeira</strong>
+                            <select id="filtro-ano-grafico" class="input-moderno" style="width: auto; padding: 5px 10px; font-size: 12px;" onchange="if(typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao()">
+                                </select>
+                        </div>
+                        <div class="chart-scroll-wrapper" id="scroll-wrapper-evolucao">
+                            <div class="chart-container" style="min-width: 800px; height: 250px; position: relative;">
+                                <canvas id="graficoEvolucao"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -266,8 +285,8 @@
                         
                         <div id="campos-cartao-add" style="display:none;" class="mt-10">
                             <div class="grid-inputs mb-10">
-                                <input type="number" id="nova-conta-limite" class="input-moderno" placeholder="Limite Total">
-                                <input type="number" id="nova-conta-meta" class="input-moderno" placeholder="Meta de Gasto">
+                                <input type="text" inputmode="numeric" id="nova-conta-limite" class="input-moderno" placeholder="Limite Total" oninput="mascaraMoeda(event)">
+                                <input type="text" inputmode="numeric" id="nova-conta-meta" class="input-moderno" placeholder="Meta de Gasto" oninput="mascaraMoeda(event)">
                             </div>
                             <div class="grid-inputs">
                                 <input type="number" id="nova-conta-fecha" class="input-moderno" placeholder="Dia Fechamento (Ex: 5)">
@@ -350,6 +369,29 @@
             </section>
         </main>
 
+        <div id="modal-metas-cartoes" class="modal-overlay">
+            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-bullseye" style="color:var(--azul);"></i> Análise das Metas</h3>
+                    <button class="btn-icon" onclick="fecharModalMetasCartoes()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; flex: 1;" id="lista-metas-detalhadas">
+                    </div>
+            </div>
+        </div>
+
+        <div id="modal-confirmacao" class="modal-overlay" style="z-index: 999999;">
+            <div class="modal-content" style="max-width: 320px; text-align: center;">
+                <div style="font-size: 40px; color: var(--alerta); margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
+                <h3 style="margin-bottom: 10px; color: var(--texto-main);">Atenção</h3>
+                <p id="msg-confirmacao" style="font-size: 13px; color: var(--texto-sec); margin-bottom: 20px;"></p>
+                <div class="flex-between">
+                    <button class="btn-outline" style="width: 48%;" onclick="fecharConfirmacao()">Cancelar</button>
+                    <button class="btn-primary" style="width: 48%; background: var(--perigo);" onclick="confirmarAcaoModal()">Sim, Excluir</button>
+                </div>
+            </div>
+        </div>
+
         <div id="modal-lancamento" class="modal-overlay">
             <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header flex-between">
@@ -383,7 +425,7 @@
                     <div class="mb-10">
                         <input type="text" id="lanc-desc" class="input-moderno mb-10" placeholder="Descrição da movimentação">
                         <div class="grid-inputs">
-                            <input type="number" id="lanc-valor" class="input-moderno" placeholder="Valor R$" oninput="if(typeof atualizarParcelasCartao === 'function') atualizarParcelasCartao()">
+                            <input type="text" inputmode="numeric" id="lanc-valor" class="input-moderno" placeholder="Valor R$ 0,00" oninput="mascaraMoeda(event); if(typeof atualizarParcelasCartao === 'function') atualizarParcelasCartao()">
                             <select id="lanc-parcelas" class="input-moderno" style="display:none;"></select>
                         </div>
                     </div>
@@ -529,7 +571,7 @@
                 <div class="modal-body">
                     <p class="mb-15" style="font-size:13px; color:var(--texto-sec);">Valor original pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong></p>
                     <label class="label-moderno">Valor Pago/Recebido Agora (R$)</label>
-                    <input type="number" id="input-valor-parcial" class="input-moderno" placeholder="0.00" step="0.01">
+                    <input type="text" inputmode="numeric" id="input-valor-parcial" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
                     <input type="hidden" id="hidden-id-parcial">
                 </div>
                 <div class="modal-footer grid-inputs mt-20">
@@ -545,7 +587,7 @@
                 <div class="modal-body">
                     <p style="font-size:12px; color:var(--texto-sec); margin-bottom:10px;">Fatura: <strong id="txt-fatura-id-parcial"></strong><br>Restante: <strong id="txt-valor-fatura-original"></strong></p>
                     <label class="label-moderno">Valor a Amortizar (R$)</label>
-                    <input type="number" id="input-amortizar-fatura" class="input-moderno" placeholder="0.00" step="0.01">
+                    <input type="text" inputmode="numeric" id="input-amortizar-fatura" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
                     <input type="hidden" id="hidden-fat-id">
                 </div>
                 <div class="modal-footer grid-inputs mt-20">
@@ -571,7 +613,7 @@
                         
                         <div class="grid-inputs mb-10">
                             <div><label class="label-moderno">Nome da Renda</label><input type="text" id="sal-nome" class="input-moderno" placeholder="Ex: Salário Principal, Freela"></div>
-                            <div><label class="label-moderno">Valor TOTAL (R$)</label><input type="number" id="sal-valor" class="input-moderno" placeholder="Ex: 5000" oninput="atualizarDiasSalario()"></div>
+                            <div><label class="label-moderno">Valor TOTAL (R$)</label><input type="text" inputmode="numeric" id="sal-valor" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event); atualizarDiasSalario()"></div>
                         </div>
                         
                         <div class="mb-10">
@@ -614,7 +656,7 @@
                     <div id="area-conta-fixa">
                         <div class="grid-inputs mb-10">
                             <div><label class="label-moderno">Descrição</label><input type="text" id="fixa-desc" class="input-moderno" placeholder="Ex: Energia, Internet"></div>
-                            <div><label class="label-moderno">Valor (R$)</label><input type="number" id="fixa-valor" class="input-moderno" placeholder="0.00"></div>
+                            <div><label class="label-moderno">Valor (R$)</label><input type="text" inputmode="numeric" id="fixa-valor" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)"></div>
                         </div>
                         <div class="grid-inputs mb-10">
                             <div><label class="label-moderno">Vencimento (Dia)</label><input type="number" id="fixa-dia" class="input-moderno" min="1" max="31" placeholder="Ex: 10"></div>
@@ -638,7 +680,7 @@
                         </div>
                         
                         <div class="grid-inputs mb-10">
-                            <div><label class="label-moderno">Valor da Parcela (R$)</label><input type="number" id="parc-valor" class="input-moderno" placeholder="Ex: 150.00"></div>
+                            <div><label class="label-moderno">Valor da Parcela (R$)</label><input type="text" inputmode="numeric" id="parc-valor" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)"></div>
                             <div><label class="label-moderno">Dia Vencimento</label><input type="number" id="parc-dia" class="input-moderno" min="1" max="31" placeholder="Ex: 10"></div>
                         </div>
                         
@@ -697,7 +739,40 @@
     </div>
 
     <script>
-        // Lógica do Botão Voltar ao Topo
+        window.mascaraMoeda = function(event) {
+            let valor = event.target.value.replace(/\D/g, ''); 
+            if (valor === '') valor = '0';
+            valor = (parseInt(valor, 10) / 100).toFixed(2); 
+            valor = valor.replace('.', ',');
+            valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+            event.target.value = valor;
+        };
+
+        window.parseMoeda = function(id) {
+            const el = document.getElementById(id);
+            if(!el || !el.value) return 0;
+            return parseFloat(el.value.replace(/\./g, '').replace(',', '.')) || 0;
+        };
+
+        window.acaoConfirmacaoAtual = null;
+        window.abrirConfirmacao = function(msg, callback) {
+            document.getElementById('msg-confirmacao').innerText = msg;
+            window.acaoConfirmacaoAtual = callback;
+            const m = document.getElementById('modal-confirmacao');
+            m.style.display = 'flex';
+            setTimeout(() => m.classList.add('active'), 10);
+        };
+        window.fecharConfirmacao = function() {
+            const m = document.getElementById('modal-confirmacao');
+            m.classList.remove('active');
+            setTimeout(() => m.style.display = 'none', 300);
+            window.acaoConfirmacaoAtual = null;
+        };
+        window.confirmarAcaoModal = function() {
+            if (window.acaoConfirmacaoAtual) window.acaoConfirmacaoAtual();
+            fecharConfirmacao();
+        };
+
         window.addEventListener('scroll', () => {
             const btnTopo = document.getElementById('btn-scroll-top');
             if(btnTopo) {
@@ -709,7 +784,6 @@
             }
         });
 
-        // Funções de Modais Básicos
         function abrirModalLancamento() { 
             const m = document.getElementById('modal-lancamento'); m.style.display = 'flex'; 
             setTimeout(() => m.classList.add('active'), 10); 
@@ -729,7 +803,19 @@
             document.getElementById('gaveta-notificacoes').classList.remove('open'); 
         }
         
-        // Funções do Modal de Salários
+        // NOVO: Controle do Modal de Metas dos Cartões
+        window.abrirModalMetasCartoes = function() {
+            const m = document.getElementById('modal-metas-cartoes'); 
+            m.style.display = 'flex'; 
+            setTimeout(() => m.classList.add('active'), 10);
+            if(typeof renderMetasIndividuais === 'function') renderMetasIndividuais();
+        }
+        window.fecharModalMetasCartoes = function() {
+            const m = document.getElementById('modal-metas-cartoes'); 
+            m.classList.remove('active'); 
+            setTimeout(() => m.style.display = 'none', 300);
+        }
+
         function abrirModalSalarios() { 
             const m = document.getElementById('modal-salarios'); m.style.display = 'flex'; 
             setTimeout(() => m.classList.add('active'), 10); 
@@ -748,7 +834,7 @@
             const freq = document.getElementById('sal-freq').value; 
             const container = document.getElementById('sal-dias-container'); 
             const resumo = document.getElementById('sal-resumo-calculo'); 
-            const valorTotal = parseFloat(document.getElementById('sal-valor').value) || 0; 
+            const valorTotal = window.parseMoeda('sal-valor'); 
             let inputs = ''; let vezes = 1; 
             
             if (freq === 'mensal') { 
@@ -790,11 +876,11 @@
         }
         function salvarNovoSalario() { 
             const nome = document.getElementById('sal-nome').value; 
-            const valorTotal = parseFloat(document.getElementById('sal-valor').value); 
+            const valorTotal = window.parseMoeda('sal-valor'); 
             const freq = document.getElementById('sal-freq').value; 
             const contaId = document.getElementById('sal-conta').value; 
             
-            if (!nome || isNaN(valorTotal) || !contaId) return alert("Preencha Nome, Valor e Conta."); 
+            if (!nome || valorTotal <= 0 || !contaId) return alert("Preencha Nome, Valor e Conta."); 
             
             let dias = []; 
             let qtdDias = freq === 'mensal' ? 1 : (freq === 'quinzenal' ? 2 : 4); 
@@ -812,18 +898,25 @@
             atualizarDiasSalario(); 
             renderListaSalarios(); 
             
-            if(typeof showToast === 'function') showToast("Salário adicionado ao Motor!"); 
+            if(typeof showToast === 'function') showToast("Salário adicionado ao Motor!", "sucesso"); 
             if(typeof verificarNotificacoesMotor === 'function') verificarNotificacoesMotor(); 
         }
         function excluirSalario(id) { 
-            if(!confirm("Remover este salário do Motor Automático?")) return; 
-            db.salarios = db.salarios.filter(s => s.id !== id); 
-            save(); 
-            renderListaSalarios(); 
-            if(typeof verificarNotificacoesMotor === 'function') verificarNotificacoesMotor(); 
+            if(typeof abrirConfirmacao === 'function') {
+                abrirConfirmacao("Remover este salário do Motor Automático?", () => {
+                    db.salarios = db.salarios.filter(s => s.id !== id);
+                    save();
+                    renderListaSalarios();
+                    if(typeof showToast === 'function') showToast("Salário removido!", "exclusao");
+                    if(typeof verificarNotificacoesMotor === 'function') verificarNotificacoesMotor();
+                });
+            } else {
+                if(!confirm("Remover este salário do Motor Automático?")) return;
+                db.salarios = db.salarios.filter(s => s.id !== id); 
+                save(); renderListaSalarios();
+            }
         }
 
-        // Funções do Modal de Contratos e Parcelamentos
         function abrirModalContratos() { 
             const m = document.getElementById('modal-contratos'); m.style.display = 'flex'; 
             setTimeout(() => m.classList.add('active'), 10); 
@@ -869,9 +962,9 @@
         }
     </script>
 
-    <script src="core.js?v=26.0"></script>
-    <script src="engine.js?v=26.0"></script>
-    <script src="ui.js?v=26.0"></script>
-    <script src="app.js?v=26.0"></script>
+    <script src="core.js?v=27.0"></script>
+    <script src="engine.js?v=27.0"></script>
+    <script src="ui.js?v=27.0"></script>
+    <script src="app.js?v=27.0"></script>
 </body>
 </html>
