@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v27.0.9</title>
+    <title>EcoFinance Pro v27.2.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=27.0">
+    <link rel="stylesheet" href="style.css?v=27.2">
     <style>
-        /* Estilos Base e Roadmap */
+        /* Estilos Base e UI Ajustada */
         .roadmap-group { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--linha); }
         .roadmap-header { background: var(--input-bg); padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .roadmap-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: var(--card-bg); padding: 0 15px; }
@@ -49,14 +49,9 @@
         
         .btn-scroll-top { position: fixed; bottom: 80px; left: 20px; width: 45px; height: 45px; border-radius: 50%; background: var(--azul); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; cursor: pointer; z-index: 98; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(20px); }
         .btn-scroll-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
-        .btn-scroll-top:hover { filter: brightness(1.1); transform: translateY(-3px); }
 
         .btn-danger { background: var(--perigo); color: #fff; border-radius: 12px; padding: 14px; font-weight: 600; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); border: none; cursor: pointer; transition: all 0.2s; }
-        .btn-danger:hover { filter: brightness(1.1); transform: scale(0.98); }
-
-        .btn-header-desktop { display: none; background: var(--esmeralda); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; align-items: center; gap: 8px; box-shadow: 0 2px 5px rgba(16, 185, 129, 0.4); margin-right: 10px; }
-        .btn-header-desktop:hover { filter: brightness(1.1); transform: translateY(-1px); }
-
+        
         /* Central de Notificações */
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s ease; }
         .drawer-overlay.active { opacity: 1; visibility: visible; }
@@ -66,7 +61,6 @@
         .drawer-body { flex: 1; overflow-y: auto; padding: 20px; background: var(--fundo); }
         
         .sino-btn { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--input-bg); transition: 0.2s; margin-right: 15px; border: 1px solid var(--linha); }
-        .sino-btn:hover { background: var(--linha); }
 
         /* Lista de Salários UI */
         .salario-card { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -89,7 +83,12 @@
         /* Novos Botões dos Cartões de Conta */
         .cartao-acoes { display: flex; gap: 10px; margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 12px; }
         .btn-cartao-acao { flex: 1; background: rgba(0,0,0,0.2); color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: 0.2s; backdrop-filter: blur(4px); }
-        .btn-cartao-acao:hover { background: rgba(0,0,0,0.4); transform: translateY(-2px); }
+
+        /* Filtro de Mês Minimalista */
+        .filtro-mes-pill { display: inline-flex; align-items: center; background: var(--input-bg); border-radius: 30px; border: 1px solid var(--linha); overflow: hidden; box-shadow: var(--shadow-sm); height: 40px; }
+        .filtro-mes-pill button { background: transparent; border: none; padding: 0 15px; color: var(--azul); cursor: pointer; height: 100%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .filtro-mes-pill button:active { background: rgba(0,0,0,0.05); }
+        .filtro-mes-pill input { border: none; background: transparent; color: var(--texto-main); font-weight: 700; font-size: 14px; text-align: center; width: 120px; padding: 0; outline: none; }
 
         @media (min-width: 1024px) {
             html, body { overflow-x: clip !important; }
@@ -99,14 +98,18 @@
             header.header-modern { position: sticky !important; top: 0 !important; z-index: 999 !important; background: var(--card-bg) !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; align-self: flex-start; width: 100%; box-sizing: border-box; }
             .fab-mobile { display: none !important; } 
             .btn-scroll-top { bottom: 30px; left: auto; right: 30px; width: 50px; height: 50px; font-size: 20px; }
-            .btn-header-desktop { display: flex; } 
+            
+            /* ESTAS DUAS LINHAS FORAM RESTAURADAS */
+            .btn-header-desktop { display: flex !important; } 
             .hamburger-desktop { display: block !important; }
-            #menu-lateral { position: fixed !important; top: 0; left: 0; height: 100vh; width: 250px; flex-direction: column !important; justify-content: flex-start !important; background: var(--card-bg) !important; border-right: 1px solid var(--linha); border-top: none !important; padding-top: 85px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 102 !important; box-shadow: none; }
+            
+            #menu-lateral { position: fixed !important; top: 0; left: 0; height: 100vh; width: 250px; flex-direction: column !important; justify-content: flex-start !important; background: var(--card-bg) !important; border-right: 1px solid var(--linha); padding-top: 85px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 102 !important; box-shadow: none; }
             #menu-lateral.open { transform: translateX(0); box-shadow: 10px 0 25px rgba(0,0,0,0.5); }
             #menu-lateral .menu-item { width: 100%; flex-direction: row !important; justify-content: flex-start !important; padding: 15px 25px !important; gap: 15px; border-radius: 0 !important; border-bottom: 1px solid var(--linha); }
             #menu-lateral .menu-item i { margin-bottom: 0 !important; font-size: 18px !important; }
             #menu-lateral .menu-item span { font-size: 14px !important; font-weight: 600; }
         }
+
     </style>
 </head>
 <body>
@@ -129,9 +132,6 @@
                     <span id="badge-notificacao" style="display:none; position: absolute; top: -4px; right: -4px; background: var(--perigo); color: white; font-size: 9px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid var(--card-bg);">0</span>
                 </div>
 
-                <button class="btn-header-desktop" onclick="abrirModalLancamento()">
-                    <i class="fas fa-plus"></i> Novo
-                </button>
                 <button class="btn-icon" onclick="location.reload()" aria-label="Atualizar Sistema" style="background: var(--input-bg); padding: 10px; border-radius: 10px; border: 1px solid var(--linha);">
                     <i class="fas fa-sync-alt" style="color: var(--azul);"></i>
                 </button>
@@ -142,7 +142,7 @@
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
                     <div class="executive-panel">
-                        <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; box-shadow: 0 10px 20px rgba(37,99,235,0.2); cursor: pointer; transition: transform 0.2s;" onclick="if(typeof abrirModalMetasCartoes === 'function') abrirModalMetasCartoes()">
+                        <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(37,99,235,0.2); cursor: pointer; transition: transform 0.2s;" onclick="if(typeof abrirModalMetasCartoes === 'function') abrirModalMetasCartoes()">
                             <div class="flex-between">
                                 <small style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-bullseye"></i> Consumo da Meta (Cartões)</small>
                                 <span id="meta-percentual" style="background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 13px; color: white;">0%</span>
@@ -239,23 +239,28 @@
 
             <section id="aba-historico" class="secao-app">
                 <div class="container">
-                    <div style="display: flex; align-items: center; justify-content: space-between; background: var(--card-bg); border: 1px solid var(--linha); border-radius: 12px; margin-bottom: 15px; padding: 6px; box-shadow: var(--shadow-sm);">
-                        <button class="btn-icon" onclick="mudarMesFiltro(-1)" style="padding: 10px 15px; color: var(--azul); background: var(--input-bg); border-radius: 8px; transition: 0.2s;"><i class="fas fa-chevron-left"></i></button>
-                        <div style="flex: 1; display: flex; justify-content: center; position: relative;">
-                            <input type="month" id="filtro-mes" class="input-moderno" onchange="if(typeof renderHistorico === 'function') renderHistorico(); if(typeof renderGrafico === 'function') renderGrafico();" style="width: 100%; border: none; background: transparent; color: var(--texto-main); font-weight: 700; font-size: 15px; text-align: center; box-shadow: none; padding: 0; outline: none; cursor: pointer;">
+                    
+                    <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+                        <div class="filtro-mes-pill">
+                            <button onclick="mudarMesFiltro(-1)"><i class="fas fa-chevron-left"></i></button>
+                            <input type="month" id="filtro-mes" onchange="if(typeof renderHistorico === 'function') renderHistorico(); if(typeof renderGrafico === 'function') renderGrafico();">
+                            <button onclick="mudarMesFiltro(1)"><i class="fas fa-chevron-right"></i></button>
                         </div>
-                        <button class="btn-icon" onclick="mudarMesFiltro(1)" style="padding: 10px 15px; color: var(--azul); background: var(--input-bg); border-radius: 8px; transition: 0.2s;"><i class="fas fa-chevron-right"></i></button>
                     </div>
 
-                    <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                    <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                         <input type="hidden" id="filtro-status" value="todos">
-                        <button class="status-btn active" onclick="mudarFiltroStatus('todos', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; background: var(--azul); color: #fff; cursor: pointer;">Todos</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('pago', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">✅ Pago</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('receita', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">💰 Receita</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('em_aberto', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⏳ Em Aberto</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('atencao', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⚠️ Atenção</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('atrasado', this)" style="flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">🚨 Atrasado</button>
+                        <button class="status-btn active" onclick="mudarFiltroStatus('todos', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: none; background: var(--azul); color: #fff; cursor: pointer;">Todos</button>
+                        <button class="status-btn" onclick="mudarFiltroStatus('pago', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">✅ Pago</button>
+                        <button class="status-btn" onclick="mudarFiltroStatus('receita', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">💰 Receita</button>
+                        <button class="status-btn" onclick="mudarFiltroStatus('em_aberto', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⏳ Em Aberto</button>
+                        <button class="status-btn" onclick="mudarFiltroStatus('atencao', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⚠️ Atenção</button>
+                        <button class="status-btn" onclick="mudarFiltroStatus('atrasado', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">🚨 Atrasado</button>
                     </div>
+
+                    <div id="filtro-categoria-container" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                        <input type="hidden" id="filtro-cat" value="todas">
+                        </div>
                     
                     <div id="lista-historico-filtros"></div>
                 </div>
@@ -355,7 +360,7 @@
                             <div class="menu-ajuste-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--perigo);"><i class="fas fa-shield-alt"></i></div>
                             <div>
                                 <strong style="font-size: 14px; display:block;">Sistema e Dados</strong>
-                                <small style="color:var(--texto-sec); font-size: 11px;">Backups, restauração e reset</small>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Backups, exportar CSV, restauração e reset</small>
                             </div>
                         </div>
                         <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
@@ -364,8 +369,8 @@
             </section>
         </main>
 
-        <div id="modal-extrato-conta" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div id="modal-extrato-conta" class="modal-overlay" onclick="fecharModalExtratoConta()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-list-ul" style="color:var(--azul);"></i> Extrato da Conta</h3>
                     <button class="btn-icon" onclick="fecharModalExtratoConta()"><i class="fas fa-times"></i></button>
@@ -377,19 +382,18 @@
             </div>
         </div>
 
-        <div id="modal-ajuste-conta" class="modal-overlay">
-            <div class="modal-content">
+        <div id="modal-ajuste-conta" class="modal-overlay" onclick="fecharModalAjusteConta()">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-cog" style="color:var(--texto-sec);"></i> Configurações</h3>
                     <button class="btn-icon" onclick="fecharModalAjusteConta()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" id="conteudo-ajuste-conta">
-                    </div>
+                <div class="modal-body" id="conteudo-ajuste-conta"></div>
             </div>
         </div>
 
-        <div id="modal-lista-contratos" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div id="modal-lista-contratos" class="modal-overlay" onclick="fecharModalListaContratos()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-file-signature" style="color:var(--alerta);"></i> Gestão de Fixos</h3>
                     <button class="btn-icon" onclick="fecharModalListaContratos()"><i class="fas fa-times"></i></button>
@@ -410,20 +414,18 @@
             </div>
         </div>
 
-        <div id="modal-edicao-contrato" class="modal-overlay">
-            <div class="modal-content">
+        <div id="modal-edicao-contrato" class="modal-overlay" onclick="fecharModalEdicaoContrato()">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-edit" style="color:var(--azul);"></i> Ajustar Registro</h3>
                     <button class="btn-icon" onclick="fecharModalEdicaoContrato()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" id="form-edicao-contrato">
-                    </div>
+                <div class="modal-body" id="form-edicao-contrato"></div>
             </div>
         </div>
 
-
-        <div id="modal-metas-cartoes" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div id="modal-metas-cartoes" class="modal-overlay" onclick="fecharModalMetasCartoes()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-bullseye" style="color:var(--azul);"></i> Análise das Metas</h3>
                     <button class="btn-icon" onclick="fecharModalMetasCartoes()"><i class="fas fa-times"></i></button>
@@ -432,8 +434,8 @@
             </div>
         </div>
 
-        <div id="modal-confirmacao" class="modal-overlay" style="z-index: 999999;">
-            <div class="modal-content" style="max-width: 320px; text-align: center;">
+        <div id="modal-confirmacao" class="modal-overlay" style="z-index: 999999; align-items: center; justify-content: center;" onclick="fecharConfirmacao()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 320px; text-align: center;">
                 <div style="font-size: 40px; color: var(--alerta); margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
                 <h3 style="margin-bottom: 10px; color: var(--texto-main);">Atenção</h3>
                 <p id="msg-confirmacao" style="font-size: 13px; color: var(--texto-sec); margin-bottom: 20px;"></p>
@@ -444,8 +446,8 @@
             </div>
         </div>
 
-        <div id="modal-lancamento" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div id="modal-lancamento" class="modal-overlay" onclick="fecharModalLancamento()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column; overscroll-behavior: contain;">
                 <div class="modal-header flex-between">
                     <h3 style="color: var(--texto-main);"><i class="fas fa-plus-circle" style="color: var(--azul);"></i> Novo Lançamento</h3>
                     <button class="btn-icon" onclick="fecharModalLancamento()"><i class="fas fa-times"></i></button>
@@ -498,15 +500,17 @@
             </div>
         </div>
 
-        <div id="modal-categorias" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div id="modal-categorias" class="modal-overlay" onclick="fecharModalCategorias()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header flex-between">
                     <h3 id="titulo-modal-cat"><i class="fas fa-tags" style="color:var(--esmeralda);"></i> Categorias</h3>
-                    <button class="btn-icon" onclick="if(typeof fecharModalCategorias === 'function') fecharModalCategorias()"><i class="fas fa-times"></i></button>
+                    <button class="btn-icon" onclick="fecharModalCategorias()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 20px;">
                     
-                    <div class="card-simples mb-20" style="border: 1px solid var(--esmeralda); background: rgba(16, 185, 129, 0.03);">
+                    <button class="btn-primary mb-15" style="width: 100%;" onclick="toggleFormNovaCategoria()"><i class="fas fa-plus"></i> Nova Categoria</button>
+                    
+                    <div id="form-nova-categoria" class="card-simples mb-20" style="display: none; border: 1px solid var(--esmeralda); background: rgba(16, 185, 129, 0.03);">
                         <strong id="label-form-cat" style="font-size:14px; display:block; margin-bottom:15px; color: var(--texto-main);">Criar Nova Categoria</strong>
                         <input type="hidden" id="nova-cat-id">
                         
@@ -522,13 +526,13 @@
                             </select>
                             
                             <div class="color-palette" id="paleta-cores-cat" style="margin: 0; justify-content: space-between; padding: 5px;">
-                                <div class="color-swatch active" style="background-color: #ef4444;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#ef4444', this)"></div>
-                                <div class="color-swatch" style="background-color: #f97316;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f97316', this)"></div>
-                                <div class="color-swatch" style="background-color: #f59e0b;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#f59e0b', this)"></div>
-                                <div class="color-swatch" style="background-color: #10b981;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#10b981', this)"></div>
-                                <div class="color-swatch" style="background-color: #3b82f6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#3b82f6', this)"></div>
-                                <div class="color-swatch" style="background-color: #8b5cf6;" onclick="if(typeof selecionarCorCat === 'function') selecionarCorCat('#8b5cf6', this)"></div>
-                                <input type="color" id="nova-cat-cor" value="#ef4444" class="color-picker-custom" title="Cor personalizada" onchange="if(typeof removerSelecaoPaleta === 'function') removerSelecaoPaleta()">
+                                <div class="color-swatch active" style="background-color: #ef4444;" onclick="selecionarCorCat('#ef4444', this)"></div>
+                                <div class="color-swatch" style="background-color: #f97316;" onclick="selecionarCorCat('#f97316', this)"></div>
+                                <div class="color-swatch" style="background-color: #f59e0b;" onclick="selecionarCorCat('#f59e0b', this)"></div>
+                                <div class="color-swatch" style="background-color: #10b981;" onclick="selecionarCorCat('#10b981', this)"></div>
+                                <div class="color-swatch" style="background-color: #3b82f6;" onclick="selecionarCorCat('#3b82f6', this)"></div>
+                                <div class="color-swatch" style="background-color: #8b5cf6;" onclick="selecionarCorCat('#8b5cf6', this)"></div>
+                                <input type="color" id="nova-cat-cor" value="#ef4444" class="color-picker-custom" title="Cor personalizada" onchange="removerSelecaoPaleta()">
                             </div>
                         </div>
                         
@@ -538,8 +542,8 @@
                         </label>
                         
                         <div class="flex-between">
-                            <button class="btn-outline" id="btn-cancelar-edicao-cat" style="width:48%; display:none;" onclick="if(typeof cancelarEdicaoCategoria === 'function') cancelarEdicaoCategoria()">Cancelar</button>
-                            <button class="btn-primary" id="btn-salvar-cat" style="width:100%; background: var(--esmeralda);" onclick="if(typeof salvarConfigNovaCategoria === 'function') salvarConfigNovaCategoria()">Salvar Categoria</button>
+                            <button class="btn-outline" id="btn-cancelar-edicao-cat" style="width:48%;" onclick="cancelarEdicaoCategoria()">Cancelar</button>
+                            <button class="btn-primary" id="btn-salvar-cat" style="width:100%; background: var(--esmeralda);" onclick="salvarConfigNovaCategoria()">Salvar Categoria</button>
                         </div>
                     </div>
                     
@@ -556,11 +560,11 @@
             </div>
         </div>
 
-        <div id="modal-aparencia" class="modal-overlay">
-            <div class="modal-content">
+        <div id="modal-aparencia" class="modal-overlay" onclick="fecharModalAparencia()">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-paint-roller" style="color:var(--azul);"></i> Aparência</h3>
-                    <button class="btn-icon" onclick="if(typeof fecharModalAparencia === 'function') fecharModalAparencia()"><i class="fas fa-times"></i></button>
+                    <button class="btn-icon" onclick="fecharModalAparencia()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <div class="flex-between" style="padding: 15px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
@@ -574,11 +578,11 @@
             </div>
         </div>
         
-        <div id="modal-sistema" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh;">
+        <div id="modal-sistema" class="modal-overlay" onclick="fecharModalSistema()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-shield-alt" style="color:var(--perigo);"></i> Sistema e Dados</h3>
-                    <button class="btn-icon" onclick="if(typeof fecharModalSistema === 'function') fecharModalSistema()"><i class="fas fa-times"></i></button>
+                    <button class="btn-icon" onclick="fecharModalSistema()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body" style="overflow-y: auto;">
                     <div class="grid-inputs mb-20">
@@ -587,6 +591,8 @@
                         <input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)">
                     </div>
                     
+                    <button class="btn-outline mb-20" style="width: 100%; border-color: var(--esmeralda); color: var(--esmeralda);" onclick="exportarExtratoCSV()"><i class="fas fa-file-csv"></i> Exportar Dados para Excel (CSV)</button>
+
                     <strong class="label-moderno mb-10">Histórico de Backups Locais</strong>
                     <div id="lista-backups" style="margin-bottom: 20px;"></div>
                     
@@ -595,72 +601,18 @@
             </div>
         </div>
 
-        <div id="modal-emprestimo" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header"><h3>🤝 Detalhes</h3></div>
-                <div class="modal-body">
-                    <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
-                    <label class="checkbox-moderno mb-15" style="background: var(--input-bg); padding: 10px; border-radius: 8px;">
-                        <input type="checkbox" id="emp-sem-previsao" onchange="if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao()">
-                        <span style="font-weight: 500;">Sem previsão exata (Rolar mensalmente)</span>
-                    </label>
-                    <div id="container-campos-previsao">
-                        <label class="label-moderno">Número de Parcelas</label>
-                        <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
-                        <label class="label-moderno mt-10">Intervalo (Dias)</label>
-                        <input type="number" id="emp-intervalo" class="input-moderno" value="30">
-                    </div>
-                </div>
-                <div class="modal-footer grid-inputs mt-20">
-                    <button class="btn-outline" onclick="fecharModalEmprestimo()">Cancelar</button>
-                    <button class="btn-primary" onclick="gerarParcelasEmprestimo()">Confirmar Regras</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="modal-pagamento-parcial" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header"><h3>💸 Pagamento Parcial</h3></div>
-                <div class="modal-body">
-                    <p class="mb-15" style="font-size:13px; color:var(--texto-sec);">Valor original pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong></p>
-                    <label class="label-moderno">Valor Pago/Recebido Agora (R$)</label>
-                    <input type="text" inputmode="numeric" id="input-valor-parcial" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
-                    <input type="hidden" id="hidden-id-parcial">
-                </div>
-                <div class="modal-footer grid-inputs mt-20">
-                    <button class="btn-outline" onclick="fecharModalParcial()">Cancelar</button>
-                    <button class="btn-primary" onclick="confirmarPagamentoParcial()">Amortizar</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="modal-fatura-parcial" class="modal-overlay" style="display: none;">
-            <div class="modal-content">
-                <div class="modal-header"><h3>💸 Amortizar Fatura</h3></div>
-                <div class="modal-body">
-                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:10px;">Fatura: <strong id="txt-fatura-id-parcial"></strong><br>Restante: <strong id="txt-valor-fatura-original"></strong></p>
-                    <label class="label-moderno">Valor a Amortizar (R$)</label>
-                    <input type="text" inputmode="numeric" id="input-amortizar-fatura" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
-                    <input type="hidden" id="hidden-fat-id">
-                </div>
-                <div class="modal-footer grid-inputs mt-20">
-                    <button class="btn-outline" onclick="fecharModalFaturaParcial()">Sair</button>
-                    <button class="btn-primary" onclick="confirmarAmortizacaoFatura()">Amortizar</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="modal-salarios" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div id="modal-salarios" class="modal-overlay" onclick="fecharModalSalarios()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-money-check-alt" style="color:var(--esmeralda);"></i> Rendas e Salários</h3>
                     <button class="btn-icon" onclick="fecharModalSalarios()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body" style="overflow-y: auto; flex: 1;">
                     <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px;">Cadastre as suas fontes de rendimento. O motor irá avisá-lo e lançar o dinheiro automaticamente nos dias programados.</p>
-                    <div id="lista-salarios-cadastrados" style="margin-bottom: 20px;"></div>
                     
-                    <div class="card" style="border: 1px dashed var(--esmeralda); background: transparent;">
+                    <button class="btn-primary mb-15" style="width: 100%; background: var(--esmeralda);" onclick="toggleFormNovoSalario()"><i class="fas fa-plus"></i> Novo Rendimento</button>
+                    
+                    <div id="form-novo-salario" class="card mb-20" style="display: none; border: 1px dashed var(--esmeralda); background: transparent;">
                         <strong style="font-size: 14px; display:block; margin-bottom: 12px;"><i class="fas fa-plus-circle text-esmeralda"></i> Adicionar Nova Renda</strong>
                         <div class="grid-inputs mb-10">
                             <div><label class="label-moderno">Nome da Renda</label><input type="text" id="sal-nome" class="input-moderno" placeholder="Ex: Salário Principal, Freela"></div>
@@ -681,14 +633,19 @@
                             <label class="label-moderno">Conta de Destino</label>
                             <select id="sal-conta" class="input-moderno"></select>
                         </div>
-                        <button class="btn-primary" style="width: 100%; background: var(--esmeralda);" onclick="salvarNovoSalario()">Salvar Rendimento</button>
+                        <div class="flex-between">
+                            <button class="btn-outline" style="width: 48%;" onclick="toggleFormNovoSalario()">Cancelar</button>
+                            <button class="btn-primary" style="width: 48%; background: var(--esmeralda);" onclick="salvarNovoSalario()">Salvar Rendimento</button>
+                        </div>
                     </div>
+                    
+                    <div id="lista-salarios-cadastrados" style="margin-bottom: 20px;"></div>
                 </div>
             </div>
         </div>
 
-        <div id="modal-contratos" class="modal-overlay">
-            <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+        <div id="modal-contratos" class="modal-overlay" onclick="fecharModalContratos()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-file-signature" style="color:var(--alerta);"></i> Novo Registro</h3>
                     <button class="btn-icon" onclick="fecharModalContratos()"><i class="fas fa-times"></i></button>
@@ -743,6 +700,61 @@
                         </div>
                         <button class="btn-primary" style="width: 100%;" onclick="if(typeof salvarParcelamentoAndamento === 'function') salvarParcelamentoAndamento()">Gerar Parcelamento</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-emprestimo" class="modal-overlay" onclick="fecharModalEmprestimo()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header"><h3>🤝 Detalhes</h3></div>
+                <div class="modal-body">
+                    <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
+                    <label class="checkbox-moderno mb-15" style="background: var(--input-bg); padding: 10px; border-radius: 8px;">
+                        <input type="checkbox" id="emp-sem-previsao" onchange="if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao()">
+                        <span style="font-weight: 500;">Sem previsão exata (Rolar mensalmente)</span>
+                    </label>
+                    <div id="container-campos-previsao">
+                        <label class="label-moderno">Número de Parcelas</label>
+                        <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
+                        <label class="label-moderno mt-10">Intervalo (Dias)</label>
+                        <input type="number" id="emp-intervalo" class="input-moderno" value="30">
+                    </div>
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalEmprestimo()">Cancelar</button>
+                    <button class="btn-primary" onclick="gerarParcelasEmprestimo()">Confirmar Regras</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-pagamento-parcial" class="modal-overlay" onclick="fecharModalParcial()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header"><h3>💸 Pagamento Parcial</h3></div>
+                <div class="modal-body">
+                    <p class="mb-15" style="font-size:13px; color:var(--texto-sec);">Valor original pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong></p>
+                    <label class="label-moderno">Valor Pago/Recebido Agora (R$)</label>
+                    <input type="text" inputmode="numeric" id="input-valor-parcial" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
+                    <input type="hidden" id="hidden-id-parcial">
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalParcial()">Cancelar</button>
+                    <button class="btn-primary" onclick="confirmarPagamentoParcial()">Amortizar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-fatura-parcial" class="modal-overlay" style="display: none;" onclick="fecharModalFaturaParcial()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header"><h3>💸 Amortizar Fatura</h3></div>
+                <div class="modal-body">
+                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:10px;">Fatura: <strong id="txt-fatura-id-parcial"></strong><br>Restante: <strong id="txt-valor-fatura-original"></strong></p>
+                    <label class="label-moderno">Valor a Amortizar (R$)</label>
+                    <input type="text" inputmode="numeric" id="input-amortizar-fatura" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
+                    <input type="hidden" id="hidden-fat-id">
+                </div>
+                <div class="modal-footer grid-inputs mt-20">
+                    <button class="btn-outline" onclick="fecharModalFaturaParcial()">Sair</button>
+                    <button class="btn-primary" onclick="confirmarAmortizacaoFatura()">Amortizar</button>
                 </div>
             </div>
         </div>
@@ -934,11 +946,23 @@
                 document.getElementById('area-parcelamento-antigo').style.display = 'block'; 
             } 
         };
+        window.fecharModalParcial = function() {
+            const m = document.getElementById('modal-pagamento-parcial'); m.classList.remove('active'); 
+            setTimeout(() => m.style.display = 'none', 300);
+        };
+        window.fecharModalFaturaParcial = function() {
+            const m = document.getElementById('modal-fatura-parcial'); m.classList.remove('active'); 
+            setTimeout(() => m.style.display = 'none', 300);
+        };
+        window.fecharModalEmprestimo = function() {
+            const m = document.getElementById('modal-emprestimo'); m.classList.remove('active'); 
+            setTimeout(() => m.style.display = 'none', 300);
+        };
     </script>
 
-    <script src="core.js?v=27.0"></script>
-    <script src="engine.js?v=27.0"></script>
-    <script src="ui.js?v=27.0"></script>
-    <script src="app.js?v=27.0"></script>
+    <script src="core.js?v=27.2"></script>
+    <script src="engine.js?v=27.2"></script>
+    <script src="ui.js?v=27.2"></script>
+    <script src="app.js?v=27.2"></script>
 </body>
 </html>
