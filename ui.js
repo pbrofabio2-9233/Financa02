@@ -1,17 +1,15 @@
 // ==========================================
-// UI.JS - Renderização e Interface (v26.0.8 - Navegação Inteligente por Notificações)
+// UI.JS - Renderização e Interface (v27.0.5 - Metas Individuais e Gráfico Anual com Scroll)
 // ==========================================
 
 const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
 const T_DESPESAS = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
 const T_DESPESAS_CARTAO = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
 
-// Registra o plugin de DataLabels para os gráficos
 if (typeof ChartDataLabels !== 'undefined') {
     Chart.register(ChartDataLabels);
 }
 
-// Injeção de CSS para o Mobile diretamente pelo JS
 if (!document.getElementById('css-extrato-mobile')) {
     const style = document.createElement('style'); 
     style.id = 'css-extrato-mobile';
@@ -27,35 +25,25 @@ if (!document.getElementById('css-extrato-mobile')) {
 // ----------------------------------------------------
 // MOTOR PRINCIPAL DE RENDERIZAÇÃO E CÁLCULOS TOTAIS
 // ----------------------------------------------------
-function render() {
+window.render = function() {
     const hoje = new Date(); 
     const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+    const diaHoje = hoje.getDate();
     
     let calc = { 
-        receitas: 0, 
-        prevReceitas: 0, 
-        despesas: 0, 
-        prevGastos: 0, 
-        faturas: 0, 
-        faturasFuturas: 0, 
-        saldoLivre: 0, 
-        investido: 0, 
-        usoMetaCartao: 0, 
-        metaTotalCartao: 0, 
-        gastosFixos: 0, 
-        gastosVariaveis: 0 
+        receitas: 0, prevReceitas: 0, despesas: 0, prevGastos: 0, 
+        faturas: 0, faturasFuturas: 0, saldoLivre: 0, investido: 0, 
+        usoMetaCartao: 0, metaTotalCartao: 0, gastosFixos: 0, gastosVariaveis: 0 
     };
     
     const catFixas = (db.categorias || []).filter(c => c.fixa).map(c => c.nome);
 
-    // Soma os saldos das contas
     (db.contas || []).forEach(c => { 
         if(c.tipo === 'movimentacao') calc.saldoLivre += c.saldo; 
         if(c.tipo === 'investimento') calc.investido += c.saldo; 
         if(c.tipo === 'cartao') calc.metaTotalCartao += c.meta; 
     });
 
-    // Processa todos os lançamentos
     (db.lancamentos || []).forEach(l => {
         const conta = (db.contas || []).find(c => c.id === l.contaId); 
         if(!conta) return;
@@ -73,13 +61,26 @@ function render() {
                 }
             }
             
+            let mesAtivoFatura = hoje.getMonth() + 1;
+            let anoAtivoFatura = hoje.getFullYear();
+            if (diaHoje >= (conta.fechamento || 1)) {
+                mesAtivoFatura += 1;
+                if (mesAtivoFatura > 12) { mesAtivoFatura = 1; anoAtivoFatura += 1; }
+            }
+            const strMesAtivo = `${anoAtivoFatura}-${mesAtivoFatura.toString().padStart(2, '0')}`;
+
+            if (mesFatura === strMesAtivo) {
+                if (['despesas_gerais', 'despesa', 'emprestei_cartao'].includes(l.tipo)) {
+                    calc.usoMetaCartao += l.valor;
+                } else if (T_RECEITAS.includes(l.tipo)) {
+                    calc.usoMetaCartao -= l.valor;
+                }
+            }
+            
             if (mesFatura === mesCorrente) {
                 if (['despesas_gerais', 'despesa'].includes(l.tipo)) { 
-                    calc.usoMetaCartao += l.valor; 
                     if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor; 
                     else calc.gastosVariaveis += l.valor; 
-                } else if (T_RECEITAS.includes(l.tipo)) { 
-                    calc.usoMetaCartao -= l.valor; 
                 }
             }
         } else {
@@ -101,7 +102,6 @@ function render() {
 
     if (calc.usoMetaCartao < 0) calc.usoMetaCartao = 0;
 
-    // Subtrai as amortizações parciais das faturas
     if (db.amortizacoesFaturas) {
         Object.keys(db.amortizacoesFaturas).forEach(fatID => {
             if (!(db.faturasPagas || []).includes(fatID)) {
@@ -115,7 +115,22 @@ function render() {
         });
     }
 
-    // Atualiza a interface do Dashboard
+    const painelInsights = document.getElementById('painel-insights');
+    if (painelInsights && typeof window.obterInsightsFinanceiros === 'function') {
+        const insightsGerados = window.obterInsightsFinanceiros();
+        if (insightsGerados.length > 0) {
+            painelInsights.innerHTML = insightsGerados.map(i => `
+                <div class="insight-card ${i.tipo}">
+                    <div style="font-size: 18px; margin-right: 5px; color: inherit; align-self: flex-start;"><i class="fas ${i.icon}"></i></div>
+                    <div style="flex: 1;">${i.texto}</div>
+                </div>
+            `).join('');
+            painelInsights.style.display = 'flex';
+        } else {
+            painelInsights.style.display = 'none';
+        }
+    }
+
     const setTexto = (id, texto) => { 
         const el = document.getElementById(id); 
         if(el) el.innerText = texto; 
@@ -174,14 +189,12 @@ function render() {
     if(barFixo) barFixo.style.width = `${percFixo}%`; 
     if(barVar) barVar.style.width = `${percVar}%`;
 
-    // Chama as rotinas de renderização das outras telas
     if (typeof renderRadarVencimentos === 'function') renderRadarVencimentos(); 
     if (typeof renderHistorico === 'function') renderHistorico(); 
     if (typeof renderAbaContas === 'function') renderAbaContas(); 
     if (typeof renderAbaFaturas === 'function') renderAbaFaturas(); 
     if (typeof renderAbaConfig === 'function') renderAbaConfig();
     
-    // Gráficos precisam de um leve delay para as animações rodarem suaves
     setTimeout(() => { 
         if (typeof renderGrafico === 'function') renderGrafico(); 
         if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao(); 
@@ -189,9 +202,84 @@ function render() {
 }
 
 // ----------------------------------------------------
+// NOVO: METAS INDIVIDUAIS DOS CARTÕES (MODAL)
+// ----------------------------------------------------
+window.renderMetasIndividuais = function() {
+    const container = document.getElementById('lista-metas-detalhadas');
+    if(!container) return;
+
+    const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
+    if(cartoes.length === 0) {
+        container.innerHTML = '<p class="texto-vazio">Nenhum cartão de crédito cadastrado.</p>';
+        return;
+    }
+
+    const hoje = new Date();
+    const diaHoje = hoje.getDate();
+    let html = '';
+
+    cartoes.forEach(c => {
+        let usoMeta = 0;
+        let mesAtivo = hoje.getMonth() + 1;
+        let anoAtivo = hoje.getFullYear();
+        
+        if (diaHoje >= (c.fechamento || 1)) {
+            mesAtivo += 1;
+            if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; }
+        }
+        const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
+
+        (db.lancamentos || []).forEach(l => {
+            if (l.contaId === c.id) {
+                const mesLancLogico = window.getMesFaturaLogico(l.data, c.fechamento || 1);
+                if (mesLancLogico === strMesAtivo) {
+                    if (T_DESPESAS_CARTAO.includes(l.tipo)) usoMeta += l.valor;
+                    else if (T_RECEITAS.includes(l.tipo)) usoMeta -= l.valor;
+                }
+            }
+        });
+
+        if (usoMeta < 0) usoMeta = 0;
+        const metaTotal = c.meta || 0;
+        const pct = metaTotal > 0 ? (usoMeta / metaTotal) * 100 : 0;
+
+        let analise = '';
+        let corBarra = '#10b981'; 
+        
+        if (metaTotal === 0) {
+            analise = 'Defina uma meta nas configurações do cartão para ter um controlo saudável.';
+            corBarra = '#94a3b8';
+        } else if (pct >= 100) {
+            analise = '⚠️ Atenção! Você ultrapassou a sua meta de gastos definida para este cartão.';
+            corBarra = '#ef4444'; 
+        } else if (pct > 80) {
+            analise = 'Atenção, você está muito próximo do limite da meta estipulada.';
+            corBarra = '#f59e0b'; 
+        } else {
+            analise = 'Tudo sob controlo! Os seus gastos neste cartão estão saudáveis e dentro da meta.';
+        }
+
+        html += `
+        <div class="card-meta-individual">
+            <div class="flex-between mb-10">
+                <strong style="font-size: 14px; color: var(--texto-main);"><i class="fas fa-credit-card" style="color:${c.cor || 'var(--azul)'}; margin-right: 5px;"></i> ${c.nome}</strong>
+                <span style="font-size: 12px; font-weight: 600; color: var(--texto-main);">R$ ${usoMeta.toFixed(2)} / R$ ${metaTotal.toFixed(2)}</span>
+            </div>
+            <div class="progress-bg mb-10" style="background: var(--linha); height: 8px; border-radius: 10px; overflow: hidden;">
+                <div style="height: 100%; background: ${corBarra}; width: ${Math.min(pct, 100)}%; transition: 0.5s;"></div>
+            </div>
+            <p style="font-size: 11px; color: var(--texto-sec); margin: 0; line-height: 1.4;"><i class="fas fa-info-circle"></i> ${analise}</p>
+        </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// ----------------------------------------------------
 // UTILITÁRIOS E HELPERS
 // ----------------------------------------------------
-function getMesFaturaLogico(dataLancamento, diaFechamento) { 
+window.getMesFaturaLogico = function(dataLancamento, diaFechamento) { 
     if (!dataLancamento) return ""; 
     const [anoStr, mesStr, diaStr] = dataLancamento.split('T')[0].split('-'); 
     let ano = parseInt(anoStr, 10); 
@@ -206,21 +294,16 @@ function getMesFaturaLogico(dataLancamento, diaFechamento) {
     return `${ano}-${mes.toString().padStart(2, '0')}`; 
 }
 
-function formatarMesFaturaLogico(mesAnoStr) { 
+window.formatarMesFaturaLogico = function(mesAnoStr) { 
     const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'}; 
     const [ano, mes] = mesAnoStr.split('-'); 
     return `${meses[mes]} / ${ano}`; 
 }
 
-function toggleNovaContaArea() { 
-    const el = document.getElementById('area-nova-conta'); 
-    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
-}
-
 // ----------------------------------------------------
 // RADAR DE VENCIMENTOS (DASHBOARD)
 // ----------------------------------------------------
-function renderRadarVencimentos() {
+window.renderRadarVencimentos = function() {
     const lista = document.getElementById('lista-radar-vencimentos'); 
     if(!lista) return;
     
@@ -231,7 +314,6 @@ function renderRadarVencimentos() {
     
     let alertas = [];
 
-    // Busca Despesas Pendentes (Contas Correntes/Boletos)
     (db.lancamentos || []).forEach(l => {
         const conta = (db.contas || []).find(c => c.id === l.contaId); 
         if (conta && conta.tipo === 'cartao') return; 
@@ -255,7 +337,6 @@ function renderRadarVencimentos() {
         }
     });
 
-    // Busca Faturas de Cartão de Crédito Fechando
     (db.contas || []).filter(c => c.tipo === 'cartao').forEach(c => {
         let mesesFatura = {};
         
@@ -274,7 +355,7 @@ function renderRadarVencimentos() {
             const totalFinal = mesesFatura[mes] - jaAmortizado; 
             if (totalFinal <= 0) return;
             
-            let [anoF, mesF] = mes.split('-').map(Number); 
+            let [anoF, mesF] = mes.split('-'); 
             let diaVenc = c.vencimento || 1; 
             let diaFech = c.fechamento || 1;
             
@@ -312,7 +393,7 @@ function renderRadarVencimentos() {
 // ----------------------------------------------------
 // ABA DE EXTRATO 
 // ----------------------------------------------------
-function renderHistorico() {
+window.renderHistorico = function() {
     const lista = document.getElementById('lista-historico-filtros'); 
     if(!lista) return;
 
@@ -369,11 +450,18 @@ function renderHistorico() {
             return; 
         }
 
-        lista.innerHTML = lancs.map(l => {
+        let exportBtnHtml = `
+        <div class="flex-between" style="margin-bottom: 12px; align-items: center; padding: 0 5px;">
+            <span style="font-size: 12px; color: var(--texto-sec); font-weight: 600;"><i class="fas fa-list"></i> ${lancs.length} registros</span>
+            <button class="btn-outline" style="font-size: 11px; padding: 6px 12px; width: auto;" onclick="if(typeof exportarExtratoCSV === 'function') exportarExtratoCSV()">
+                <i class="fas fa-file-csv" style="color: var(--esmeralda);"></i> Exportar Excel
+            </button>
+        </div>`;
+
+        lista.innerHTML = exportBtnHtml + lancs.map(l => {
             const c = l.contaObj; 
             let chipHtml = ''; 
             
-            // Chips de Status e Cores
             if (c && c.tipo === 'cartao') { 
                 if (l.statusCalculado === 'pago') chipHtml = `<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px;">FATURA PAGA</span>`; 
                 else if (l.statusCalculado === 'atencao') chipHtml = `<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px;">FATURA FECHADA</span>`; 
@@ -405,6 +493,18 @@ function renderHistorico() {
             const catDB = (db.categorias || []).find(cat => cat.nome === l.cat); 
             const iconeCat = catDB && catDB.icone ? catDB.icone + ' ' : '';
             
+            let accOptionsHtml = '';
+            if (c) {
+                const isOriginalCartao = c.tipo === 'cartao';
+                (db.contas || []).forEach(acc => {
+                    if ((acc.tipo === 'cartao') === isOriginalCartao) {
+                        accOptionsHtml += `<option value="${acc.id}" ${acc.id === c.id ? 'selected' : ''}>${acc.tipo === 'cartao' ? '💳' : '🏦'} ${acc.nome}</option>`;
+                    }
+                });
+            } else {
+                accOptionsHtml = `<option value="${l.contaId}">Conta Excluída</option>`;
+            }
+
             return `
             <div class="card fatura-card ${!l.efetivado ? 'opacity-90' : ''}" style="padding:0; overflow:hidden; border:1px solid var(--linha); border-left: 4px solid ${c ? c.cor : '#ccc'}; margin-bottom: 12px; transition: box-shadow 0.3s ease;">
                 <div style="padding:15px; cursor:pointer;" onclick="toggleEditLancamento(${l.id})">
@@ -429,6 +529,11 @@ function renderHistorico() {
                     <label class="label-moderno">Editar Descrição</label>
                     <input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc || ''}">
                     
+                    <label class="label-moderno">Alterar Conta Origem/Destino</label>
+                    <select id="e-lanc-conta-${l.id}" class="input-moderno mb-10">
+                        ${accOptionsHtml}
+                    </select>
+
                     <div class="grid-inputs mb-10">
                         <div>
                             <label class="label-moderno">Data</label>
@@ -436,7 +541,7 @@ function renderHistorico() {
                         </div>
                         <div>
                             <label class="label-moderno">Valor (R$)</label>
-                            <input type="number" id="e-lanc-val-${l.id}" class="input-moderno" value="${l.valor || 0}">
+                            <input type="text" inputmode="numeric" id="e-lanc-val-${l.id}" class="input-moderno" value="${(l.valor || 0).toFixed(2).replace('.', ',')}" oninput="mascaraMoeda(event)">
                         </div>
                     </div>
                     
@@ -461,7 +566,7 @@ function renderHistorico() {
     }
 }
 
-function toggleEditLancamento(id) { 
+window.toggleEditLancamento = function(id) { 
     const el = document.getElementById(`edit-lanc-${id}`); 
     if(el) { 
         el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
@@ -473,35 +578,9 @@ function toggleEditLancamento(id) {
 }
 
 // ----------------------------------------------------
-// MODAIS DE PAGAMENTO PARCIAL (AMORTIZAÇÃO)
-// ----------------------------------------------------
-function abrirModalParcial(id, valorAtual) { 
-    document.getElementById('hidden-id-parcial').value = id; 
-    document.getElementById('txt-valor-original-parcial').innerText = `R$ ${valorAtual.toFixed(2)}`; 
-    document.getElementById('input-valor-parcial').value = ''; 
-    const modal = document.getElementById('modal-pagamento-parcial'); 
-    if(modal) { 
-        modal.style.display = 'flex'; 
-        setTimeout(()=>modal.classList.add('active'), 10); 
-    } 
-}
-function fecharModalParcial() { 
-    const m = document.getElementById('modal-pagamento-parcial'); 
-    if(m) { 
-        m.classList.remove('active'); 
-        setTimeout(()=>m.style.display = 'none', 300); 
-    } 
-}
-function toggleCamposPrevisao() { 
-    const isChecked = document.getElementById('emp-sem-previsao').checked; 
-    const container = document.getElementById('container-campos-previsao'); 
-    if(container) container.style.display = isChecked ? 'none' : 'block'; 
-}
-
-// ----------------------------------------------------
 // ABA DE CONTAS (BANCÁRIAS E CARTÕES)
 // ----------------------------------------------------
-function renderAbaContas() {
+window.renderAbaContas = function() {
     const lista = document.getElementById('lista-contas-saldos'); 
     if(!lista) return; 
     lista.innerHTML = ``;
@@ -515,6 +594,15 @@ function renderAbaContas() {
         if (isCartao) {
             const hoje = new Date(); 
             const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+            const diaHoje = hoje.getDate();
+            
+            let mesAtivo = hoje.getMonth() + 1;
+            let anoAtivo = hoje.getFullYear();
+            if (diaHoje >= (c.fechamento || 1)) {
+                mesAtivo += 1;
+                if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; }
+            }
+            const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
             
             (db.lancamentos || []).forEach(l => { 
                 if (l.contaId === c.id) { 
@@ -526,7 +614,7 @@ function renderAbaContas() {
                     else if (T_RECEITAS.includes(l.tipo)) valorCalc = -l.valor; 
                     
                     if (valorCalc !== 0) { 
-                        if (mesLancLogico === mesCorrente) { usoMeta += valorCalc; } 
+                        if (mesLancLogico === strMesAtivo) { usoMeta += valorCalc; } 
                         if (!isPaga) { usoLimite += valorCalc; } 
                     } 
                 }
@@ -554,7 +642,7 @@ function renderAbaContas() {
                 </div>
                 <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pLimite,100)}%"></div></div>
                 <div class="limite-texto" style="margin-bottom: 4px; margin-top: 10px; opacity: 0.9; font-size: 11px;">
-                    <span>Consumo (Meta): R$ ${usoMeta.toFixed(2)} (${pMeta.toFixed(1)}%)</span>
+                    <span>Consumo Fatura Atual (Meta): R$ ${usoMeta.toFixed(2)} (${pMeta.toFixed(1)}%)</span>
                     <span>R$ ${(c.meta || 0).toFixed(2)}</span>
                 </div>
                 <div class="limite-bg"><div class="limite-fill" style="width:${Math.min(pMeta,100)}%; background: ${pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981')};"></div></div>
@@ -633,15 +721,15 @@ function renderAbaContas() {
                 </div>
                 ${isCartao ? `
                 <div class="grid-inputs mb-10">
-                    <div><label class="label-moderno">Limite</label><input type="number" id="edit-limite-${c.id}" class="input-moderno" value="${c.limite || 0}"></div>
-                    <div><label class="label-moderno">Meta</label><input type="number" id="edit-meta-${c.id}" class="input-moderno" value="${c.meta || 0}"></div>
+                    <div><label class="label-moderno">Limite</label><input type="text" inputmode="numeric" id="edit-limite-${c.id}" class="input-moderno" value="${(c.limite || 0).toFixed(2).replace('.', ',')}" oninput="mascaraMoeda(event)"></div>
+                    <div><label class="label-moderno">Meta</label><input type="text" inputmode="numeric" id="edit-meta-${c.id}" class="input-moderno" value="${(c.meta || 0).toFixed(2).replace('.', ',')}" oninput="mascaraMoeda(event)"></div>
                 </div>
                 <div class="grid-inputs">
                     <div><label class="label-moderno">Fecha</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento || 1}"></div>
                     <div><label class="label-moderno">Venc</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento || 1}"></div>
                 </div>` : `
                 <label class="label-moderno">Ajustar Saldo Atual (R$)</label>
-                <input type="number" id="edit-saldo-${c.id}" class="input-moderno" value="${(c.saldo || 0).toFixed(2)}" step="0.01">
+                <input type="text" inputmode="numeric" id="edit-saldo-${c.id}" class="input-moderno" value="${(c.saldo || 0).toFixed(2).replace('.', ',')}" oninput="mascaraMoeda(event)">
                 `}
                 <div class="flex-between mt-15">
                     <button class="btn-icon txt-perigo" onclick="excluirConta('${c.id}')"><i class="fas fa-trash"></i> Excluir</button>
@@ -651,7 +739,7 @@ function renderAbaContas() {
     });
 }
 
-function toggleExtratoConta(id) { 
+window.toggleExtratoConta = function(id) { 
     const el = document.getElementById(`extrato-conta-${id}`); 
     if(el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; } 
     const editEl = document.getElementById(`edit-conta-${id}`); 
@@ -661,7 +749,7 @@ function toggleExtratoConta(id) {
 // ----------------------------------------------------
 // ABA DE FATURAS (CARTÃO DE CRÉDITO)
 // ----------------------------------------------------
-function renderAbaFaturas() {
+window.renderAbaFaturas = function() {
     const abas = document.getElementById('abas-cartoes-fatura'); 
     const lista = document.getElementById('lista-faturas-agrupadas'); 
     if(!abas || !lista) return; 
@@ -764,68 +852,19 @@ function renderAbaFaturas() {
 }
 
 // ----------------------------------------------------
-// MENUS E CONFIGURAÇÕES DO SISTEMA
-// ----------------------------------------------------
-function abrirModalAparencia() { 
-    const m = document.getElementById('modal-aparencia'); 
-    if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); } 
-}
-function fecharModalAparencia() { 
-    const m = document.getElementById('modal-aparencia'); 
-    if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } 
-}
-function abrirModalSistema() { 
-    const m = document.getElementById('modal-sistema'); 
-    if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); renderAbaConfig(); } 
-}
-function fecharModalSistema() { 
-    const m = document.getElementById('modal-sistema'); 
-    if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } 
-}
-function abrirModalCategorias() { 
-    const m = document.getElementById('modal-categorias'); 
-    if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); renderModalCategorias(); } 
-}
-function fecharModalCategorias() { 
-    const m = document.getElementById('modal-categorias'); 
-    if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); cancelarEdicaoCategoria(); } 
-}
-
-function renderAbaConfig() { 
-    const toggleTema = document.getElementById('toggle-tema-ajustes'); 
-    if (toggleTema) toggleTema.checked = document.body.classList.contains('dark-mode'); 
-    
-    const divBackups = document.getElementById('lista-backups'); 
-    if(!divBackups) return; 
-    
-    let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || []; 
-    divBackups.innerHTML = hist.length ? hist.map(b => `
-        <div class="flex-between mb-10" style="background:var(--input-bg); padding:10px; border-radius:8px; border:1px solid var(--linha);">
-            <div>
-                <strong>${b.nome}</strong>
-                <small style="display:block; font-size:10px;">${b.data} • ${b.size}</small>
-            </div>
-            <div style="display:flex; gap:5px;">
-                <button class="btn-primary" style="padding:5px; width:30px;" onclick="restaurarBackupLocal(${b.id})"><i class="fas fa-undo"></i></button>
-                <button class="btn-danger" style="padding:5px; width:30px;" onclick="excluirBackupLocal(${b.id})"><i class="fas fa-trash"></i></button>
-            </div>
-        </div>`).join('') : '<p class="texto-vazio" style="margin:0;">Sem backups.</p>'; 
-}
-
-// ----------------------------------------------------
 // CATEGORIAS
 // ----------------------------------------------------
-function selecionarCorCat(cor, elemento) { 
+window.selecionarCorCat = function(cor, elemento) { 
     document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active')); 
     if(elemento) elemento.classList.add('active'); 
     document.getElementById('nova-cat-cor').value = cor; 
 }
 
-function removerSelecaoPaleta() { 
+window.removerSelecaoPaleta = function() { 
     document.querySelectorAll('.color-swatch').forEach(el => el.classList.remove('active')); 
 }
 
-function renderModalCategorias() {
+window.renderModalCategorias = function() {
     const lDespesas = document.getElementById('lista-categorias-despesas'); 
     const lReceitas = document.getElementById('lista-categorias-receitas'); 
     const cDespesas = document.getElementById('count-cat-desp'); 
@@ -852,7 +891,7 @@ function renderModalCategorias() {
     }
 }
 
-function editarCategoria(id) { 
+window.editarCategoria = function(id) { 
     const cat = (db.categorias || []).find(c => c.id === id); 
     if(!cat) return; 
     
@@ -869,7 +908,7 @@ function editarCategoria(id) {
     document.getElementById('btn-cancelar-edicao-cat').style.display = 'block'; 
 }
 
-function cancelarEdicaoCategoria() { 
+window.cancelarEdicaoCategoria = function() { 
     document.getElementById('nova-cat-id').value = ''; 
     document.getElementById('nova-cat-icone').value = ''; 
     document.getElementById('nova-cat-nome').value = ''; 
@@ -880,7 +919,7 @@ function cancelarEdicaoCategoria() {
     document.getElementById('btn-cancelar-edicao-cat').style.display = 'none'; 
 }
 
-function salvarConfigNovaCategoria() { 
+window.salvarConfigNovaCategoria = function() { 
     const idEdicao = document.getElementById('nova-cat-id').value; 
     const icone = document.getElementById('nova-cat-icone').value.trim(); 
     const nome = document.getElementById('nova-cat-nome').value.trim(); 
@@ -909,7 +948,7 @@ function salvarConfigNovaCategoria() {
             cat.fixa = fixa; 
             
             save(); 
-            if(typeof showToast === 'function') showToast("Categoria atualizada!"); 
+            if(typeof showToast === 'function') showToast("Categoria atualizada!", "ajuste"); 
         } 
     } else { 
         const existe = db.categorias.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.tipo === tipo); 
@@ -917,7 +956,7 @@ function salvarConfigNovaCategoria() {
         
         db.categorias.push({ id: 'cat_' + Date.now(), nome: nome, icone: icone, cor: cor, fixa: fixa, tipo: tipo }); 
         save(); 
-        if(typeof showToast === 'function') showToast("Nova categoria criada!"); 
+        if(typeof showToast === 'function') showToast("Nova categoria criada!", "sucesso"); 
     } 
     
     cancelarEdicaoCategoria(); 
@@ -925,18 +964,22 @@ function salvarConfigNovaCategoria() {
     if(typeof render === 'function') render(); 
 }
 
-function excluirCategoria(id) { 
-    if(!confirm("Excluir esta categoria? Os lançamentos antigos vão perder a cor no gráfico, mas o nome continua no extrato.")) return; 
-    db.categorias = db.categorias.filter(c => c.id !== id); 
-    save(); 
-    renderModalCategorias(); 
-    if(typeof render === 'function') render(); 
+window.excluirCategoria = function(id) { 
+    if(typeof abrirConfirmacao === 'function') {
+        abrirConfirmacao("Excluir esta categoria? Os lançamentos antigos vão perder a cor no gráfico, mas o nome continua no extrato.", () => {
+            db.categorias = db.categorias.filter(c => c.id !== id); 
+            save(); 
+            renderModalCategorias(); 
+            if(typeof render === 'function') render(); 
+            if(typeof showToast === 'function') showToast("Categoria excluída!", "exclusao");
+        });
+    }
 }
 
 // ----------------------------------------------------
 // CÁLCULOS E DESENHO DOS GRÁFICOS
 // ----------------------------------------------------
-function renderGrafico() {
+window.renderGrafico = function() {
     const ctx = document.getElementById('graficoCategorias'); 
     if(!ctx) return; 
     
@@ -997,65 +1040,54 @@ function renderGrafico() {
     });
 }
 
-function mudarMesFiltro(delta) { 
-    const input = document.getElementById('filtro-mes'); 
-    if (!input) return; 
-    
-    const hojeLocal = new Date(); 
-    const mesCorrenteLocal = `${hojeLocal.getFullYear()}-${(hojeLocal.getMonth() + 1).toString().padStart(2, '0')}`; 
-    
-    let [ano, mes] = (input.value || mesCorrenteLocal).split('-').map(Number); 
-    mes += delta; 
-    if (mes < 1) { mes = 12; ano--; } 
-    else if (mes > 12) { mes = 1; ano++; } 
-    
-    input.value = `${ano}-${mes.toString().padStart(2, '0')}`; 
-    if (typeof renderHistorico === 'function') renderHistorico(); 
-    if (typeof renderGrafico === 'function') renderGrafico(); 
-}
-
-function mudarFiltroStatus(status, btnClicado) { 
-    document.querySelectorAll('.status-btn').forEach(btn => { 
-        btn.classList.remove('active'); 
-        btn.style.background = 'var(--input-bg)'; 
-        btn.style.color = 'var(--texto-sec)'; 
-        btn.style.border = '1px solid var(--linha)'; 
-        btn.style.boxShadow = 'none'; 
-    }); 
-    
-    btnClicado.classList.add('active'); 
-    btnClicado.style.background = 'var(--azul)'; 
-    btnClicado.style.color = '#fff'; 
-    btnClicado.style.border = 'none'; 
-    btnClicado.style.boxShadow = '0 2px 5px rgba(37,99,235,0.3)'; 
-    
-    const inputStatus = document.getElementById('filtro-status'); 
-    if (inputStatus) inputStatus.value = status; 
-    
-    if (typeof renderHistorico === 'function') renderHistorico(); 
-}
-
-function renderGraficoEvolucao() {
+// NOVO: Gráfico de Evolução com Filtro de Ano e 12 Meses Fixos
+window.renderGraficoEvolucao = function() {
     const ctx = document.getElementById('graficoEvolucao'); 
     if(!ctx) return; 
+
+    // Lógica do Filtro de Ano Automático
+    const filtroAno = document.getElementById('filtro-ano-grafico');
+    let anosSet = new Set();
     
-    const labels = [], dDesp = [], dRec = []; 
-    const mesesAbrev = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
+    (db.lancamentos || []).forEach(l => {
+        if(l.data && l.data.length >= 4) {
+            anosSet.add(l.data.substring(0,4));
+        }
+    });
     
-    for (let i = 5; i >= 0; i--) { 
-        let d = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1); 
-        let mStr = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`; 
-        labels.push(mesesAbrev[mStr.split('-')[1]]); 
+    const anoAtualStr = new Date().getFullYear().toString();
+    anosSet.add(anoAtualStr); // Garante que o ano atual exista sempre
+    
+    let anosArr = Array.from(anosSet).sort().reverse();
+
+    if (filtroAno && filtroAno.options.length === 0) {
+        anosArr.forEach(ano => {
+            filtroAno.options.add(new Option(ano, ano));
+        });
+        filtroAno.value = anoAtualStr;
+    }
+
+    const anoSelecionado = filtroAno ? filtroAno.value : anoAtualStr;
+
+    // Constrói os dados para os 12 meses do ano selecionado
+    const mesesAbrev = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const labels = [], dDesp = [], dRec = [];
+
+    for (let i = 1; i <= 12; i++) {
+        let mesStr = i.toString().padStart(2, '0');
+        let chave = `${anoSelecionado}-${mesStr}`;
+        labels.push(mesesAbrev[i-1]);
+
+        let tD = 0, tR = 0;
+        (db.lancamentos || []).forEach(l => {
+            if (l.data && l.data.substring(0,7) === chave) {
+                if (T_DESPESAS.includes(l.tipo)) tD += l.valor; 
+                if (T_RECEITAS.includes(l.tipo)) tR += l.valor; 
+            }
+        });
         
-        let tD = 0, tR = 0; 
-        (db.lancamentos || []).forEach(l => { 
-            if(l.efetivado && l.data && l.data.substring(0,7) === mStr){ 
-                if(T_DESPESAS.includes(l.tipo)) tD += l.valor; 
-                if(T_RECEITAS.includes(l.tipo)) tR += l.valor; 
-            } 
-        }); 
-        dDesp.push(tD); 
-        dRec.push(tR); 
+        dDesp.push(tD);
+        dRec.push(tR);
     }
     
     if(meuGraficoEvolucao) meuGraficoEvolucao.destroy(); 
@@ -1095,96 +1127,19 @@ function renderGraficoEvolucao() {
             } 
         } 
     });
+
+    // UX: Se estiver no ano atual e passar de Junho, desliza o gráfico automaticamente para focar nos meses finais
+    const wrapper = document.getElementById('scroll-wrapper-evolucao');
+    if (wrapper && anoSelecionado === anoAtualStr) {
+        setTimeout(() => {
+            const mesHoje = new Date().getMonth(); 
+            if (mesHoje > 5) {
+                wrapper.scrollLeft = wrapper.scrollWidth;
+            } else {
+                wrapper.scrollLeft = 0;
+            }
+        }, 150);
+    } else if (wrapper) {
+        wrapper.scrollLeft = 0;
+    }
 }
-
-// ----------------------------------------------------
-// NAVEGAÇÃO POR NOTIFICAÇÕES (Redirecionamento Inteligente)
-// ----------------------------------------------------
-window.redirecionarParaLancamento = function(id, dataStr) {
-    // 1. Fechar o sininho
-    if(typeof fecharNotificacoes === 'function') fecharNotificacoes();
-    
-    // 2. Mudar para a aba Extrato (forçando a navegação via DOM)
-    document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
-    document.getElementById('aba-historico').classList.add('active');
-    document.querySelectorAll('#menu-lateral .menu-item').forEach(m => m.classList.remove('active'));
-    const menuExtrato = document.querySelector('#menu-lateral .menu-item:nth-child(3)');
-    if (menuExtrato) menuExtrato.classList.add('active');
-
-    // 3. Ajustar o filtro de mês para o mês do lançamento
-    const inputMes = document.getElementById('filtro-mes');
-    if (inputMes && dataStr) {
-        const [ano, mes] = dataStr.split('-');
-        inputMes.value = `${ano}-${mes}`;
-    }
-    
-    // 4. Garantir que o filtro de status esteja em 'todos' para não ocultar o item
-    const inputStatus = document.getElementById('filtro-status');
-    if (inputStatus) inputStatus.value = 'todos';
-    
-    document.querySelectorAll('.status-btn').forEach(btn => {
-        btn.classList.remove('active');
-        btn.style.background = 'var(--input-bg)';
-        btn.style.color = 'var(--texto-sec)';
-        btn.style.border = '1px solid var(--linha)';
-    });
-    const btnTodos = document.querySelector('.status-btn'); 
-    if (btnTodos) {
-        btnTodos.classList.add('active');
-        btnTodos.style.background = 'var(--azul)';
-        btnTodos.style.color = '#fff';
-        btnTodos.style.border = 'none';
-    }
-
-    // 5. Renderizar o extrato com os novos filtros
-    renderHistorico();
-
-    // 6. Rolar até o item e abri-lo, com efeito de brilho
-    setTimeout(() => {
-        const cardEdit = document.getElementById(`edit-lanc-${id}`);
-        if (cardEdit) {
-            // Se estiver fechado, abre o detalhe
-            if (cardEdit.style.display === 'none') {
-                toggleEditLancamento(id);
-            }
-            // Rola suavemente até o cartão
-            cardEdit.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Efeito visual (Glow azul) para destacar a conta
-            cardEdit.parentElement.style.boxShadow = '0 0 15px rgba(59, 130, 246, 0.6)';
-            setTimeout(() => cardEdit.parentElement.style.boxShadow = '', 2000);
-        }
-    }, 300);
-};
-
-window.redirecionarParaFatura = function(contaId, mesFatura) {
-    // 1. Fechar o sininho
-    if(typeof fecharNotificacoes === 'function') fecharNotificacoes();
-    
-    // 2. Mudar para a aba Faturas
-    document.querySelectorAll('.secao-app').forEach(s => s.classList.remove('active'));
-    document.getElementById('aba-faturas').classList.add('active');
-    document.querySelectorAll('#menu-lateral .menu-item').forEach(m => m.classList.remove('active'));
-    const menuFaturas = document.querySelector('#menu-lateral .menu-item:nth-child(2)');
-    if (menuFaturas) menuFaturas.classList.add('active');
-
-    // 3. Selecionar o cartão correto
-    window.cartaoAtivoFatura = contaId;
-    
-    // 4. Renderizar a aba de faturas
-    renderAbaFaturas();
-
-    // 5. Rolar até a fatura e abri-la, com efeito de brilho
-    setTimeout(() => {
-        const fatID = `${contaId}-${mesFatura}`;
-        const cardEdit = document.getElementById(`edit-lanc-det-fat-${fatID}`);
-        if (cardEdit) {
-            if (cardEdit.style.display === 'none') {
-                toggleEditLancamento(`det-fat-${fatID}`);
-            }
-            cardEdit.parentElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Efeito visual (Glow laranja/alerta) para destacar a fatura
-            cardEdit.parentElement.style.boxShadow = '0 0 15px rgba(245, 158, 11, 0.6)';
-            setTimeout(() => cardEdit.parentElement.style.boxShadow = '', 2000);
-        }
-    }, 300);
-};
