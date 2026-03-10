@@ -1,10 +1,15 @@
 // ==========================================
-// ENGINE.JS - Lógica de Negócios e Cálculos (v27.0.3 - Modais Personalizados e Máscaras)
+// ENGINE.JS - Lógica de Negócios e Cálculos (v27.0.5 - Fix Zeros e Faturas)
 // ==========================================
 
-window.ecoTempEmprestimo = null;
 window.ecoTiposReceita = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
 window.ecoTiposDespesa = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
+
+// VITAL: Restaura a matemática do ui.js sem causar erro de duplicação
+window.T_RECEITAS_APP = window.ecoTiposReceita;
+window.T_DESPESAS_APP = window.ecoTiposDespesa;
+
+window.ecoTempEmprestimo = null;
 window.cartaoAtivoFatura = null; 
 window.meuGrafico = null;
 window.meuGraficoEvolucao = null;
@@ -57,16 +62,8 @@ function showToast(mensagem, tipo = 'sucesso') {
     toast.innerHTML = `<i class="fas ${icone}" style="font-size:16px;"></i> ${mensagem}`;
     container.appendChild(toast);
 
-    setTimeout(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateY(0)';
-    }, 10);
-
-    setTimeout(() => { 
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-20px)';
-        setTimeout(() => toast.remove(), 400);
-    }, 3000);
+    setTimeout(() => { toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; }, 10);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(-20px)'; setTimeout(() => toast.remove(), 400); }, 3000);
 }
 
 window.exportarExtratoCSV = function() {
@@ -74,7 +71,6 @@ window.exportarExtratoCSV = function() {
     let exportData = (db.lancamentos || []).filter(l => l.data.substring(0,7) === mesFiltro);
     
     if (exportData.length === 0) return alert("Nenhum dado para exportar neste mês.");
-
     exportData.sort((a,b) => new Date(a.data) - new Date(b.data));
 
     let csvContent = "data:text/csv;charset=utf-8,";
@@ -152,7 +148,7 @@ window.verificarNotificacoesMotor = function() {
                 let statusAviso = diasFaltando < 0 ? '🚨 Atrasado' : (diasFaltando === 0 ? '⚠️ Vence Hoje' : `⚠️ Vence em ${diasFaltando} dias`);
 
                 htmlNotificacoes += `
-                <div class="notif-card ${diasFaltando < 0 ? 'warning' : 'warning'}" style="cursor:pointer;" onclick="if(typeof redirecionarParaLancamento === 'function') redirecionarParaLancamento(${l.id}, '${l.data}')">
+                <div class="notif-card warning" style="cursor:pointer;" onclick="if(typeof redirecionarParaLancamento === 'function') redirecionarParaLancamento(${l.id}, '${l.data}')">
                     <div style="display:flex; justify-content: space-between; margin-bottom: 8px;">
                         <strong style="font-size: 13px; color: var(--texto-main);">${statusAviso}</strong>
                     </div>
@@ -170,7 +166,7 @@ window.verificarNotificacoesMotor = function() {
         
         (db.lancamentos || []).forEach(l => {
             if(l.contaId !== c.id) return;
-            const mesFat = obterMesFaturaAviso(l.data, c.fechamento || 1);
+            const mesFat = window.obterMesFaturaAviso(l.data, c.fechamento || 1);
             if(!mesesFatura[mesFat]) mesesFatura[mesFat] = 0;
             mesesFatura[mesFat] += window.ecoTiposReceita.includes(l.tipo) ? -l.valor : l.valor;
         });
@@ -218,15 +214,11 @@ window.verificarNotificacoesMotor = function() {
     }
 
     listaNotif.innerHTML = htmlNotificacoes;
-    if (contadorUnread > 0) {
-        badge.style.display = 'flex';
-        badge.innerText = contadorUnread;
-    } else {
-        badge.style.display = 'none';
-    }
+    if (contadorUnread > 0) { badge.style.display = 'flex'; badge.innerText = contadorUnread; } 
+    else { badge.style.display = 'none'; }
 }
 
-function obterMesFaturaAviso(dataLancamento, diaFechamento) {
+window.obterMesFaturaAviso = function(dataLancamento, diaFechamento) {
     if (!dataLancamento) return ""; 
     const [anoStr, mesStr, diaStr] = dataLancamento.split('T')[0].split('-'); 
     let ano = parseInt(anoStr, 10); 
@@ -243,21 +235,9 @@ function obterMesFaturaAviso(dataLancamento, diaFechamento) {
 
 window.confirmarSalarioMotor = function(nome, valor, contaId, freq) {
     const hojeIso = new Date().toISOString().split('T')[0];
-    db.lancamentos.push({
-        id: Date.now(),
-        data: hojeIso,
-        tipo: 'receita',
-        contaId: contaId,
-        forma: 'Pix',
-        desc: `${nome} (${freq})`,
-        valor: valor,
-        cat: 'Salário',
-        efetivado: true
-    });
-    
+    db.lancamentos.push({ id: Date.now(), data: hojeIso, tipo: 'receita', contaId: contaId, forma: 'Pix', desc: `${nome} (${freq})`, valor: valor, cat: 'Salário', efetivado: true });
     const c = db.contas.find(x => x.id === contaId);
     if(c) c.saldo += valor;
-    
     save();
     showToast(`${nome} recebido com sucesso!`);
     if(typeof render === 'function') render();
@@ -279,25 +259,12 @@ window.salvarContaFixa = function() {
     const hoje = new Date();
     let mesAtual = hoje.getMonth() + 1;
     let anoAtual = hoje.getFullYear();
-
     let mesAnterior = mesAtual - 1;
     let anoAnterior = anoAtual;
-    if (mesAnterior === 0) {
-        mesAnterior = 12;
-        anoAnterior--;
-    }
+    if (mesAnterior === 0) { mesAnterior = 12; anoAnterior--; }
 
-    db.recorrencias.push({
-        id: Date.now(),
-        diaVencimento: dia,
-        tipo: 'despesas_gerais',
-        contaId: contaId,
-        forma: forma,
-        desc: desc,
-        valor: valor,
-        cat: cat,
-        ultimoMesGerado: `${anoAnterior}-${mesAnterior.toString().padStart(2,'0')}`
-    });
+    if(!db.recorrencias) db.recorrencias = [];
+    db.recorrencias.push({ id: Date.now(), diaVencimento: dia, tipo: 'despesas_gerais', contaId: contaId, forma: forma, desc: desc, valor: valor, cat: cat, ultimoMesGerado: `${anoAnterior}-${mesAnterior.toString().padStart(2,'0')}` });
 
     save();
     processarRecorrencias();
@@ -320,12 +287,8 @@ window.salvarParcelamentoAndamento = function() {
     const cat = document.getElementById('parc-cat').value;
     const contaId = document.getElementById('parc-conta').value;
 
-    if(!desc || valor <= 0 || isNaN(diaVenc) || isNaN(parcAtual) || isNaN(parcTotal) || !mesInput || !cat || !contaId) {
-        return alert("Preencha todos os campos do Parcelamento.");
-    }
-    if(parcAtual > parcTotal) {
-        return alert("A parcela atual não pode ser maior que o total de parcelas.");
-    }
+    if(!desc || valor <= 0 || isNaN(diaVenc) || isNaN(parcAtual) || isNaN(parcTotal) || !mesInput || !cat || !contaId) return alert("Preencha todos os campos do Parcelamento.");
+    if(parcAtual > parcTotal) return alert("A parcela atual não pode ser maior que o total de parcelas.");
 
     const conta = db.contas.find(c => c.id === contaId);
     const isCartao = conta.tipo === 'cartao';
@@ -344,58 +307,28 @@ window.salvarParcelamentoAndamento = function() {
         let mesParcela = mes + offset;
         let anoParcela = ano;
         
-        while(mesParcela > 12) {
-            mesParcela -= 12;
-            anoParcela += 1;
-        }
+        while(mesParcela > 12) { mesParcela -= 12; anoParcela += 1; }
 
         let dataFormatada = "";
-        
         if (isCartao) {
-            let diaCompra = 1; 
-            let mCompra = mesParcela; 
-            let aCompra = anoParcela;
-            
-            if (diaFechamento === 1) { 
-                mCompra -= 1; 
-                if(mCompra === 0) { mCompra = 12; aCompra -= 1; } 
-                diaCompra = 28; 
-            }
-            
+            let diaCompra = 1; let mCompra = mesParcela; let aCompra = anoParcela;
+            if (diaFechamento === 1) { mCompra -= 1; if(mCompra === 0) { mCompra = 12; aCompra -= 1; } diaCompra = 28; }
             let d = new Date(aCompra, mCompra - 1, diaCompra);
             dataFormatada = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
-        } 
-        else {
+        } else {
             let d = new Date(anoParcela, mesParcela - 1, diaVenc);
-            if (d.getMonth() + 1 !== mesParcela) { 
-                d = new Date(anoParcela, mesParcela, 0); 
-            } 
+            if (d.getMonth() + 1 !== mesParcela) d = new Date(anoParcela, mesParcela, 0); 
             dataFormatada = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
         }
 
-        db.lancamentos.push({
-            id: Date.now() + i,
-            idGrupo: groupId,
-            data: dataFormatada,
-            tipo: 'despesas_gerais',
-            contaId: contaId,
-            forma: forma,
-            desc: `${desc} (${i}/${parcTotal})`,
-            valor: valor,
-            cat: cat,
-            efetivado: false
-        });
+        db.lancamentos.push({ id: Date.now() + i, idGrupo: groupId, data: dataFormatada, tipo: 'despesas_gerais', contaId: contaId, forma: forma, desc: `${desc} (${i}/${parcTotal})`, valor: valor, cat: cat, efetivado: false });
         geradas++;
     }
 
     save();
     showToast(`Injetadas ${geradas} parcelas!`);
     
-    document.getElementById('parc-desc').value = '';
-    document.getElementById('parc-valor').value = '';
-    document.getElementById('parc-dia').value = '';
-    document.getElementById('parc-atual').value = '';
-    document.getElementById('parc-total').value = '';
+    document.getElementById('parc-desc').value = ''; document.getElementById('parc-valor').value = ''; document.getElementById('parc-dia').value = ''; document.getElementById('parc-atual').value = ''; document.getElementById('parc-total').value = '';
     
     if(typeof fecharModalContratos === 'function') fecharModalContratos();
     if(typeof render === 'function') render();
@@ -404,7 +337,7 @@ window.salvarParcelamentoAndamento = function() {
 
 window.excluirParcelamentoGrupo = function(idGrupo) {
     if(typeof abrirConfirmacao === 'function') {
-        abrirConfirmacao("Atenção: Tem certeza que deseja apagar TODAS as parcelas deste financiamento que ainda estão em aberto?", () => {
+        abrirConfirmacao("Atenção: Tem certeza que deseja apagar TODAS as parcelas deste financiamento em aberto?", () => {
             const antes = db.lancamentos.length;
             db.lancamentos = db.lancamentos.filter(l => !(l.idGrupo === idGrupo && l.efetivado === false));
             const excluidas = antes - db.lancamentos.length;
@@ -419,28 +352,14 @@ window.excluirParcelamentoGrupo = function(idGrupo) {
 function mudarDirecaoLancamento() {
     const direcaoSelect = document.getElementById('lanc-direcao');
     const tipoSelect = document.getElementById('lanc-tipo');
-    
     if(!direcaoSelect || !tipoSelect) return;
     
     const direcao = direcaoSelect.value;
     tipoSelect.options.length = 0; 
     
     let listaTipos = direcao === 'despesa' 
-        ? [
-            { val: 'despesas_gerais', txt: 'Despesas Gerais' }, 
-            { val: 'emprestei_cartao', txt: 'Emprestei Cartão' }, 
-            { val: 'emprestei_dinheiro', txt: 'Emprestei Dinheiro' }, 
-            { val: 'pag_emprestimo', txt: 'Pagamento Empréstimo' }, 
-            { val: 'dep_poupanca', txt: 'Depósito Poupança' }
-          ]
-        : [
-            { val: 'salario', txt: 'Salário' }, 
-            { val: 'tomei_emprestimo', txt: 'Tomei Empréstimo' }, 
-            { val: 'rec_emprestimo', txt: 'Recebimento Empréstimo' }, 
-            { val: 'outras_receitas', txt: 'Outras Receitas' }, 
-            { val: 'estorno', txt: 'Estorno' }, 
-            { val: 'saque_poupanca', txt: 'Saque Poupança' }
-          ];
+        ? [ { val: 'despesas_gerais', txt: 'Despesas Gerais' }, { val: 'emprestei_cartao', txt: 'Emprestei Cartão' }, { val: 'emprestei_dinheiro', txt: 'Emprestei Dinheiro' }, { val: 'pag_emprestimo', txt: 'Pagamento Empréstimo' }, { val: 'dep_poupanca', txt: 'Depósito Poupança' } ]
+        : [ { val: 'salario', txt: 'Salário' }, { val: 'tomei_emprestimo', txt: 'Tomei Empréstimo' }, { val: 'rec_emprestimo', txt: 'Recebimento Empréstimo' }, { val: 'outras_receitas', txt: 'Outras Receitas' }, { val: 'estorno', txt: 'Estorno' }, { val: 'saque_poupanca', txt: 'Saque Poupança' } ];
 
     listaTipos.forEach(t => tipoSelect.options.add(new Option(t.txt, t.val)));
     atualizarRegrasLancamento();
@@ -467,10 +386,7 @@ function atualizarRegrasLancamento() {
         const catFiltradas = db.categorias.filter(c => c.tipo === direcao);
         listaCategorias = catFiltradas.map(c => ({ val: c.nome, txt: `${c.icone || ''} ${c.nome}`.trim() }));
     }
-    
-    if (listaCategorias.length === 0) {
-        listaCategorias.push({ val: 'Outros', txt: '⚙️ Outros' });
-    }
+    if (listaCategorias.length === 0) listaCategorias.push({ val: 'Outros', txt: '⚙️ Outros' });
 
     listaCategorias.forEach((cat, index) => {
         const btn = document.createElement('button');
@@ -484,12 +400,7 @@ function atualizarRegrasLancamento() {
         catChipsContainer.appendChild(btn);
     });
 
-    if (listaCategorias.length > 0) {
-        catInputHidden.value = listaCategorias[0].val;
-    } else {
-        catInputHidden.value = '';
-    }
-    
+    catInputHidden.value = listaCategorias.length > 0 ? listaCategorias[0].val : '';
     boxFixo.disabled = !(tipo === 'despesas_gerais' || tipo === 'salario'); 
     if(boxFixo.disabled) boxFixo.checked = false;
 
@@ -504,10 +415,7 @@ function atualizarRegrasLancamento() {
             else if (['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo) && c.tipo !== 'cartao') mostrar = true;
             else if (tipo === 'estorno') mostrar = true; 
             
-            if (mostrar) {
-                contaSelect.options.add(new Option(`${c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦')} ${c.nome}`, c.id));
-                temConta = true;
-            }
+            if (mostrar) { contaSelect.options.add(new Option(`${c.tipo === 'cartao' ? '💳' : (c.tipo === 'investimento' ? '📈' : '🏦')} ${c.nome}`, c.id)); temConta = true; }
         });
     }
     if (!temConta) contaSelect.options.add(new Option('Sem conta compatível', ''));
@@ -523,29 +431,17 @@ function atualizarFormaPagamento() {
     formaSelect.options.length = 0;
 
     const contaAtiva = db.contas ? db.contas.find(c => c.id === contaId) : null;
-    if (!contaAtiva) { 
-        formaSelect.options.add(new Option('-', '')); 
-        verificarFormaCredito(); 
-        return; 
-    }
+    if (!contaAtiva) { formaSelect.options.add(new Option('-', '')); verificarFormaCredito(); return; }
 
     let listaFormas = [];
-    if (contaAtiva.tipo === 'cartao') {
-        listaFormas = [{ val: 'Crédito', txt: '💳 Crédito' }];
-    } else if (contaAtiva.tipo === 'movimentacao') {
-        if (tipo === 'salario') {
-            listaFormas = [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Transferência', txt: '🔄 Transferência' }];
-        } else if (['tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo)) {
-            listaFormas = [{ val: 'Pix', txt: '📱 Pix' }];
-        } else if (tipo === 'estorno') {
-            listaFormas = [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Estorno Conta', txt: '↩️ Reembolso' }];
-        } else {
-            listaFormas = [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Boleto', txt: '📄 Boleto' }, { val: 'Débito', txt: '🏧 Débito' }];
-        }
+    if (contaAtiva.tipo === 'cartao') { listaFormas = [{ val: 'Crédito', txt: '💳 Crédito' }]; } 
+    else if (contaAtiva.tipo === 'movimentacao') {
+        if (tipo === 'salario') listaFormas = [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Transferência', txt: '🔄 Transferência' }];
+        else if (['tomei_emprestimo', 'rec_emprestimo', 'outras_receitas'].includes(tipo)) listaFormas = [{ val: 'Pix', txt: '📱 Pix' }];
+        else if (tipo === 'estorno') listaFormas = [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Estorno Conta', txt: '↩️ Reembolso' }];
+        else listaFormas = [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Boleto', txt: '📄 Boleto' }, { val: 'Débito', txt: '🏧 Débito' }];
     } else if (contaAtiva.tipo === 'investimento') {
-        listaFormas = ['dep_poupanca', 'saque_poupanca'].includes(tipo) 
-            ? [{ val: 'Transferência', txt: '🔄 Transferência' }, { val: 'Pix', txt: '📱 Pix' }] 
-            : [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Transferência', txt: '🔄 Transferência' }];
+        listaFormas = ['dep_poupanca', 'saque_poupanca'].includes(tipo) ? [{ val: 'Transferência', txt: '🔄 Transferência' }, { val: 'Pix', txt: '📱 Pix' }] : [{ val: 'Pix', txt: '📱 Pix' }, { val: 'Transferência', txt: '🔄 Transferência' }];
     }
     
     listaFormas.forEach(f => formaSelect.options.add(new Option(f.txt, f.val)));
@@ -557,13 +453,8 @@ function verificarFormaCredito() {
     const parcelasSelect = document.getElementById('lanc-parcelas');
     if (!parcelasSelect) return;
     
-    if (forma === 'Crédito') { 
-        parcelasSelect.style.display = 'block'; 
-        atualizarParcelasCartao(); 
-    } else { 
-        parcelasSelect.style.display = 'none'; 
-        parcelasSelect.options.length = 0; 
-    }
+    if (forma === 'Crédito') { parcelasSelect.style.display = 'block'; atualizarParcelasCartao(); } 
+    else { parcelasSelect.style.display = 'none'; parcelasSelect.options.length = 0; }
 }
 
 function atualizarParcelasCartao() {
@@ -577,19 +468,13 @@ function atualizarParcelasCartao() {
     
     parcelasSelect.options.length = 0;
 
-    if (!dataInput || !contaId || valorTotal <= 0) { 
-        parcelasSelect.options.add(new Option('Insira Valor e Data', '1')); 
-        return; 
-    }
+    if (!dataInput || !contaId || valorTotal <= 0) { parcelasSelect.options.add(new Option('Insira Valor e Data', '1')); return; }
     
     const conta = db.contas.find(c => c.id === contaId);
     if (!conta || conta.tipo !== 'cartao') return;
 
     let [ano, mes, dia] = dataInput.split('-').map(Number);
-    if (dia >= conta.fechamento) { 
-        mes += 1; 
-        if(mes > 12) { mes = 1; ano += 1; } 
-    }
+    if (dia >= conta.fechamento) { mes += 1; if(mes > 12) { mes = 1; ano += 1; } }
     
     const mesesNomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -597,11 +482,7 @@ function atualizarParcelasCartao() {
         let valorParcela = (valorTotal / i).toFixed(2);
         let mesFinal = mes + (i - 1); 
         let anoFinal = ano;
-        
-        while(mesFinal > 12) { 
-            mesFinal -= 12; 
-            anoFinal += 1; 
-        }
+        while(mesFinal > 12) { mesFinal -= 12; anoFinal += 1; }
         
         let labelFatura = `${mesesNomes[mesFinal-1]}/${anoFinal.toString().slice(-2)}`;
         parcelasSelect.options.add(new Option(i === 1 ? `1x R$ ${valorParcela} (${labelFatura})` : `${i}x R$ ${valorParcela} (até ${labelFatura})`, i));
@@ -611,11 +492,8 @@ function atualizarParcelasCartao() {
 function verificarDataFutura() {
     const dataInput = document.getElementById('lanc-data').value;
     if(!dataInput) return;
-    
     const dtLanc = new Date(dataInput + 'T00:00:00');
-    const hoje = new Date(); 
-    hoje.setHours(0,0,0,0);
-    
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
     document.getElementById('lanc-efetivado').checked = dtLanc <= hoje;
 }
 
@@ -646,18 +524,7 @@ window.adicionarLancamento = function() {
             let d = new Date(dataBase); 
             d.setMonth(d.getMonth() + (i - 1));
             let dataParcelada = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
-            db.lancamentos.push({ 
-                id: Date.now() + i, 
-                idGrupo: groupId, 
-                data: dataParcelada, 
-                tipo, 
-                contaId, 
-                forma, 
-                desc: `${desc} (${i}/${qtdParcelas})`, 
-                valor: valorParcela, 
-                cat, 
-                efetivado 
-            });
+            db.lancamentos.push({ id: Date.now() + i, idGrupo: groupId, data: dataParcelada, tipo, contaId, forma, desc: `${desc} (${i}/${qtdParcelas})`, valor: valorParcela, cat, efetivado });
         }
     } else {
         if (conta && conta.tipo !== 'cartao' && efetivado) {
@@ -670,40 +537,24 @@ window.adicionarLancamento = function() {
         
         if (isFixo && !document.getElementById('lanc-fixo').disabled) {
             const [anoStr, mesStr, diaStr] = data.split('-');
-            db.recorrencias.push({ 
-                id: Date.now() + 1, 
-                diaVencimento: parseInt(diaStr), 
-                tipo, 
-                contaId, 
-                forma, 
-                desc, 
-                valor, 
-                cat, 
-                ultimoMesGerado: `${anoStr}-${mesStr}` 
-            });
+            if(!db.recorrencias) db.recorrencias = [];
+            db.recorrencias.push({ id: Date.now() + 1, diaVencimento: parseInt(diaStr), tipo, contaId, forma, desc, valor, cat, ultimoMesGerado: `${anoStr}-${mesStr}` });
         }
 
         if (['emprestei_cartao', 'emprestei_dinheiro', 'tomei_emprestimo'].includes(tipo)) {
-            abrirModalEmprestimo(novoLancamento); 
-            save(); 
+            abrirModalEmprestimo(novoLancamento); save(); 
             if(typeof fecharModalLancamento === 'function') fecharModalLancamento();
             return; 
         }
     }
     
     save(); 
-    
-    document.getElementById('lanc-desc').value = ""; 
-    document.getElementById('lanc-valor').value = ""; 
-    document.getElementById('lanc-fixo').checked = false;
-    document.getElementById('lanc-data').valueAsDate = new Date(); 
+    document.getElementById('lanc-desc').value = ""; document.getElementById('lanc-valor').value = ""; document.getElementById('lanc-fixo').checked = false; document.getElementById('lanc-data').valueAsDate = new Date(); 
     verificarDataFutura();
-    
     if(forma === 'Crédito') atualizarParcelasCartao();
     if(typeof fecharModalLancamento === 'function') fecharModalLancamento();
     if(typeof render === 'function') render();
     verificarNotificacoesMotor();
-    
     showToast(qtdParcelas > 1 ? `Compra parcelada em ${qtdParcelas}x!` : "Lançamento Registrado!", "sucesso");
 }
 
@@ -714,17 +565,13 @@ window.abrirModalEmprestimo = function(lancamentoBase) {
     document.getElementById('msg-modal-emp').innerText = `Você ${isTomada ? 'tomou emprestado' : 'emprestou'} R$ ${lancamentoBase.valor.toFixed(2)} ("${lancamentoBase.desc}"). Como será o ${isTomada ? 'pagamento' : 'recebimento'}?`; 
     document.getElementById('emp-sem-previsao').checked = false; 
     if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao(); 
-    modal.style.display = 'flex'; 
-    setTimeout(()=>modal.classList.add('active'), 10); 
+    modal.style.display = 'flex'; setTimeout(()=>modal.classList.add('active'), 10); 
 }
 
 window.fecharModalEmprestimo = function() { 
     window.ecoTempEmprestimo = null; 
     const m = document.getElementById('modal-emprestimo'); 
-    if(m) { 
-        m.classList.remove('active'); 
-        setTimeout(()=>m.style.display = 'none', 300); 
-    } 
+    if(m) { m.classList.remove('active'); setTimeout(()=>m.style.display = 'none', 300); } 
 }
 
 window.gerarParcelasEmprestimo = function() {
@@ -734,20 +581,7 @@ window.gerarParcelasEmprestimo = function() {
     let dataAtual = new Date(window.ecoTempEmprestimo.data + 'T00:00:00');
 
     if (semPrevisao) {
-        db.lancamentos.push({ 
-            id: Date.now(), 
-            data: dataAtual.toISOString().split('T')[0], 
-            tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', 
-            contaId: window.ecoTempEmprestimo.contaId, 
-            forma: window.ecoTempEmprestimo.forma, 
-            desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc}`, 
-            valor: window.ecoTempEmprestimo.valor, 
-            valorOriginal: window.ecoTempEmprestimo.valor, 
-            valorAmortizado: 0, 
-            cat: 'Terceiros', 
-            efetivado: false, 
-            rolagem: true 
-        });
+        db.lancamentos.push({ id: Date.now(), data: dataAtual.toISOString().split('T')[0], tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', contaId: window.ecoTempEmprestimo.contaId, forma: window.ecoTempEmprestimo.forma, desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc}`, valor: window.ecoTempEmprestimo.valor, valorOriginal: window.ecoTempEmprestimo.valor, valorAmortizado: 0, cat: 'Terceiros', efetivado: false, rolagem: true });
         showToast("Dívida registrada em rolagem mensal!", "ajuste");
     } else {
         const parcelas = parseInt(document.getElementById('emp-parcelas').value);
@@ -756,26 +590,13 @@ window.gerarParcelasEmprestimo = function() {
             const valorParcela = window.ecoTempEmprestimo.valor / parcelas;
             for (let i = 1; i <= parcelas; i++) {
                 dataAtual.setDate(dataAtual.getDate() + intervalo);
-                db.lancamentos.push({ 
-                    id: Date.now() + i, 
-                    data: dataAtual.toISOString().split('T')[0], 
-                    tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', 
-                    contaId: window.ecoTempEmprestimo.contaId, 
-                    forma: window.ecoTempEmprestimo.forma, 
-                    desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc} (${i}/${parcelas})`, 
-                    valor: valorParcela, 
-                    cat: 'Terceiros', 
-                    efetivado: false, 
-                    rolagem: false 
-                });
+                db.lancamentos.push({ id: Date.now() + i, data: dataAtual.toISOString().split('T')[0], tipo: isTomada ? 'pag_emprestimo' : 'rec_emprestimo', contaId: window.ecoTempEmprestimo.contaId, forma: window.ecoTempEmprestimo.forma, desc: `${isTomada ? 'Pag.' : 'Rec.'} ${window.ecoTempEmprestimo.desc} (${i}/${parcelas})`, valor: valorParcela, cat: 'Terceiros', efetivado: false, rolagem: false });
             }
             showToast(`${parcelas} parcelas geradas!`, "sucesso");
         }
     }
-    save(); 
-    fecharModalEmprestimo(); 
-    if(typeof render === 'function') render(); 
-    verificarNotificacoesMotor();
+    save(); fecharModalEmprestimo(); 
+    if(typeof render === 'function') render(); verificarNotificacoesMotor();
 }
 
 window.confirmarPagamentoParcial = function() {
@@ -786,12 +607,7 @@ window.confirmarPagamentoParcial = function() {
     
     const lOriginal = db.lancamentos.find(l => l.id == idInput); 
     if (!lOriginal) return;
-    
-    if (valorPago >= lOriginal.valor) { 
-        confirmarQuitacao(idInput); 
-        if (typeof fecharModalParcial === 'function') fecharModalParcial(); 
-        return; 
-    }
+    if (valorPago >= lOriginal.valor) { confirmarQuitacao(idInput); if (typeof fecharModalParcial === 'function') fecharModalParcial(); return; }
     
     if (lOriginal.valorOriginal === undefined) lOriginal.valorOriginal = lOriginal.valor;
     if (lOriginal.valorAmortizado === undefined) lOriginal.valorAmortizado = 0;
@@ -805,24 +621,11 @@ window.confirmarPagamentoParcial = function() {
         if (window.ecoTiposDespesa.includes(lOriginal.tipo)) c.saldo -= valorPago; 
     }
     
-    db.lancamentos.push({ 
-        id: Date.now() + Math.random(), 
-        data: new Date().toISOString().split('T')[0], 
-        tipo: lOriginal.tipo, 
-        contaId: lOriginal.contaId, 
-        forma: lOriginal.forma, 
-        desc: `[Amortização] ${lOriginal.desc.replace(' (Em Aberto)', '')}`, 
-        valor: valorPago, 
-        cat: lOriginal.cat, 
-        efetivado: true, 
-        rolagem: false 
-    });
+    db.lancamentos.push({ id: Date.now() + Math.random(), data: new Date().toISOString().split('T')[0], tipo: lOriginal.tipo, contaId: lOriginal.contaId, forma: lOriginal.forma, desc: `[Amortização] ${lOriginal.desc.replace(' (Em Aberto)', '')}`, valor: valorPago, cat: lOriginal.cat, efetivado: true, rolagem: false });
     
-    save(); 
-    if (typeof fecharModalParcial === 'function') fecharModalParcial(); 
+    save(); if (typeof fecharModalParcial === 'function') fecharModalParcial(); 
     showToast("Amortização registrada!", "ajuste"); 
-    if(typeof render === 'function') render(); 
-    verificarNotificacoesMotor();
+    if(typeof render === 'function') render(); verificarNotificacoesMotor();
 }
 
 window.confirmarQuitacao = function(id) {
@@ -837,24 +640,11 @@ window.confirmarQuitacao = function(id) {
         if (window.ecoTiposDespesa.includes(lOriginal.tipo)) c.saldo -= valorPago; 
     }
     
-    db.lancamentos.push({ 
-        id: Date.now() + Math.random(), 
-        data: new Date().toISOString().split('T')[0], 
-        tipo: lOriginal.tipo, 
-        contaId: lOriginal.contaId, 
-        forma: lOriginal.forma, 
-        desc: `[Quitação] ${lOriginal.desc.replace(' (Em Aberto)', '')}`, 
-        valor: valorPago, 
-        cat: lOriginal.cat, 
-        efetivado: true, 
-        rolagem: false 
-    });
+    db.lancamentos.push({ id: Date.now() + Math.random(), data: new Date().toISOString().split('T')[0], tipo: lOriginal.tipo, contaId: lOriginal.contaId, forma: lOriginal.forma, desc: `[Quitação] ${lOriginal.desc.replace(' (Em Aberto)', '')}`, valor: valorPago, cat: lOriginal.cat, efetivado: true, rolagem: false });
     
     db.lancamentos = db.lancamentos.filter(l => l.id != id); 
-    save(); 
-    showToast("Dívida Quitada!", "sucesso"); 
-    if(typeof render === 'function') render(); 
-    verificarNotificacoesMotor();
+    save(); showToast("Dívida Quitada!", "sucesso"); 
+    if(typeof render === 'function') render(); verificarNotificacoesMotor();
 }
 
 window.confirmarPagamento = function(id) {
@@ -870,10 +660,8 @@ window.confirmarPagamento = function(id) {
         if (window.ecoTiposDespesa.includes(l.tipo)) c.saldo -= l.valor; 
     }
     
-    save(); 
-    showToast("Efetivado!", "sucesso"); 
-    if(typeof render === 'function') render(); 
-    verificarNotificacoesMotor();
+    save(); showToast("Efetivado!", "sucesso"); 
+    if(typeof render === 'function') render(); verificarNotificacoesMotor();
 }
 
 window.excluirLancamento = function(id) {
@@ -889,46 +677,83 @@ window.excluirLancamento = function(id) {
             }
             
             db.lancamentos = db.lancamentos.filter(l => l.id !== id); 
-            save(); 
-            showToast("Lançamento Apagado!", "exclusao"); 
-            if(typeof render === 'function') render(); 
-            verificarNotificacoesMotor();
+            save(); showToast("Lançamento Apagado!", "exclusao"); 
+            if(typeof render === 'function') render(); verificarNotificacoesMotor();
         });
     }
 }
 
-window.salvarEdicaoLancamento = function(id) {
-    const l = db.lancamentos.find(x => x.id === id);
-    const novoValor = window.parseMoeda(`e-lanc-val-${id}`);
-    const novaData = document.getElementById(`e-lanc-data-${id}`).value;
-    const novaDesc = document.getElementById(`e-lanc-desc-${id}`).value;
-    const novaContaId = document.getElementById(`e-lanc-conta-${id}`).value;
+// ----------------------------------------------------
+// NOVA REGRA DE FATURAS: PAGAR DIRETO DA CONTA BANCÁRIA
+// ----------------------------------------------------
+window.alternarPagamentoFatura = function(fatID) {
+    const estaPaga = db.faturasPagas.includes(fatID);
     
-    if(!novaDesc || novoValor <= 0 || !novaData || !novaContaId) return alert("Preencha todos os dados.");
-    
-    const contaAntiga = db.contas.find(x => x.id === l.contaId);
-    const contaNova = db.contas.find(x => x.id === novaContaId);
-    
-    if(contaAntiga && contaAntiga.tipo !== 'cartao' && l.efetivado) { 
-        if(window.ecoTiposReceita.includes(l.tipo)) contaAntiga.saldo -= l.valor; 
-        if(window.ecoTiposDespesa.includes(l.tipo)) contaAntiga.saldo += l.valor; 
+    if(estaPaga) {
+        if(typeof abrirConfirmacao === 'function') {
+            abrirConfirmacao("Deseja reabrir esta fatura? (O dinheiro NÃO será devolvido à conta automaticamente)", () => {
+                const i = db.faturasPagas.indexOf(fatID);
+                db.faturasPagas.splice(i,1);
+                save();
+                showToast("Fatura reaberta!", "ajuste");
+                if(typeof render === 'function') render();
+            });
+        }
+        return;
     }
-    
-    if(contaNova && contaNova.tipo !== 'cartao' && l.efetivado) { 
-        if(window.ecoTiposReceita.includes(l.tipo)) contaNova.saldo += novoValor; 
-        if(window.ecoTiposDespesa.includes(l.tipo)) contaNova.saldo -= novoValor; 
+
+    const [contaId, mesRef] = fatID.split('-');
+    const contaCartao = db.contas.find(c => c.id === contaId);
+    if (!contaCartao) return;
+
+    let totalFatura = 0;
+    db.lancamentos.forEach(l => {
+        if (l.contaId === contaCartao.id && window.obterMesFaturaAviso(l.data, contaCartao.fechamento || 1) === mesRef) {
+            totalFatura += (window.ecoTiposReceita.includes(l.tipo) ? -l.valor : l.valor);
+        }
+    });
+
+    const jaAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
+    const valorRestante = totalFatura - jaAmortizado;
+
+    if (valorRestante <= 0) {
+        db.faturasPagas.push(fatID);
+        save();
+        showToast("Fatura encerrada com sucesso!", "sucesso");
+        if(typeof render === 'function') render();
+        return;
     }
+
+    if (typeof window.abrirModalPagamentoFatura === 'function') {
+        window.abrirModalPagamentoFatura(fatID, valorRestante);
+    }
+};
+
+window.confirmarPagamentoFaturaBanco = function() {
+    const fatID = document.getElementById('hidden-pagar-fat-id').value;
+    const valorTotalFatura = parseFloat(document.getElementById('hidden-pagar-fat-val').value);
+    const contaSelecionadaId = document.getElementById('select-conta-pagar-fat').value;
+
+    if (!contaSelecionadaId) return alert("Selecione uma conta bancária para debitar o valor.");
+
+    const contaDebito = db.contas.find(c => c.id === contaSelecionadaId);
+    if (!contaDebito) return;
+
+    contaDebito.saldo -= valorTotalFatura;
+
+    const [contaCartaoId, mesRef] = fatID.split('-');
+    const contaCartao = db.contas.find(c => c.id === contaCartaoId);
+    const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
     
-    l.valor = novoValor; 
-    l.data = novaData; 
-    l.desc = novaDesc; 
-    l.contaId = novaContaId; 
-    
-    save(); 
-    showToast("Lançamento Atualizado!", "ajuste"); 
-    if(typeof render === 'function') render(); 
-    verificarNotificacoesMotor();
-}
+    db.lancamentos.push({ id: Date.now(), desc: `Pagamento Fatura ${contaCartao.nome} (${meses[mesRef.split('-')[1]]}/${mesRef.split('-')[0]})`, valor: valorTotalFatura, data: new Date().toISOString().split('T')[0], contaId: contaDebito.id, cat: 'Outros', tipo: 'despesas_gerais', forma: 'Pix', efetivado: true });
+
+    db.faturasPagas.push(fatID);
+    save();
+
+    if(typeof fecharModalPagamentoFatura === 'function') fecharModalPagamentoFatura();
+    showToast("Fatura paga e debitada da conta!", "sucesso");
+    if(typeof render === 'function') render();
+};
 
 window.amortizarFatura = function(fatID) {
     const [contaId, mesRef] = fatID.split('-'); 
@@ -937,7 +762,7 @@ window.amortizarFatura = function(fatID) {
     
     let totalFat = 0; 
     db.lancamentos.forEach(l => { 
-        if (l.contaId === conta.id && getMesFaturaLogico(l.data, conta.fechamento) === mesRef) {
+        if (l.contaId === conta.id && window.obterMesFaturaAviso(l.data, conta.fechamento || 1) === mesRef) {
             totalFat += (window.ecoTiposReceita.includes(l.tipo) ? -l.valor : l.valor); 
         }
     });
@@ -951,19 +776,12 @@ window.amortizarFatura = function(fatID) {
     document.getElementById('txt-valor-fatura-original').innerText = `R$ ${(totalFat - jaAmortizado).toFixed(2)}`;
     
     const modal = document.getElementById('modal-fatura-parcial'); 
-    if(modal) { 
-        modal.style.display = 'flex'; 
-        setTimeout(()=>modal.classList.add('active'), 10); 
-    }
+    if(modal) { modal.style.display = 'flex'; setTimeout(()=>modal.classList.add('active'), 10); }
 }
 
 window.fecharModalFaturaParcial = function() {
     const m = document.getElementById('modal-fatura-parcial'); 
-    if(m) { 
-        m.classList.remove('active'); 
-        setTimeout(()=>m.style.display = 'none', 300); 
-        document.getElementById('input-amortizar-fatura').value = ''; 
-    }
+    if(m) { m.classList.remove('active'); setTimeout(()=>m.style.display = 'none', 300); document.getElementById('input-amortizar-fatura').value = ''; }
 }
 
 window.confirmarAmortizacaoFatura = function() {
@@ -971,7 +789,6 @@ window.confirmarAmortizacaoFatura = function() {
     const valorAmortizar = window.parseMoeda('input-amortizar-fatura');
     
     if (valorAmortizar <= 0) return alert("Valor inválido.");
-    
     const contaCC = db.contas.find(c => c.tipo === 'movimentacao');
     if (!contaCC) return alert("Crie uma Conta Corrente para usar o dinheiro da Amortização.");
     
@@ -982,100 +799,52 @@ window.confirmarAmortizacaoFatura = function() {
     const mesRef = fatID.split('-')[1]; 
     const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
     
-    db.lancamentos.push({ 
-        id: Date.now(), 
-        desc: `Amortização Fatura (${meses[mesRef]})`, 
-        valor: valorAmortizar, 
-        data: new Date().toISOString().split('T')[0], 
-        contaId: contaCC.id, 
-        cat: 'Outros', 
-        tipo: 'despesa', 
-        efetivado: true 
-    });
+    db.lancamentos.push({ id: Date.now(), desc: `Amortização Fatura (${meses[mesRef]})`, valor: valorAmortizar, data: new Date().toISOString().split('T')[0], contaId: contaCC.id, cat: 'Outros', tipo: 'despesa', efetivado: true });
     
-    save(); 
-    fecharModalFaturaParcial(); 
-    showToast("Fatura amortizada!", "ajuste"); 
-    if(typeof render === 'function') render();
-}
-
-window.alternarPagamentoFatura = function(id) {
-    const i = db.faturasPagas.indexOf(id); 
-    if(i > -1) {
-        db.faturasPagas.splice(i,1); 
-    } else {
-        db.faturasPagas.push(id); 
-    }
-    save(); 
-    showToast("Status da Fatura Atualizado!", "ajuste"); 
+    save(); fecharModalFaturaParcial(); showToast("Fatura amortizada!", "ajuste"); 
     if(typeof render === 'function') render();
 }
 
 window.processarRolagensPendentes = function() {
-    const hoje = new Date(); 
-    const anoAtual = hoje.getFullYear(); 
-    const mesAtual = hoje.getMonth() + 1; 
-    let atualizouAlgo = false;
+    if (!db || !db.lancamentos) return;
+    const hoje = new Date(); const anoAtual = hoje.getFullYear(); const mesAtual = hoje.getMonth() + 1; let atualizouAlgo = false;
     
     db.lancamentos.forEach(l => {
         if (l.rolagem && !l.efetivado) {
             let [anoLanc, mesLanc, diaLanc] = l.data.split('-').map(Number);
             if (anoLanc < anoAtual || (anoLanc === anoAtual && mesLanc < mesAtual)) { 
-                l.data = ajustarDataDia(anoAtual, mesAtual, diaLanc); 
-                atualizouAlgo = true; 
+                l.data = ajustarDataDia(anoAtual, mesAtual, diaLanc); atualizouAlgo = true; 
             }
         }
     });
-    
     if (atualizouAlgo) save();
 }
 
 window.processarRecorrencias = function() {
-    const hoje = new Date(); 
-    const anoAtual = hoje.getFullYear(); 
-    const mesAtual = hoje.getMonth() + 1; 
-    let gerouNovo = false;
+    if (!db) return;
+    if (!db.recorrencias) db.recorrencias = [];
+    
+    const hoje = new Date(); const anoAtual = hoje.getFullYear(); const mesAtual = hoje.getMonth() + 1; let gerouNovo = false;
     
     db.recorrencias.forEach(rec => {
         let [anoUltimo, mesUltimo] = rec.ultimoMesGerado.split('-').map(Number);
-        
         while (anoUltimo < anoAtual || (anoUltimo === anoAtual && mesUltimo < mesAtual)) {
-            mesUltimo++; 
-            if (mesUltimo > 12) { 
-                mesUltimo = 1; 
-                anoUltimo++; 
-            }
-            
+            mesUltimo++; if (mesUltimo > 12) { mesUltimo = 1; anoUltimo++; }
             const mesStr = mesUltimo.toString().padStart(2, '0');
             const dataLancamento = ajustarDataDia(anoUltimo, mesUltimo, rec.diaVencimento);
             const dtLanc = new Date(dataLancamento + 'T00:00:00');
             const isEfetivado = dtLanc <= hoje;
 
-            const novoL = { 
-                id: Date.now() + Math.random(), 
-                data: dataLancamento, 
-                tipo: rec.tipo, 
-                contaId: rec.contaId, 
-                forma: rec.forma, 
-                desc: rec.desc, 
-                valor: rec.valor, 
-                cat: rec.cat, 
-                efetivado: isEfetivado 
-            };
-            
-            db.lancamentos.push(novoL);
+            db.lancamentos.push({ id: Date.now() + Math.random(), data: dataLancamento, tipo: rec.tipo, contaId: rec.contaId, forma: rec.forma, desc: rec.desc, valor: rec.valor, cat: rec.cat, efetivado: isEfetivado });
             
             const conta = db.contas.find(c => c.id === rec.contaId);
             if (conta && conta.tipo !== 'cartao' && isEfetivado) {
                 if (window.ecoTiposReceita.includes(rec.tipo)) conta.saldo += rec.valor;
                 if (window.ecoTiposDespesa.includes(rec.tipo)) conta.saldo -= rec.valor;
             }
-            
-            rec.ultimoMesGerado = `${anoUltimo}-${mesStr}`; 
-            gerouNovo = true;
+            rec.ultimoMesGerado = `${anoUltimo}-${mesStr}`; gerouNovo = true;
         }
     });
-    
     if (gerouNovo) save();
 }
 
@@ -1085,136 +854,61 @@ function ajustarDataDia(ano, mes, diaVencimentoOriginal) {
     return `${ano}-${mes.toString().padStart(2, '0')}-${diaReal.toString().padStart(2, '0')}`;
 }
 
-window.toggleCamposCartao = function() {
-    document.getElementById('campos-cartao-add').style.display = document.getElementById('nova-conta-tipo').value === 'cartao' ? 'block' : 'none';
-}
+window.toggleCamposCartao = function() { document.getElementById('campos-cartao-add').style.display = document.getElementById('nova-conta-tipo').value === 'cartao' ? 'block' : 'none'; }
 
 window.criarConta = function() {
-    const n = document.getElementById('nova-conta-nome').value;
-    const t = document.getElementById('nova-conta-tipo').value;
-    
+    const n = document.getElementById('nova-conta-nome').value; const t = document.getElementById('nova-conta-tipo').value;
     if(!n) return alert("Preencha o nome da conta.");
-    
-    const nc = {
-        id: 'c_' + Date.now(), 
-        nome: n, 
-        tipo: t, 
-        cor: document.getElementById('nova-conta-cor').value, 
-        saldo: 0
-    };
-    
-    if(t === 'cartao'){
-        nc.limite = window.parseMoeda('nova-conta-limite');
-        nc.meta = window.parseMoeda('nova-conta-meta');
-        nc.fechamento = parseInt(document.getElementById('nova-conta-fecha').value)||1;
-        nc.vencimento = parseInt(document.getElementById('nova-conta-venc').value)||1;
-    }
-    
-    db.contas.push(nc);
-    save();
-    
-    document.getElementById('nova-conta-nome').value = "";
-    showToast("Conta Criada com Sucesso!", "sucesso");
-    mudarDirecaoLancamento();
-    if(typeof toggleNovaContaArea === 'function') toggleNovaContaArea();
-    if(typeof render === 'function') render();
+    const nc = { id: 'c_' + Date.now(), nome: n, tipo: t, cor: document.getElementById('nova-conta-cor').value, saldo: 0 };
+    if(t === 'cartao'){ nc.limite = window.parseMoeda('nova-conta-limite'); nc.meta = window.parseMoeda('nova-conta-meta'); nc.fechamento = parseInt(document.getElementById('nova-conta-fecha').value)||1; nc.vencimento = parseInt(document.getElementById('nova-conta-venc').value)||1; }
+    db.contas.push(nc); save(); document.getElementById('nova-conta-nome').value = ""; showToast("Conta Criada com Sucesso!", "sucesso"); mudarDirecaoLancamento();
+    if(typeof toggleNovaContaArea === 'function') toggleNovaContaArea(); if(typeof render === 'function') render();
 }
 
 window.excluirConta = function(id) {
     if(typeof abrirConfirmacao === 'function') {
-        abrirConfirmacao("Excluir conta e todos os lançamentos atrelados?", () => {
-            db.contas = db.contas.filter(c=>c.id!==id);
-            db.lancamentos = db.lancamentos.filter(l=>l.contaId!==id);
-            save();
-            showToast("Conta Excluída!", "exclusao");
-            mudarDirecaoLancamento();
-            if(typeof render === 'function') render();
-        });
+        abrirConfirmacao("Excluir conta e todos os lançamentos atrelados?", () => { db.contas = db.contas.filter(c=>c.id!==id); db.lancamentos = db.lancamentos.filter(l=>l.contaId!==id); save(); showToast("Conta Excluída!", "exclusao"); mudarDirecaoLancamento(); if(typeof render === 'function') render(); });
     }
 }
 
-window.toggleEditConta = function(id) {
-    const el = document.getElementById(`edit-conta-${id}`);
-    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
+window.toggleEditConta = function(id) { const el = document.getElementById(`edit-conta-${id}`); if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; }
 
 window.salvarEdicaoConta = function(id) {
-    const c = db.contas.find(x => x.id === id);
-    c.nome = document.getElementById(`edit-nome-${id}`).value;
-    c.cor = document.getElementById(`edit-cor-${id}`).value;
-    
-    if(c.tipo === 'cartao'){
-        c.limite = window.parseMoeda(`edit-limite-${id}`);
-        c.meta = window.parseMoeda(`edit-meta-${id}`);
-        c.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1;
-        c.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1;
-    } else {
-        c.saldo = window.parseMoeda(`edit-saldo-${id}`);
-    }
-    
-    save();
-    showToast("Conta Atualizada!", "ajuste");
-    mudarDirecaoLancamento();
-    if(typeof render === 'function') render();
+    const c = db.contas.find(x => x.id === id); c.nome = document.getElementById(`edit-nome-${id}`).value; c.cor = document.getElementById(`edit-cor-${id}`).value;
+    if(c.tipo === 'cartao'){ c.limite = window.parseMoeda(`edit-limite-${id}`); c.meta = window.parseMoeda(`edit-meta-${id}`); c.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1; c.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1; } 
+    else { c.saldo = window.parseMoeda(`edit-saldo-${id}`); }
+    save(); showToast("Conta Atualizada!", "ajuste"); mudarDirecaoLancamento(); if(typeof render === 'function') render();
 }
 
 window.obterInsightsFinanceiros = function() {
-    let insights = [];
-    const hoje = new Date();
-    const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
-
-    let dAnt = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-    const mesAnterior = `${dAnt.getFullYear()}-${(dAnt.getMonth() + 1).toString().padStart(2, '0')}`;
-
-    let recAtual = 0, despAtual = 0, despVarAtual = 0;
-    let despVarAnt = 0, despAnt = 0;
-
+    let insights = []; const hoje = new Date(); const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
+    let dAnt = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1); const mesAnterior = `${dAnt.getFullYear()}-${(dAnt.getMonth() + 1).toString().padStart(2, '0')}`;
+    let recAtual = 0, despAtual = 0, despVarAtual = 0; let despVarAnt = 0, despAnt = 0;
     const catFixas = (db.categorias || []).filter(c => c.fixa).map(c => c.nome);
 
     (db.lancamentos || []).forEach(l => {
         const isCartao = (db.contas || []).find(c => c.id === l.contaId)?.tipo === 'cartao';
-        const mesReferencia = isCartao ? obterMesFaturaAviso(l.data, (db.contas.find(c=>c.id===l.contaId)?.fechamento || 1)) : l.data.substring(0,7);
+        const mesReferencia = isCartao ? window.obterMesFaturaAviso(l.data, (db.contas.find(c=>c.id===l.contaId)?.fechamento || 1)) : l.data.substring(0,7);
 
         if (window.ecoTiposDespesa.includes(l.tipo) && !['emprestei_cartao', 'emp_cartao'].includes(l.tipo)) {
-            if (mesReferencia === mesCorrente) {
-                despAtual += l.valor;
-                if (!catFixas.includes(l.cat)) despVarAtual += l.valor;
-            } else if (mesReferencia === mesAnterior) {
-                despAnt += l.valor;
-                if (!catFixas.includes(l.cat)) despVarAnt += l.valor;
-            }
+            if (mesReferencia === mesCorrente) { despAtual += l.valor; if (!catFixas.includes(l.cat)) despVarAtual += l.valor; } 
+            else if (mesReferencia === mesAnterior) { despAnt += l.valor; if (!catFixas.includes(l.cat)) despVarAnt += l.valor; }
         }
-        if (window.ecoTiposReceita.includes(l.tipo) && mesReferencia === mesCorrente) {
-            recAtual += l.valor;
-        }
+        if (window.ecoTiposReceita.includes(l.tipo) && mesReferencia === mesCorrente) { recAtual += l.valor; }
     });
 
     if (despVarAnt > 0) {
         const variacao = ((despVarAtual - despVarAnt) / despVarAnt) * 100;
-        if (variacao > 15) {
-            insights.push({ tipo: 'perigo', icon: 'fa-chart-pie', texto: `Cuidado! Seus gastos variáveis subiram <strong>${variacao.toFixed(1)}%</strong> em relação ao mês passado.` });
-        } else if (variacao < -10 && despVarAtual > 0) {
-            insights.push({ tipo: 'sucesso', icon: 'fa-seedling', texto: `Ótimo trabalho! Você reduziu os gastos variáveis em <strong>${Math.abs(variacao).toFixed(1)}%</strong>.` });
-        }
+        if (variacao > 15) insights.push({ tipo: 'perigo', icon: 'fa-chart-pie', texto: `Cuidado! Seus gastos variáveis subiram <strong>${variacao.toFixed(1)}%</strong>.` });
+        else if (variacao < -10 && despVarAtual > 0) insights.push({ tipo: 'sucesso', icon: 'fa-seedling', texto: `Ótimo! Reduziu os gastos variáveis em <strong>${Math.abs(variacao).toFixed(1)}%</strong>.` });
     }
-
     if (recAtual > 0) {
         const comprometimento = (despAtual / recAtual) * 100;
-        if (comprometimento >= 90) {
-            insights.push({ tipo: 'perigo', icon: 'fa-exclamation-triangle', texto: `Alerta: <strong>${comprometimento.toFixed(0)}%</strong> da sua renda já está comprometida com despesas este mês.` });
-        } else if (comprometimento < 50 && comprometimento > 0) {
-            insights.push({ tipo: 'sucesso', icon: 'fa-piggy-bank', texto: `Saúde em alta: suas despesas representam só <strong>${comprometimento.toFixed(0)}%</strong> da sua renda.` });
-        }
+        if (comprometimento >= 90) insights.push({ tipo: 'perigo', icon: 'fa-exclamation-triangle', texto: `Alerta: <strong>${comprometimento.toFixed(0)}%</strong> da sua renda já está comprometida.` });
+        else if (comprometimento < 50 && comprometimento > 0) insights.push({ tipo: 'sucesso', icon: 'fa-piggy-bank', texto: `Saúde em alta: despesas representam só <strong>${comprometimento.toFixed(0)}%</strong> da renda.` });
     }
-
-    if (insights.length < 2 && recAtual > despAtual && despAtual > 0) {
-         const sobra = recAtual - despAtual;
-         insights.push({ tipo: 'info', icon: 'fa-lightbulb', texto: `Há uma sobra de <strong>R$ ${sobra.toFixed(2)}</strong>. Que tal investir uma parte na reserva de emergência?` });
-    }
-
-    if (insights.length === 0) {
-        insights.push({ tipo: 'info', icon: 'fa-thumbs-up', texto: `Continue registrando suas movimentações para gerar insights inteligentes.` });
-    }
+    if (insights.length < 2 && recAtual > despAtual && despAtual > 0) { insights.push({ tipo: 'info', icon: 'fa-lightbulb', texto: `Sobra de <strong>R$ ${(recAtual - despAtual).toFixed(2)}</strong>. Que tal investir na reserva?` }); }
+    if (insights.length === 0) insights.push({ tipo: 'info', icon: 'fa-thumbs-up', texto: `Continue registrando suas movimentações para gerar insights inteligentes.` });
 
     return insights.slice(0, 2);
 }
@@ -1226,8 +920,4 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { verificarNotificacoesMotor(); }, 500);
 });
 
-setTimeout(() => {
-    if (document.getElementById('lanc-tipo') && document.getElementById('lanc-tipo').options.length === 0) {
-        mudarDirecaoLancamento();
-    }
-}, 300);
+setTimeout(() => { if (document.getElementById('lanc-tipo') && document.getElementById('lanc-tipo').options.length === 0) { mudarDirecaoLancamento(); } }, 300);
