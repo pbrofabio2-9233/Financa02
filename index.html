@@ -243,6 +243,16 @@
                             <strong id="dash-projecao">R$ 0,00</strong>
                         </div>
                     </div>
+<div class="grid-resumo-2" style="margin-bottom: 15px;">
+    <div class="card-simples" style="background: var(--card-bg); border: 1px solid var(--linha);">
+        <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600;">Saldo Livre (Caixa)</small>
+        <h3 id="dash-saldo-livre" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
+    </div>
+    <div class="card-simples" style="background: var(--card-bg); border: 1px solid var(--linha);">
+        <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600;">Total Investido</small>
+        <h3 id="dash-investido" class="txt-azul" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
+    </div>
+</div>
 
                     <div class="card">
                         <strong class="titulo-sessao"><i class="fas fa-brain"></i> Inteligência Financeira</strong>
@@ -678,27 +688,84 @@
             </div>
         </div>
 
-        <div id="modal-aparencia" class="modal-overlay" onclick="fecharModalAparencia()">
+                <div id="modal-aparencia" class="modal-overlay" onclick="fecharModalAparencia()">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 350px;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-paint-roller" style="color:var(--azul);"></i> Aparência</h3>
                     <button class="btn-icon" onclick="fecharModalAparencia()"><i class="fas fa-times"></i></button>
                 </div>
+                <div class="modal-body" style="display: flex; flex-direction: column; gap: 10px;">
+                    <button id="btn-tema-light" class="btn-tema" style="padding: 15px; border-radius: 8px; border: 2px solid var(--linha); background: #f8fafc; color: #1e293b; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s;" onclick="selecionarTema('light')">
+                        <i class="fas fa-sun" style="color: #f59e0b; font-size: 18px;"></i> Modo Claro
+                    </button>
+                    <button id="btn-tema-dark" class="btn-tema" style="padding: 15px; border-radius: 8px; border: 2px solid var(--linha); background: #0f172a; color: #f8fafc; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s;" onclick="selecionarTema('dark')">
+                        <i class="fas fa-moon" style="color: #94a3b8; font-size: 18px;"></i> Escuro OLED
+                    </button>
+                    <button id="btn-tema-ocean" class="btn-tema" style="padding: 15px; border-radius: 8px; border: 2px solid var(--linha); background: #083344; color: #e0f2fe; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s;" onclick="selecionarTema('ocean')">
+                        <i class="fas fa-water" style="color: #38bdf8; font-size: 18px;"></i> Oceano Noturno
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-edicao-lancamento" class="modal-overlay" onclick="fecharModalEdicaoLancamento()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-edit" style="color:var(--azul);"></i> Ajustar Lançamento</h3>
+                    <button class="btn-icon" onclick="fecharModalEdicaoLancamento()"><i class="fas fa-times"></i></button>
+                </div>
                 <div class="modal-body">
-                    <div class="flex-between" style="padding: 15px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
-                        <span style="font-weight: 500; font-size: 14px;"><i class="fas fa-moon" style="color: var(--texto-sec); margin-right: 8px;"></i> Tema Escuro OLED</span>
-                        <label class="checkbox-moderno" style="margin: 0; padding: 0;">
-                            <input type="checkbox" id="toggle-tema-ajustes" onchange="if(typeof toggleDarkMode === 'function') toggleDarkMode()">
-                            <span></span>
-                        </label>
+                    <div class="mb-10">
+                        <label class="label-moderno">Descrição</label>
+                        <input type="text" id="edit-modal-desc" class="input-moderno">
                     </div>
-                    
-                    <div class="flex-between mt-10" style="padding: 15px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
-                        <span style="font-weight: 500; font-size: 14px;"><i class="fas fa-water" style="color: var(--azul); margin-right: 8px;"></i> Oceano Noturno</span>
-                        <label class="checkbox-moderno" style="margin: 0; padding: 0;">
-                            <input type="checkbox" id="toggle-tema-oceano" onchange="if(typeof toggleOceanMode === 'function') toggleOceanMode()">
-                            <span></span>
-                        </label>
+                    <div class="grid-inputs mb-10">
+                        <div>
+                            <label class="label-moderno">Data</label>
+                            <input type="date" id="edit-modal-data" class="input-moderno">
+                        </div>
+                        <div>
+                            <label class="label-moderno">Valor (R$)</label>
+                            <input type="text" inputmode="numeric" id="edit-modal-valor" class="input-moderno" oninput="mascaraMoeda(event)">
+                        </div>
+                    </div>
+                    <div class="grid-inputs mb-15">
+                        <div>
+                            <label class="label-moderno">Categoria</label>
+                            <select id="edit-modal-cat" class="input-moderno"></select>
+                        </div>
+                        <div>
+                            <label class="label-moderno">Conta</label>
+                            <select id="edit-modal-conta" class="input-moderno"></select>
+                        </div>
+                    </div>
+                    <div class="flex-between">
+                        <button class="btn-outline" onclick="fecharModalEdicaoLancamento()">Cancelar</button>
+                        <button class="btn-primary" onclick="salvarEdicaoLancamentoModal()">Salvar Alterações</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-pagar-fatura" class="modal-overlay" onclick="fecharModalPagamentoFatura()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-file-invoice-dollar" style="color:var(--sucesso);"></i> Pagar Fatura</h3>
+                    <button class="btn-icon" onclick="fecharModalPagamentoFatura()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size: 13px; color: var(--texto-sec); margin-bottom: 15px;">
+                        Fechamento da fatura no valor de <strong id="txt-pagar-fat-valor" style="color: var(--texto-main); font-size: 16px;">R$ 0,00</strong>.
+                    </p>
+                    <div class="mb-15">
+                        <label class="label-moderno">De qual conta o dinheiro vai sair?</label>
+                        <select id="select-conta-pagar-fat" class="input-moderno"></select>
+                    </div>
+                    <input type="hidden" id="hidden-pagar-fat-id">
+                    <input type="hidden" id="hidden-pagar-fat-val">
+                    <div class="flex-between">
+                        <button class="btn-outline" onclick="fecharModalPagamentoFatura()">Cancelar</button>
+                        <button class="btn-primary" style="background: var(--sucesso);" onclick="if(typeof confirmarPagamentoFaturaBanco === 'function') confirmarPagamentoFaturaBanco()">Confirmar Pagamento</button>
                     </div>
                 </div>
             </div>
