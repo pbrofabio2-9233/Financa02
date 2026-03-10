@@ -1,5 +1,5 @@
 // ==========================================
-// UI.JS - Renderização, Interface e Gráficos (v28.9 - Fix Modal Fatura)
+// UI.JS - Renderização, Interface e Gráficos (v29.1 - Dashboard & Category Fix)
 // ==========================================
 
 var T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
@@ -13,13 +13,18 @@ window.fmtBR = function(valor) {
 if (typeof ChartDataLabels !== 'undefined') Chart.register(ChartDataLabels);
 
 // ----------------------------------------------------
-// 1. CORREÇÕES DE ESTÉTICA
+// 1. CORREÇÕES DE ESTÉTICA E TEMA PERSISTENTE
 // ----------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('.card-simples[style*="var(--fundo)"]').forEach(el => {
         el.style.background = 'var(--input-bg)';
         el.style.boxShadow = 'inset 0 2px 4px rgba(0,0,0,0.02)';
     });
+
+    const temaAtual = localStorage.getItem('eco_tema') || 'light';
+    document.body.classList.remove('dark-mode', 'ocean-mode');
+    if (temaAtual === 'dark') document.body.classList.add('dark-mode');
+    else if (temaAtual === 'ocean') document.body.classList.add('ocean-mode');
 });
 
 window.ativarEscudoFantasma = function() {
@@ -179,6 +184,7 @@ window.render = function() {
     };
     
     const catFixas = (db.categorias || []).filter(c => c.fixa).map(c => c.nome);
+    let faturasFuturasMapa = {}; // Para identificar apenas a próxima fatura
 
     (db.contas || []).forEach(c => { 
         if(c.tipo === 'movimentacao') calc.saldoLivre += c.saldo; 
@@ -196,8 +202,12 @@ window.render = function() {
             
             if (!(db.faturasPagas || []).includes(fatID)) {
                 const valMutante = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-                if (mesFatura > mesCorrente) calc.faturasFuturas += valMutante; 
-                else calc.faturas += valMutante;
+                
+                if (mesFatura > mesCorrente) {
+                    faturasFuturasMapa[mesFatura] = (faturasFuturasMapa[mesFatura] || 0) + valMutante;
+                } else {
+                    calc.faturas += valMutante;
+                }
             }
             
             let mesAtivoFatura = hoje.getMonth() + 1; let anoAtivoFatura = hoje.getFullYear();
@@ -226,12 +236,22 @@ window.render = function() {
         }
     });
 
+    // CORREÇÃO: Pegar apenas a PRÓXIMA fatura (mês cronológico mais próximo)
+    let mesesFuturosOrdenados = Object.keys(faturasFuturasMapa).sort();
+    if (mesesFuturosOrdenados.length > 0) {
+        calc.faturasFuturas = faturasFuturasMapa[mesesFuturosOrdenados[0]];
+    }
+
     if (calc.usoMetaCartao < 0) calc.usoMetaCartao = 0;
     if (db.amortizacoesFaturas) {
         Object.keys(db.amortizacoesFaturas).forEach(fatID => {
             if (!(db.faturasPagas || []).includes(fatID)) {
-                if (fatID.split('-')[1] > mesCorrente) calc.faturasFuturas -= db.amortizacoesFaturas[fatID]; 
-                else calc.faturas -= db.amortizacoesFaturas[fatID];
+                const mesFat = fatID.split('-')[1] + '-' + fatID.split('-')[2]; // Depende do formato do ID, ajustado para segurança
+                if (fatID.includes(mesCorrente)) {
+                    calc.faturas -= db.amortizacoesFaturas[fatID];
+                } else if (mesesFuturosOrdenados.length > 0 && fatID.includes(mesesFuturosOrdenados[0])) {
+                    calc.faturasFuturas -= db.amortizacoesFaturas[fatID];
+                }
             }
         });
     }
@@ -441,16 +461,28 @@ window.renderAbaContas = function() {
 }
 
 window.renderAbaFaturas = function() {
-    const abas = document.getElementById('abas-cartoes-fatura'); const lista = document.getElementById('lista-faturas-agrupadas'); 
+    const abas = document.getElementById('abas-cartoes-fatura'); 
+    const lista = document.getElementById('lista-faturas-agrupadas'); 
     if(!abas || !lista) return; 
+    
     abas.removeAttribute("style");
     const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao'); 
-    if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; return; }
-    if(!cartaoAtivoFatura && cartoes.length > 0) cartaoAtivoFatura = cartoes[0].id;
     
-    abas.innerHTML = `<div class="segmented-control">` + cartoes.map(c => `<button class="segmented-btn ${c.id === cartaoAtivoFatura ? 'active' : ''}" onclick="cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('') + `</div>`;
+    if(cartoes.length === 0) { 
+        abas.innerHTML = ""; 
+        lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; 
+        return; 
+    }
     
-    const c = cartoes.find(x => x.id === cartaoAtivoFatura); if(!c) return; 
+    if(!window.cartaoAtivoFatura && cartoes.length > 0) window.cartaoAtivoFatura = cartoes[0].id;
+    
+    abas.innerHTML = `<div class="segmented-control">` + 
+        cartoes.map(c => `<button class="segmented-btn ${c.id === window.cartaoAtivoFatura ? 'active' : ''}" onclick="window.cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('') + 
+        `</div>`;
+    
+    const c = cartoes.find(x => x.id === window.cartaoAtivoFatura); 
+    if(!c) return; 
+
     let mesesFatura = {};
     (db.lancamentos || []).forEach(l => { 
         if(l.contaId !== c.id) return; 
@@ -461,7 +493,10 @@ window.renderAbaFaturas = function() {
     });
 
     const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01')); 
-    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Sem faturas registradas.</div>"; return; }
+    if(mesesOrdenados.length === 0) { 
+        lista.innerHTML = "<div class='card texto-vazio'>Sem faturas registradas.</div>"; 
+        return; 
+    }
 
     lista.innerHTML = mesesOrdenados.map(mes => {
         const fatID = `${c.id}-${mes}`; const estaPaga = (db.faturasPagas || []).includes(fatID); 
@@ -469,7 +504,6 @@ window.renderAbaFaturas = function() {
         const totalFinal = mesesFatura[mes].total - jaAmortizado;
         let statusTag = estaPaga ? '<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">PAGO</span>' : (new Date() >= new Date(`${mes.split('-')[0]}-${mes.split('-')[1]}-${(c.fechamento || 1).toString().padStart(2, '0')}T00:00:00`) ? '<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">FECHADA</span>' : '<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">EM ABERTO</span>');
 
-        // MUDANÇA: O botão 'Pagar' agora envia o 'totalFinal' direto para forçar a abertura da janela
         return `
         <div class="card fatura-card ${estaPaga ? 'paga' : ''}" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'}; margin-bottom: 12px;">
             <div style="padding:15px; cursor:pointer; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
@@ -741,7 +775,20 @@ window.renderMetasIndividuais = function() {
         if (usoMeta < 0) usoMeta = 0;
         const pMeta = c.meta > 0 ? (usoMeta / c.meta) * 100 : 0; const corBarra = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981');
 
-        html += `<div style="margin-bottom: 15px; padding: 15px; border: 1px solid var(--linha); border-radius: 10px; background: var(--input-bg);"><div class="flex-between" style="margin-bottom: 8px;"><strong style="font-size: 14px;"><i class="fas fa-credit-card" style="color:${c.cor}; margin-right: 5px;"></i> ${c.nome}</strong><span style="font-size: 13px; font-weight: 700; color: ${corBarra};">${pMeta.toFixed(1)}%</span></div><div class="limite-texto flex-between" style="margin-bottom: 8px; font-size: 11px; color: var(--texto-sec);"><span>Consumo: <b>R$ ${fmtBR(usoMeta)}</b></span><span>Meta: <b>R$ ${fmtBR(c.meta || 0)}</b></span></div><div class="limite-bg" style="height: 6px; background: rgba(0,0,0,0.05); border-radius:3px; overflow:hidden;"><div class="limite-fill" style="height: 6px; width:${Math.min(pMeta, 100)}%; background: ${corBarra}; border-radius:3px; transition: width 0.3s ease;"></div></div></div>`;
+        html += `
+        <div style="margin-bottom: 12px; padding: 12px; border: 1px solid var(--linha); border-radius: 10px; background: var(--input-bg);">
+            <div class="flex-between" style="margin-bottom: 8px;">
+                <strong style="font-size: 13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;"><i class="fas fa-credit-card" style="color:${c.cor}; margin-right: 5px;"></i> ${c.nome}</strong>
+                <span style="font-size: 12px; font-weight: 700; color: ${corBarra};">${pMeta.toFixed(1)}%</span>
+            </div>
+            <div class="flex-between" style="margin-bottom: 6px; font-size: 10px; color: var(--texto-sec); gap:5px;">
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Consumo: <b style="font-size:11px;">R$ ${fmtBR(usoMeta)}</b></span>
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:right;">Meta: <b style="font-size:11px;">R$ ${fmtBR(c.meta || 0)}</b></span>
+            </div>
+            <div class="limite-bg" style="height: 6px; background: rgba(0,0,0,0.05); border-radius:3px; overflow:hidden;">
+                <div class="limite-fill" style="height: 6px; width:${Math.min(pMeta, 100)}%; background: ${corBarra}; border-radius:3px; transition: width 0.3s ease;"></div>
+            </div>
+        </div>`;
     });
     container.innerHTML = html;
 };
