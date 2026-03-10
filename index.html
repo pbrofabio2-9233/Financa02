@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v27.2.0</title>
+    <title>EcoFinance Pro v27.4.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=27.2">
+    <link rel="stylesheet" href="style.css?v=27.4">
     <style>
         /* Estilos Base e UI Ajustada */
         .roadmap-group { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--linha); }
@@ -43,7 +43,9 @@
         .color-picker-custom::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker-custom::-webkit-color-swatch { border: none; border-radius: 50%; border: 1px dashed var(--texto-sec); }
 
-        /* Botões Flutuantes e Novos Botoes */
+        /* Botões Flutuantes e Novos Botoes - Adicionado touch-action para evitar ghost clicks */
+        button, .btn-icon, .btn-primary, .btn-outline, .btn-danger { touch-action: manipulation; }
+        
         .fab-mobile { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--esmeralda); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); z-index: 99; border: none; cursor: pointer; transition: 0.3s; }
         .fab-mobile:active { transform: scale(0.90); }
         
@@ -62,7 +64,7 @@
         
         .sino-btn { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--input-bg); transition: 0.2s; margin-right: 15px; border: 1px solid var(--linha); }
 
-        /* Lista de Salários UI */
+        /* Lista de Salários e Categorias UI */
         .salario-card { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .salario-badge { background: rgba(16, 185, 129, 0.1); color: var(--esmeralda); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
 
@@ -99,7 +101,6 @@
             .fab-mobile { display: none !important; } 
             .btn-scroll-top { bottom: 30px; left: auto; right: 30px; width: 50px; height: 50px; font-size: 20px; }
             
-            /* ESTAS DUAS LINHAS FORAM RESTAURADAS */
             .btn-header-desktop { display: flex !important; } 
             .hamburger-desktop { display: block !important; }
             
@@ -239,7 +240,6 @@
 
             <section id="aba-historico" class="secao-app">
                 <div class="container">
-                    
                     <div style="display: flex; justify-content: center; margin-bottom: 15px;">
                         <div class="filtro-mes-pill">
                             <button onclick="mudarMesFiltro(-1)"><i class="fas fa-chevron-left"></i></button>
@@ -260,7 +260,7 @@
 
                     <div id="filtro-categoria-container" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                         <input type="hidden" id="filtro-cat" value="todas">
-                        </div>
+                    </div>
                     
                     <div id="lista-historico-filtros"></div>
                 </div>
@@ -501,60 +501,94 @@
         </div>
 
         <div id="modal-categorias" class="modal-overlay" onclick="fecharModalCategorias()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
-                <div class="modal-header flex-between">
-                    <h3 id="titulo-modal-cat"><i class="fas fa-tags" style="color:var(--esmeralda);"></i> Categorias</h3>
-                    <button class="btn-icon" onclick="fecharModalCategorias()"><i class="fas fa-times"></i></button>
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 320px; text-align: center;">
+                <div class="modal-header flex-between mb-15" style="border-bottom: none; padding-bottom: 0;">
+                    <h3 style="margin: 0 auto;"><i class="fas fa-tags" style="color:var(--esmeralda);"></i> Gestão de Categorias</h3>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1; padding: 20px;">
-                    
-                    <button class="btn-primary mb-15" style="width: 100%;" onclick="toggleFormNovaCategoria()"><i class="fas fa-plus"></i> Nova Categoria</button>
-                    
-                    <div id="form-nova-categoria" class="card-simples mb-20" style="display: none; border: 1px solid var(--esmeralda); background: rgba(16, 185, 129, 0.03);">
-                        <strong id="label-form-cat" style="font-size:14px; display:block; margin-bottom:15px; color: var(--texto-main);">Criar Nova Categoria</strong>
-                        <input type="hidden" id="nova-cat-id">
-                        
-                        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                            <input type="text" id="nova-cat-icone" class="input-moderno" placeholder="🍔" maxlength="2" style="width: 65px; text-align:center; font-size:20px; padding: 10px;">
-                            <input type="text" id="nova-cat-nome" class="input-moderno" placeholder="Nome da Categoria" style="flex: 1;">
+                <p style="font-size: 13px; color: var(--texto-sec); margin-bottom: 20px;">O que deseja fazer?</p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="btn-primary" style="padding: 15px; font-size: 15px; background: var(--esmeralda);" onclick="abrirModalNovaCat()"><i class="fas fa-plus-circle"></i> Nova Categoria</button>
+                    <button class="btn-outline" style="padding: 15px; font-size: 15px;" onclick="abrirModalListaCat()"><i class="fas fa-cog"></i> Ajustar Existentes</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-nova-cat" class="modal-overlay" onclick="fecharModalNovaCat()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header flex-between">
+                    <h3 id="label-form-cat"><i class="fas fa-plus" style="color:var(--esmeralda);"></i> Nova Categoria</h3>
+                    <button class="btn-icon" onclick="fecharModalNovaCat()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="nova-cat-id">
+
+                    <div class="mb-10" style="display: flex; gap: 10px;">
+                        <div style="width: 80px;">
+                            <label class="label-moderno">Ícone</label>
+                            <input type="text" id="nova-cat-icone" class="input-moderno" placeholder="🍔" maxlength="2" style="text-align:center; font-size:18px;">
                         </div>
-                        
-                        <div class="grid-inputs mb-15">
-                            <select id="nova-cat-tipo" class="input-moderno">
-                                <option value="despesa">💸 Despesa (Saída)</option>
-                                <option value="receita">💰 Receita (Entrada)</option>
-                            </select>
-                            
-                            <div class="color-palette" id="paleta-cores-cat" style="margin: 0; justify-content: space-between; padding: 5px;">
-                                <div class="color-swatch active" style="background-color: #ef4444;" onclick="selecionarCorCat('#ef4444', this)"></div>
-                                <div class="color-swatch" style="background-color: #f97316;" onclick="selecionarCorCat('#f97316', this)"></div>
-                                <div class="color-swatch" style="background-color: #f59e0b;" onclick="selecionarCorCat('#f59e0b', this)"></div>
-                                <div class="color-swatch" style="background-color: #10b981;" onclick="selecionarCorCat('#10b981', this)"></div>
-                                <div class="color-swatch" style="background-color: #3b82f6;" onclick="selecionarCorCat('#3b82f6', this)"></div>
-                                <div class="color-swatch" style="background-color: #8b5cf6;" onclick="selecionarCorCat('#8b5cf6', this)"></div>
-                                <input type="color" id="nova-cat-cor" value="#ef4444" class="color-picker-custom" title="Cor personalizada" onchange="removerSelecaoPaleta()">
-                            </div>
-                        </div>
-                        
-                        <label class="checkbox-moderno mb-15">
-                            <input type="checkbox" id="nova-cat-fixa">
-                            <span style="font-size: 13px;">Marcar como Custo Fixo</span>
-                        </label>
-                        
-                        <div class="flex-between">
-                            <button class="btn-outline" id="btn-cancelar-edicao-cat" style="width:48%;" onclick="cancelarEdicaoCategoria()">Cancelar</button>
-                            <button class="btn-primary" id="btn-salvar-cat" style="width:100%; background: var(--esmeralda);" onclick="salvarConfigNovaCategoria()">Salvar Categoria</button>
+                        <div style="flex: 1;">
+                            <label class="label-moderno">Nome</label>
+                            <input type="text" id="nova-cat-nome" class="input-moderno" placeholder="Ex: Supermercado">
                         </div>
                     </div>
-                    
+
+                    <div class="grid-inputs mb-10">
+                        <div>
+                            <label class="label-moderno">Tipo</label>
+                            <select id="nova-cat-tipo" class="input-moderno">
+                                <option value="despesa">Saída (Despesa)</option>
+                                <option value="receita">Entrada (Receita)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="label-moderno">Custo Fixo?</label>
+                            <div style="height: 45px; display: flex; align-items: center; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha); padding: 0 15px;">
+                                <label class="checkbox-moderno" style="margin: 0; width: 100%;">
+                                    <input type="checkbox" id="nova-cat-fixa">
+                                    <span style="font-size: 13px;">Sim, é Fixo</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-15">
+                        <label class="label-moderno">Cor de Identificação</label>
+                        <div class="color-palette" id="paleta-cores-cat" style="background: var(--input-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--linha); margin: 0; display: flex; justify-content: space-between; align-items: center;">
+                            <div class="color-swatch active" style="background-color: #ef4444;" onclick="selecionarCorCat('#ef4444', this)"></div>
+                            <div class="color-swatch" style="background-color: #f97316;" onclick="selecionarCorCat('#f97316', this)"></div>
+                            <div class="color-swatch" style="background-color: #f59e0b;" onclick="selecionarCorCat('#f59e0b', this)"></div>
+                            <div class="color-swatch" style="background-color: #10b981;" onclick="selecionarCorCat('#10b981', this)"></div>
+                            <div class="color-swatch" style="background-color: #3b82f6;" onclick="selecionarCorCat('#3b82f6', this)"></div>
+                            <div class="color-swatch" style="background-color: #8b5cf6;" onclick="selecionarCorCat('#8b5cf6', this)"></div>
+                            <div style="width: 1px; height: 24px; background: var(--linha); margin: 0 5px;"></div>
+                            <input type="color" id="nova-cat-cor" value="#ef4444" class="color-picker-custom" title="Cor personalizada" onchange="removerSelecaoPaleta()" style="width: 32px; height: 32px; padding: 0;">
+                        </div>
+                    </div>
+
+                    <div class="flex-between">
+                        <button class="btn-outline" style="width:48%;" onclick="fecharModalNovaCat()">Cancelar</button>
+                        <button class="btn-primary" id="btn-salvar-cat" style="width:48%; background: var(--esmeralda);" onclick="salvarConfigNovaCategoria()">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="modal-lista-cat" class="modal-overlay" onclick="fecharModalListaCat()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header flex-between">
+                    <h3><i class="fas fa-cog" style="color:var(--azul);"></i> Ajustar Categorias</h3>
+                    <button class="btn-icon" onclick="fecharModalListaCat()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="overflow-y: auto; flex: 1;">
                     <div class="mb-15">
                         <strong class="label-moderno mb-10" style="border-bottom: 1px solid var(--linha); padding-bottom: 5px;">Saídas / Despesas (<span id="count-cat-desp">0</span>)</strong>
-                        <div id="lista-categorias-despesas" style="display:flex; flex-wrap:wrap; gap: 8px;"></div>
+                        <div id="lista-categorias-despesas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
                     </div>
                     
                     <div>
                         <strong class="label-moderno mb-10" style="border-bottom: 1px solid var(--linha); padding-bottom: 5px;">Entradas / Receitas (<span id="count-cat-rec">0</span>)</strong>
-                        <div id="lista-categorias-receitas" style="display:flex; flex-wrap:wrap; gap: 8px;"></div>
+                        <div id="lista-categorias-receitas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
                     </div>
                 </div>
             </div>
@@ -960,9 +994,9 @@
         };
     </script>
 
-    <script src="core.js?v=27.2"></script>
-    <script src="engine.js?v=27.2"></script>
-    <script src="ui.js?v=27.2"></script>
-    <script src="app.js?v=27.2"></script>
+    <script src="core.js?v=27.4"></script>
+    <script src="engine.js?v=27.4"></script>
+    <script src="ui.js?v=27.4"></script>
+    <script src="app.js?v=27.4"></script>
 </body>
 </html>
