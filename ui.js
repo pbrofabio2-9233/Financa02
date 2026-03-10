@@ -1,10 +1,10 @@
 // ==========================================
-// UI.JS - Renderização, Interface e Gráficos (v28.7)
+// UI.JS - Renderização, Interface e Gráficos (v28.9 - Fix Modal Fatura)
 // ==========================================
 
-const T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
-const T_DESPESAS = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
-const T_DESPESAS_CARTAO = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
+var T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
+var T_DESPESAS = ['despesas_gerais', 'emprestei_dinheiro', 'pag_emprestimo', 'dep_poupanca', 'emprestei_cartao', 'despesa', 'emp_concedido', 'emp_cartao'];
+var T_DESPESAS_CARTAO = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
 
 window.fmtBR = function(valor) {
     return Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -107,12 +107,16 @@ window.mostrarContextMenu = function(e, id) {
 window.acionarAjusteCtx = function(e) {
     if(e) e.stopPropagation();
     if(currentLancIdCtx) {
-        const el = document.getElementById(`edit-lanc-${currentLancIdCtx}`);
-        if(el) { 
-            el.style.display = 'block'; 
-            const icon = document.getElementById(`icon-${currentLancIdCtx}`); 
-            if(icon) icon.classList.add('open'); 
-            setTimeout(() => { const card = el.closest('.fatura-card'); if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+        if (typeof window.abrirModalEdicaoLancamento === 'function') {
+            window.abrirModalEdicaoLancamento(currentLancIdCtx);
+        } else {
+            const el = document.getElementById(`edit-lanc-${currentLancIdCtx}`);
+            if(el) { 
+                el.style.display = 'block'; 
+                const icon = document.getElementById(`icon-${currentLancIdCtx}`); 
+                if(icon) icon.classList.add('open'); 
+                setTimeout(() => { const card = el.closest('.fatura-card'); if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+            }
         }
     }
     fecharMenuCtx();
@@ -142,7 +146,7 @@ window.iniciarCarrosselBI = function() {
         slideIndex = (slideIndex + 1) % slides.length;
         slides[slideIndex].classList.add('active');
         if(dots[slideIndex]) dots[slideIndex].style.background = 'var(--esmeralda)';
-    }, 9000); // Alterado para 9 segundos
+    }, 9000); 
 };
 
 window.iniciarCarrosselRadar = function() {
@@ -155,7 +159,7 @@ window.iniciarCarrosselRadar = function() {
         slides[slideIndex].classList.remove('active');
         slideIndex = (slideIndex + 1) % slides.length;
         slides[slideIndex].classList.add('active');
-    }, 6000); // Alterado para 6 segundos
+    }, 6000); 
 };
 
 // ----------------------------------------------------
@@ -386,9 +390,22 @@ window.renderHistorico = function() {
 }
 
 window.toggleEditLancamento = function(id) { 
-    const el = document.getElementById(`edit-lanc-${id}`); const icon = document.getElementById(`icon-${id}`); 
-    if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
-    if(icon) icon.classList.toggle('open'); 
+    if (typeof id === 'string' && id.includes('det-fat')) {
+        const el = document.getElementById(`edit-lanc-${id}`); 
+        const icon = document.getElementById(`icon-${id}`); 
+        if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
+        if(icon) icon.classList.toggle('open'); 
+        return;
+    }
+    
+    if (typeof window.abrirModalEdicaoLancamento === 'function') {
+        window.abrirModalEdicaoLancamento(id);
+    } else {
+        const el = document.getElementById(`edit-lanc-${id}`); 
+        const icon = document.getElementById(`icon-${id}`); 
+        if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
+        if(icon) icon.classList.toggle('open'); 
+    }
 }
 
 // ----------------------------------------------------
@@ -452,6 +469,7 @@ window.renderAbaFaturas = function() {
         const totalFinal = mesesFatura[mes].total - jaAmortizado;
         let statusTag = estaPaga ? '<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">PAGO</span>' : (new Date() >= new Date(`${mes.split('-')[0]}-${mes.split('-')[1]}-${(c.fechamento || 1).toString().padStart(2, '0')}T00:00:00`) ? '<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">FECHADA</span>' : '<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">EM ABERTO</span>');
 
+        // MUDANÇA: O botão 'Pagar' agora envia o 'totalFinal' direto para forçar a abertura da janela
         return `
         <div class="card fatura-card ${estaPaga ? 'paga' : ''}" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'}; margin-bottom: 12px;">
             <div style="padding:15px; cursor:pointer; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
@@ -463,7 +481,7 @@ window.renderAbaFaturas = function() {
                     </div>
                     <div style="display:flex; gap:6px;">
                         ${!estaPaga && totalFinal > 0 ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); amortizarFatura('${fatID}')">Amortizar</button>` : ''}
-                        <button class="${estaPaga?'btn-outline':'btn-primary'}" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}')">${estaPaga?'Reabrir':'Pagar'}</button>
+                        <button class="${estaPaga?'btn-outline':'btn-primary'}" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); alternarPagamentoFatura('${fatID}', ${totalFinal})">${estaPaga?'Reabrir':'Pagar'}</button>
                     </div>
                 </div>
                 ${jaAmortizado > 0 ? `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);"><div class="flex-between" style="font-size:10px; color:var(--texto-sec); margin-bottom:4px;"><span>Amortizado: R$ ${fmtBR(jaAmortizado)}</span><span class="txt-sucesso">${((jaAmortizado/mesesFatura[mes].total)*100).toFixed(0)}%</span></div><div class="micro-bar-bg"><div class="micro-bar-fill" style="width:${(jaAmortizado/mesesFatura[mes].total)*100}%"></div></div></div>` : ''}
@@ -738,4 +756,67 @@ window.navegar = function(idSecao, elemento) {
     const titulos = { 'dashboard':'Visão Geral', 'faturas':'Faturas', 'historico':'Extrato Financeiro', 'contas':'Minhas Contas', 'config':'Ajustes do App' };
     const h1 = document.getElementById('titulo-aba');
     if(h1 && titulos[idSecao]) h1.innerText = titulos[idSecao];
+};
+
+// ----------------------------------------------------
+// 11. JANELA DE PAGAMENTO DE FATURA
+// ----------------------------------------------------
+window.abrirModalPagamentoFatura = function(fatID, valor) {
+    document.getElementById('hidden-pagar-fat-id').value = fatID;
+    document.getElementById('hidden-pagar-fat-val').value = valor;
+    document.getElementById('txt-pagar-fat-valor').innerText = 'R$ ' + window.fmtBR(valor);
+
+    const selectConta = document.getElementById('select-conta-pagar-fat');
+    if(selectConta) {
+        selectConta.innerHTML = '';
+        (db.contas || []).filter(c => c.tipo !== 'cartao').forEach(c => {
+            selectConta.options.add(new Option(`${c.nome} (Saldo: R$ ${window.fmtBR(c.saldo)})`, c.id));
+        });
+    }
+
+    const m = document.getElementById('modal-pagar-fatura');
+    if(m) {
+        m.style.display = 'flex';
+        setTimeout(() => m.classList.add('active'), 10);
+    } else {
+        alert("O visual da janela de pagamento não foi encontrado no HTML.");
+    }
+};
+
+window.fecharModalPagamentoFatura = function() {
+    const m = document.getElementById('modal-pagar-fatura');
+    if(m) {
+        m.classList.remove('active');
+        setTimeout(() => m.style.display = 'none', 300);
+    }
+};
+
+// ----------------------------------------------------
+// 12. LÓGICA DE FATURA (Forçando a Interface)
+// ----------------------------------------------------
+window.alternarPagamentoFatura = function(fatID, valorPassadoPelaTela) {
+    const estaPaga = (db.faturasPagas || []).includes(fatID);
+    
+    if(estaPaga) {
+        if(typeof abrirConfirmacao === 'function') {
+            abrirConfirmacao("Deseja reabrir esta fatura? (O dinheiro NÃO será devolvido à conta bancária)", () => {
+                const i = db.faturasPagas.indexOf(fatID);
+                db.faturasPagas.splice(i,1);
+                save();
+                showToast("Fatura reaberta!", "ajuste");
+                if(typeof render === 'function') render();
+            });
+        }
+        return;
+    }
+
+    if (valorPassadoPelaTela > 0) {
+        window.abrirModalPagamentoFatura(fatID, valorPassadoPelaTela);
+    } else {
+        if (!db.faturasPagas) db.faturasPagas = [];
+        db.faturasPagas.push(fatID);
+        save();
+        showToast("Fatura encerrada com sucesso!", "sucesso");
+        if(typeof render === 'function') render();
+    }
 };
