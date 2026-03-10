@@ -2,8 +2,6 @@
 // APP.JS - Lógica de Modais, Navegação, Fixes e CSV
 // ==========================================
 
-const T_RECEITAS_APP = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
-
 // 1. Filtros de Mês e Status no Extrato
 window.mudarMesFiltro = function(direcao) {
     const input = document.getElementById('filtro-mes');
@@ -82,7 +80,7 @@ window.toggleCamposCartao = function() {
     if(campos) campos.style.display = tipo === 'cartao' ? 'block' : 'none';
 };
 
-// 4. Modais e Formulários (Aba de Ajustes)
+// 4. Modais e Formulários (Aba de Ajustes e Temas)
 window.abrirModalCategorias = function() {
     const m = document.getElementById('modal-categorias'); m.style.display = 'flex'; 
     setTimeout(() => m.classList.add('active'), 10);
@@ -105,15 +103,22 @@ window.toggleFormNovaCategoria = function() {
     }
 };
 
+// --- CONTROLE DE TEMAS EXCLUSIVO ---
 window.abrirModalAparencia = function() {
     const m = document.getElementById('modal-aparencia'); 
     m.style.display = 'flex'; 
     setTimeout(() => m.classList.add('active'), 10);
     
-    // Sincroniza visualmente o botão com o tema atual do app
-    const checkbox = document.getElementById('toggle-tema-ajustes');
-    if (checkbox) {
-        checkbox.checked = document.body.classList.contains('dark-mode');
+    const temaAtual = localStorage.getItem('eco_tema') || 'light';
+    document.querySelectorAll('.btn-tema').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderColor = 'var(--linha)';
+    });
+
+    const btnAtivo = document.getElementById('btn-tema-' + temaAtual);
+    if(btnAtivo) {
+        btnAtivo.classList.add('active');
+        btnAtivo.style.borderColor = 'var(--azul)';
     }
 };
 
@@ -121,6 +126,30 @@ window.fecharModalAparencia = function() {
     const m = document.getElementById('modal-aparencia'); m.classList.remove('active'); 
     setTimeout(() => m.style.display = 'none', 300);
 };
+
+window.selecionarTema = function(tema) {
+    localStorage.setItem('eco_tema', tema);
+
+    document.querySelectorAll('.btn-tema').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderColor = 'var(--linha)';
+    });
+    const btnAtivo = document.getElementById('btn-tema-' + tema);
+    if(btnAtivo) {
+        btnAtivo.classList.add('active');
+        btnAtivo.style.borderColor = 'var(--azul)';
+    }
+
+    // Aplica na hora o CSS
+    document.body.classList.remove('dark-mode', 'ocean-mode');
+    if (tema === 'dark') document.body.classList.add('dark-mode');
+    else if (tema === 'ocean') document.body.classList.add('ocean-mode');
+
+    // Re-renderiza gráficos para cores adaptarem
+    if(typeof renderGrafico === 'function') renderGrafico();
+    if(typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
+};
+// -----------------------------------
 
 window.abrirModalSistema = function() {
     const m = document.getElementById('modal-sistema'); m.style.display = 'flex'; 
@@ -132,7 +161,7 @@ window.fecharModalSistema = function() {
     setTimeout(() => m.style.display = 'none', 300);
 };
 
-// 5. Redirecionamento Inteligente das Notificações (COM GLOW UP)
+// 5. Redirecionamento Inteligente das Notificações
 window.redirecionarParaLancamento = function(id, data) {
     if(typeof fecharNotificacoes === 'function') fecharNotificacoes();
     const tabHist = document.querySelector('.menu-item[onclick*="historico"]');
@@ -145,25 +174,7 @@ window.redirecionarParaLancamento = function(id, data) {
     }
     
     setTimeout(() => {
-        const icon = document.getElementById(`icon-${id}`);
-        const edit = document.getElementById(`edit-lanc-${id}`);
-        const cardLancamento = edit ? edit.closest('.fatura-card') : null;
-        
-        if(icon && edit && cardLancamento) {
-            edit.style.display = 'block';
-            icon.classList.add('open');
-            cardLancamento.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            const oldBorder = cardLancamento.style.borderColor;
-            cardLancamento.style.transition = 'all 0.5s ease';
-            cardLancamento.style.borderColor = 'var(--alerta)';
-            cardLancamento.style.boxShadow = '0 0 20px rgba(245, 158, 11, 0.6)';
-            
-            setTimeout(() => {
-                cardLancamento.style.borderColor = oldBorder;
-                cardLancamento.style.boxShadow = 'var(--shadow-sm)';
-            }, 2000);
-        }
+        window.abrirModalEdicaoLancamento(id);
     }, 400);
 };
 
@@ -252,12 +263,11 @@ window.exportarExtratoCSV = function() {
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const limiteAtencao = new Date(hoje); limiteAtencao.setDate(hoje.getDate() + 7);
 
-    // Mapeia e calcula o status textual para o Excel
     let lancamentosMapeados = (db.lancamentos || []).map(l => {
         if(!l || !l.data) return null;
         const c = (db.contas || []).find(x => x.id === l.contaId);
         let dtReferencia = new Date(l.data + 'T00:00:00');
-        const isReceita = T_RECEITAS_APP.includes(l.tipo);
+        const isReceita = window.ecoTiposReceita.includes(l.tipo);
         let statusCalculado = '';
         let statusNome = '';
 
@@ -292,7 +302,6 @@ window.exportarExtratoCSV = function() {
 
     if(lancs.length === 0) { alert("Não há registos com este filtro para exportar."); return; }
 
-    // \uFEFF é o BOM do UTF-8 que força o Excel a ler os acentos (ã, ç, é) corretamente!
     let csvContent = "\uFEFFData;Descrição;Categoria;Conta;Direção;Valor (R$);Status\n";
 
     lancs.forEach(l => {
@@ -603,31 +612,105 @@ window.salvarEdicaoParcelamento = function(idGrupo) {
 };
 
 // ----------------------------------------------------
-// ATUALIZAR CATEGORIAS DIRETAMENTE NO EXTRATO
+// NOVO: MODAL DE EDIÇÃO DE LANÇAMENTO (Substitui o Acordeão)
 // ----------------------------------------------------
-window.salvarEdicaoLancamento = function(id) {
-    const l = db.lancamentos.find(x => x.id === id);
-    if(!l) return;
-    
-    const desc = document.getElementById(`e-lanc-desc-${id}`).value;
-    const conta = document.getElementById(`e-lanc-conta-${id}`).value;
-    const data = document.getElementById(`e-lanc-data-${id}`).value;
-    const val = window.parseMoeda(`e-lanc-val-${id}`);
-    const catSelect = document.getElementById(`e-lanc-cat-${id}`);
+window.idLancamentoEmEdicao = null;
 
-    l.desc = desc;
-    l.contaId = conta;
-    l.data = data;
-    l.valor = val;
-    
-    if (catSelect && catSelect.value) {
-        l.cat = catSelect.value;
-    } else {
-        l.cat = "Outros"; // Fallback se a pessoa desmarcar a categoria
+// Intercepta os cliques antigos para abrir o novo modal
+window.toggleEditLancamento = function(id) {
+    // Se for uma fatura, mantemos o acordeão, pois ele mostra a lista de compras
+    if (typeof id === 'string' && id.startsWith('det-fat-')) {
+        const el = document.getElementById(`edit-lanc-${id}`);
+        const icon = document.getElementById(`icon-${id}`);
+        if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        if(icon) icon.classList.toggle('open');
+        return;
     }
+    // Se for lançamento normal do extrato, abre o Modal
+    window.abrirModalEdicaoLancamento(id);
+};
+
+// Intercepta o menu de contexto (Long press / Botão direito)
+window.acionarAjusteCtx = function(e) {
+    if(e) e.stopPropagation();
+    if(currentLancIdCtx) window.abrirModalEdicaoLancamento(currentLancIdCtx);
+    if(typeof fecharMenuCtx === 'function') fecharMenuCtx();
+};
+
+window.abrirModalEdicaoLancamento = function(id) {
+    const l = (db.lancamentos || []).find(x => x.id === id);
+    if(!l) return;
+    window.idLancamentoEmEdicao = id;
+
+    document.getElementById('edit-modal-desc').value = l.desc || '';
+    document.getElementById('edit-modal-data').value = l.data || '';
+    document.getElementById('edit-modal-valor').value = (l.valor || 0).toFixed(2).replace('.', ',');
+
+    const selectConta = document.getElementById('edit-modal-conta');
+    selectConta.innerHTML = '';
+    (db.contas || []).forEach(c => {
+        selectConta.options.add(new Option(`${c.tipo === 'cartao' ? '💳' : '🏦'} ${c.nome}`, c.id));
+    });
+    selectConta.value = l.contaId;
+
+    const selectCat = document.getElementById('edit-modal-cat');
+    selectCat.innerHTML = '<option value="">Outros</option>';
+    (db.categorias || []).forEach(cat => {
+        selectCat.options.add(new Option(`${cat.icone || ''} ${cat.nome}`, cat.nome));
+    });
+    selectCat.value = l.cat || '';
+
+    const m = document.getElementById('modal-edicao-lancamento');
+    m.style.display = 'flex';
+    setTimeout(() => m.classList.add('active'), 10);
+};
+
+window.fecharModalEdicaoLancamento = function() {
+    const m = document.getElementById('modal-edicao-lancamento');
+    m.classList.remove('active');
+    setTimeout(() => m.style.display = 'none', 300);
+    window.idLancamentoEmEdicao = null;
+};
+
+window.salvarEdicaoLancamentoModal = function() {
+    if(!window.idLancamentoEmEdicao) return;
+    const l = db.lancamentos.find(x => x.id === window.idLancamentoEmEdicao);
+    if(!l) return;
+
+    l.desc = document.getElementById('edit-modal-desc').value;
+    l.contaId = document.getElementById('edit-modal-conta').value;
+    l.data = document.getElementById('edit-modal-data').value;
+    l.valor = window.parseMoeda('edit-modal-valor');
+    l.cat = document.getElementById('edit-modal-cat').value || "Outros";
 
     save();
+    fecharModalEdicaoLancamento();
     
     if(typeof render === 'function') render();
     if(typeof showToast === 'function') showToast("Lançamento atualizado!", "sucesso");
+};
+
+// ----------------------------------------------------
+// PREPARAÇÃO: MODAL PAGAMENTO DE FATURA
+// ----------------------------------------------------
+window.abrirModalPagamentoFatura = function(fatID, valor) {
+    document.getElementById('hidden-pagar-fat-id').value = fatID;
+    document.getElementById('hidden-pagar-fat-val').value = valor;
+    document.getElementById('txt-pagar-fat-valor').innerText = 'R$ ' + (typeof fmtBR === 'function' ? fmtBR(valor) : valor.toFixed(2).replace('.', ','));
+
+    const selectConta = document.getElementById('select-conta-pagar-fat');
+    selectConta.innerHTML = '';
+    (db.contas || []).filter(c => c.tipo !== 'cartao').forEach(c => {
+        selectConta.options.add(new Option(`${c.nome} (Saldo: R$ ${typeof fmtBR === 'function' ? fmtBR(c.saldo) : c.saldo})`, c.id));
+    });
+
+    const m = document.getElementById('modal-pagar-fatura');
+    m.style.display = 'flex';
+    setTimeout(() => m.classList.add('active'), 10);
+};
+
+window.fecharModalPagamentoFatura = function() {
+    const m = document.getElementById('modal-pagar-fatura');
+    m.classList.remove('active');
+    setTimeout(() => m.style.display = 'none', 300);
 };
