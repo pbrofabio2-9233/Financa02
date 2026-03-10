@@ -3,90 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v27.4.0</title>
+    <title>EcoFinance Pro v28.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=27.4">
+    <link rel="stylesheet" href="style.css?v=28.2">
     <style>
-        /* Estilos Base e UI Ajustada */
+        /* ==========================================
+           ESTILOS ESPECÍFICOS DO INDEX E NOVOS LAYOUTS
+           ========================================== */
+           
+        /* Cabeçalho Curvado Moderno */
+        header.header-modern {
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            background: linear-gradient(180deg, var(--card-bg) 70%, var(--input-bg) 100%);
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            box-shadow: var(--shadow-sm);
+            padding: 20px 20px 25px 20px !important;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--linha);
+        }
+
+        /* Menu Inferior Flutuante (Pílula) */
+        .menu-inferior { 
+            position: fixed; 
+            bottom: 20px !important; 
+            left: 15px; 
+            right: 15px; 
+            width: auto !important; 
+            border-radius: 24px; 
+            background: var(--card-bg); 
+            border: 1px solid var(--linha); 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 10px 5px !important; 
+            z-index: 99; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); 
+            backdrop-filter: blur(10px);
+        }
+        body.dark-mode .menu-inferior, body.ocean-mode .menu-inferior {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6); 
+        }
+
+        /* Botão Flutuante Centralizado com o Menu Pílula */
+        .fab-mobile { 
+            position: fixed; 
+            bottom: 95px; 
+            right: 25px; 
+            width: 56px; 
+            height: 56px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, var(--esmeralda), #059669); 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 22px; 
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4); 
+            z-index: 99; 
+            border: none; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+
+        /* Carrosséis Estrutura (Preparação para Etapa 3) */
+        .carrossel-wrapper {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            min-height: 120px;
+        }
+        .carrossel-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateX(20px);
+            pointer-events: none;
+        }
+        .carrossel-slide.active {
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+            position: relative;
+        }
+
+        /* Restantes dos Estilos originais... */
         .roadmap-group { margin-bottom: 12px; border-radius: 12px; overflow: hidden; border: 1px solid var(--linha); }
         .roadmap-header { background: var(--input-bg); padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .roadmap-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background: var(--card-bg); padding: 0 15px; }
         .roadmap-group.active .roadmap-content { max-height: 500px; padding: 15px; }
-        .roadmap-group.active .fa-chevron-down { transform: rotate(180deg); }
-        .rd-list { list-style: none; padding: 0; margin: 0; }
-        .rd-list li { font-size: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; color: var(--texto-sec); }
-        .status-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-
-        /* Chips das Categorias */
         .cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; color: white; margin-bottom: 10px; margin-right: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .cat-chip:hover { transform: translateY(-2px); }
-        .cat-chip .fa-times { background: rgba(0,0,0,0.2); border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; margin-left: 4px; transition: 0.2s; }
-        
-        /* Menu Ajustes Padronizado */
         .menu-ajuste-card { background: var(--card-bg); border: 1px solid var(--linha); border-radius: 12px; padding: 15px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-sm); }
-        .menu-ajuste-card:hover { border-color: var(--azul); background: var(--input-bg); }
         .menu-ajuste-icon { width: 35px; height: 35px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-right: 15px; }
-
-        /* Carrossel e Paleta de Cores */
         .carrossel-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .carrossel-chips::-webkit-scrollbar { display: none; }
         .chip-cat { flex: 0 0 auto; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer; transition: all 0.2s; }
         .chip-cat.active { background: var(--azul); color: #fff; border: none; box-shadow: 0 2px 5px rgba(37,99,235,0.3); }
-        
         .color-palette { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 15px; }
         .color-swatch { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
         .color-swatch.active { border-color: var(--texto-main); transform: scale(1.15); box-shadow: 0 0 8px rgba(0,0,0,0.3); }
         .color-picker-custom { width: 32px; height: 32px; padding: 0; border: none; border-radius: 50%; cursor: pointer; overflow: hidden; background: transparent; }
         .color-picker-custom::-webkit-color-swatch-wrapper { padding: 0; }
         .color-picker-custom::-webkit-color-swatch { border: none; border-radius: 50%; border: 1px dashed var(--texto-sec); }
-
-        /* Botões Flutuantes e Novos Botoes - Adicionado touch-action para evitar ghost clicks */
         button, .btn-icon, .btn-primary, .btn-outline, .btn-danger { touch-action: manipulation; }
-        
-        .fab-mobile { position: fixed; bottom: 80px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: var(--esmeralda); color: white; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); z-index: 99; border: none; cursor: pointer; transition: 0.3s; }
-        .fab-mobile:active { transform: scale(0.90); }
-        
-        .btn-scroll-top { position: fixed; bottom: 80px; left: 20px; width: 45px; height: 45px; border-radius: 50%; background: var(--azul); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; cursor: pointer; z-index: 98; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(20px); }
+        .btn-scroll-top { position: fixed; bottom: 100px; left: 20px; width: 45px; height: 45px; border-radius: 50%; background: var(--azul); color: white; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; cursor: pointer; z-index: 98; opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(20px); }
         .btn-scroll-top.show { opacity: 1; visibility: visible; transform: translateY(0); }
-
-        .btn-danger { background: var(--perigo); color: #fff; border-radius: 12px; padding: 14px; font-weight: 600; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); border: none; cursor: pointer; transition: all 0.2s; }
-        
-        /* Central de Notificações */
+        .btn-danger { background: var(--perigo); color: #fff; border-radius: 12px; padding: 14px; font-weight: 600; font-size: 14px; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); border: none; cursor: pointer; transition: all 0.2s; width: 100%; }
         .drawer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s ease; }
         .drawer-overlay.active { opacity: 1; visibility: visible; }
         .notification-drawer { position: fixed; top: 0; right: 0; width: 100%; max-width: 360px; height: 100%; background: var(--card-bg); box-shadow: -5px 0 25px rgba(0,0,0,0.3); z-index: 1001; transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; border-left: 1px solid var(--linha); }
         .notification-drawer.open { transform: translateX(0); }
         .drawer-header { padding: 20px; border-bottom: 1px solid var(--linha); display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); }
         .drawer-body { flex: 1; overflow-y: auto; padding: 20px; background: var(--fundo); }
-        
         .sino-btn { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: var(--input-bg); transition: 0.2s; margin-right: 15px; border: 1px solid var(--linha); }
-
-        /* Lista de Salários e Categorias UI */
         .salario-card { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .salario-badge { background: rgba(16, 185, 129, 0.1); color: var(--esmeralda); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-
-        /* Insight Card */
         .insight-card { padding: 12px 15px; border-radius: 12px; display: flex; gap: 12px; align-items: center; font-size: 13px; line-height: 1.4; border-left: 4px solid; background: var(--card-bg); box-shadow: var(--shadow-sm); }
         .insight-card.sucesso { border-left-color: var(--sucesso); background: rgba(16, 185, 129, 0.05); }
         .insight-card.perigo { border-left-color: var(--perigo); background: rgba(239, 68, 68, 0.05); }
         .insight-card.info { border-left-color: var(--azul); background: rgba(59, 130, 246, 0.05); }
-
-        /* Scroll horizontal para o gráfico anual */
         .chart-scroll-wrapper { width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 10px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
         .chart-scroll-wrapper::-webkit-scrollbar { height: 6px; }
         .chart-scroll-wrapper::-webkit-scrollbar-track { background: var(--input-bg); border-radius: 4px; }
         .chart-scroll-wrapper::-webkit-scrollbar-thumb { background: var(--linha); border-radius: 4px; }
-        
-        .card-meta-individual { background: var(--input-bg); border: 1px solid var(--linha); border-radius: 10px; padding: 15px; margin-bottom: 12px; position: relative; overflow: hidden; }
-
-        /* Novos Botões dos Cartões de Conta */
         .cartao-acoes { display: flex; gap: 10px; margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 12px; }
         .btn-cartao-acao { flex: 1; background: rgba(0,0,0,0.2); color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: 0.2s; backdrop-filter: blur(4px); }
-
-        /* Filtro de Mês Minimalista */
         .filtro-mes-pill { display: inline-flex; align-items: center; background: var(--input-bg); border-radius: 30px; border: 1px solid var(--linha); overflow: hidden; box-shadow: var(--shadow-sm); height: 40px; }
         .filtro-mes-pill button { background: transparent; border: none; padding: 0 15px; color: var(--azul); cursor: pointer; height: 100%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .filtro-mes-pill button:active { background: rgba(0,0,0,0.05); }
@@ -97,32 +144,29 @@
             body { background-color: #0f172a; margin: 0; padding: 0; }
             #app { width: 60%; max-width: 1200px; min-width: 800px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); overflow: visible !important; }
             #conteudo-principal { flex: 1; padding-bottom: 40px; } 
-            header.header-modern { position: sticky !important; top: 0 !important; z-index: 999 !important; background: var(--card-bg) !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15) !important; align-self: flex-start; width: 100%; box-sizing: border-box; }
+            header.header-modern { border-radius: 0 !important; margin-bottom: 0 !important; }
             .fab-mobile { display: none !important; } 
             .btn-scroll-top { bottom: 30px; left: auto; right: 30px; width: 50px; height: 50px; font-size: 20px; }
-            
             .btn-header-desktop { display: flex !important; } 
             .hamburger-desktop { display: block !important; }
-            
-            #menu-lateral { position: fixed !important; top: 0; left: 0; height: 100vh; width: 250px; flex-direction: column !important; justify-content: flex-start !important; background: var(--card-bg) !important; border-right: 1px solid var(--linha); padding-top: 85px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 102 !important; box-shadow: none; }
+            #menu-lateral { position: fixed !important; top: 0; left: 0; height: 100vh; width: 250px; flex-direction: column !important; justify-content: flex-start !important; background: var(--card-bg) !important; border-right: 1px solid var(--linha); padding-top: 85px; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 102 !important; box-shadow: none; border-radius: 0; bottom: auto; right: auto; }
             #menu-lateral.open { transform: translateX(0); box-shadow: 10px 0 25px rgba(0,0,0,0.5); }
             #menu-lateral .menu-item { width: 100%; flex-direction: row !important; justify-content: flex-start !important; padding: 15px 25px !important; gap: 15px; border-radius: 0 !important; border-bottom: 1px solid var(--linha); }
             #menu-lateral .menu-item i { margin-bottom: 0 !important; font-size: 18px !important; }
             #menu-lateral .menu-item span { font-size: 14px !important; font-weight: 600; }
         }
-
     </style>
 </head>
 <body>
 
     <div id="app">
-        <header class="header-modern" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--card-bg); border-bottom: 1px solid var(--linha);">
+        <header class="header-modern" style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 15px;">
                 <button class="btn-icon hamburger-desktop" onclick="document.getElementById('menu-lateral').classList.toggle('open')" style="display: none; background: var(--input-bg); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--linha); color: var(--azul); cursor: pointer;">
                     <i class="fas fa-bars"></i>
                 </button>
                 <div>
-                    <h1 id="titulo-aba" style="font-size: 20px; font-weight: 700; color: var(--texto-main); margin: 0;">Visão Geral</h1>
+                    <h1 id="titulo-aba" style="font-size: 22px; font-weight: 800; color: var(--texto-main); margin: 0; letter-spacing: -0.5px;">Visão Geral</h1>
                     <small id="subtitulo-header" style="color: var(--texto-sec); font-size: 12px; font-weight: 500;">O seu copiloto financeiro</small>
                 </div>
             </div>
@@ -142,8 +186,9 @@
         <main id="conteudo-principal">
             <section id="aba-dashboard" class="secao-app active">
                 <div class="container">
+                    
                     <div class="executive-panel">
-                        <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(37,99,235,0.2); cursor: pointer; transition: transform 0.2s;" onclick="if(typeof abrirModalMetasCartoes === 'function') abrirModalMetasCartoes()">
+                        <div class="exec-card saldo-destaque" style="background: linear-gradient(135deg, var(--azul), #1e40af); padding: 25px; cursor: pointer; transition: transform 0.2s;" onclick="if(typeof abrirModalMetasCartoes === 'function') abrirModalMetasCartoes()">
                             <div class="flex-between">
                                 <small style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-bullseye"></i> Consumo da Meta (Cartões)</small>
                                 <span id="meta-percentual" style="background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 13px; color: white;">0%</span>
@@ -159,64 +204,103 @@
                     <div id="painel-insights" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
 
                     <div class="grid-resumo-2" style="margin-bottom: 15px;">
-                        <div class="card-simples">
-                            <small>Saldo Livre</small>
-                            <h3 id="dash-saldo-livre">R$ 0,00</h3>
-                        </div>
-                        <div class="card-simples">
-                            <small>Total Investido</small>
-                            <h3 id="dash-investido" class="txt-azul">R$ 0,00</h3>
-                        </div>
-                    </div>
-
-                    <div class="card mt-15" style="border-left: 4px solid var(--esmeralda);">
-                        <strong class="titulo-sessao"><i class="fas fa-chart-line"></i> Inteligência Financeira (BI)</strong>
-                        <div class="grid-resumo-2 mt-10">
-                            <div class="card-simples" style="background: var(--card-bg);">
-                                <small>Patrimônio Líquido</small>
-                                <h3 id="bi-patrimonio" class="txt-sucesso">R$ 0,00</h3>
+                        <div class="card-simples" style="border: 1px solid var(--linha); border-left: 4px solid var(--sucesso);">
+                            <div style="border-bottom: 1px dashed var(--linha); padding-bottom: 10px; margin-bottom: 10px;">
+                                <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600; text-transform: uppercase;">Receitas Pagas</small>
+                                <h3 id="dash-receitas" class="txt-sucesso" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
                             </div>
-                            <div class="card-simples" style="background: var(--card-bg);">
-                                <small title="Meses que seus investimentos cobrem seu custo atual">Sobrevivência</small>
-                                <h3 id="bi-sobrevivencia">0 Meses</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                                <span style="color: var(--texto-sec);">Previsto Mês</span>
+                                <strong id="dash-prev-receitas">R$ 0,00</strong>
                             </div>
                         </div>
-                        <div class="mt-15">
-                            <div class="flex-between mb-10">
-                                <small style="color:var(--texto-sec); font-weight:600;">Taxa de Poupança (Mensal)</small>
-                                <span id="bi-taxa-poupanca" class="badge-neutro">0%</span>
+                        
+                        <div class="card-simples" style="border: 1px solid var(--linha); border-left: 4px solid var(--perigo);">
+                            <div style="border-bottom: 1px dashed var(--linha); padding-bottom: 10px; margin-bottom: 10px;">
+                                <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600; text-transform: uppercase;">Despesas Pagas</small>
+                                <h3 id="dash-despesas" class="txt-perigo" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
                             </div>
-                            <div class="progress-bg"><div id="bar-poupanca" class="progress-fill" style="background:var(--azul);"></div></div>
-                        </div>
-                        <div class="mt-15 pt-15" style="border-top:1px dashed var(--linha);">
-                            <small style="color:var(--texto-sec); font-weight:600; display:block; margin-bottom:10px;">Composição de Gastos (Pago)</small>
-                            <div class="flex-between" style="font-size:12px; margin-bottom:8px;">
-                                <span><i class="fas fa-lock" style="color:var(--texto-sec);"></i> Fixos (<span id="bi-perc-fixo">0%</span>)</span>
-                                <span><i class="fas fa-random" style="color:var(--alerta);"></i> Variáveis (<span id="bi-perc-var">0%</span>)</span>
-                            </div>
-                            <div style="display:flex; height:8px; border-radius:10px; overflow:hidden; background:var(--linha);">
-                                <div id="bar-fixo" style="background:var(--texto-sec); width:0%; transition: 0.5s;"></div>
-                                <div id="bar-var" style="background:var(--alerta); width:0%; transition: 0.5s;"></div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                                <span style="color: var(--texto-sec);">Previsto Mês</span>
+                                <strong id="dash-prev-gastos">R$ 0,00</strong>
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid-resumo-4 mt-15">
-                        <div class="mini-card"><div class="card-icon sucesso"><i class="fas fa-arrow-down"></i></div><small>Receitas Pagas</small><p id="dash-receitas" class="txt-sucesso">R$ 0,00</p></div>
-                        <div class="mini-card"><div class="card-icon prev-sucesso"><i class="fas fa-hourglass-half"></i></div><small>Prev. Receitas</small><p id="dash-prev-receitas" class="txt-esmeralda">R$ 0,00</p></div>
-                        <div class="mini-card"><div class="card-icon perigo"><i class="fas fa-arrow-up"></i></div><small>Despesas Pagas</small><p id="dash-despesas" class="txt-perigo">R$ 0,00</p></div>
-                        <div class="mini-card"><div class="card-icon alerta"><i class="fas fa-file-invoice"></i></div><small>Prev. Gastos</small><p id="dash-prev-gastos" class="txt-alerta">R$ 0,00</p></div>
+                    <div class="card-simples" style="margin-bottom: 15px; border: 1px solid var(--linha); border-left: 4px solid var(--alerta);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--linha); padding-bottom: 10px; margin-bottom: 10px;">
+                            <div>
+                                <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600; text-transform: uppercase;"><i class="fas fa-credit-card"></i> Fatura Atual</small>
+                                <h3 id="dash-faturas" class="txt-alerta" style="font-size: 22px; margin-top: 5px;">R$ 0,00</h3>
+                            </div>
+                            <div style="text-align: right;">
+                                <small style="font-size: 10px; color: var(--texto-sec);">Próxima Fatura</small>
+                                <h4 id="dash-faturas-futuras" style="font-size: 14px; color: var(--texto-main); margin-top: 2px;">R$ 0,00</h4>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                            <span style="color: var(--texto-sec);">Saldo Projetado do Mês</span>
+                            <strong id="dash-projecao">R$ 0,00</strong>
+                        </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 15px;">
-                        <div class="card-simples" style="padding: 12px;"><small style="font-size:10px;">Fatura Atual</small><h3 id="dash-faturas" class="txt-perigo" style="font-size:14px;">R$ 0,00</h3></div>
-                        <div class="card-simples" style="padding: 12px;"><small style="font-size:10px;">Próximas</small><h3 id="dash-faturas-futuras" class="txt-alerta" style="font-size:14px;">R$ 0,00</h3></div>
-                        <div class="card-simples destaque-borda" style="padding: 12px;"><small style="font-size:10px;">Projeção Mês</small><h3 id="dash-projecao" style="font-size:14px;">R$ 0,00</h3></div>
+                    <div class="card">
+                        <strong class="titulo-sessao"><i class="fas fa-brain"></i> Inteligência Financeira</strong>
+                        <div id="carrossel-bi-container" class="carrossel-wrapper mt-10">
+                            
+                            <div class="carrossel-slide active" id="bi-slide-1">
+                                <div class="grid-resumo-2" style="margin-top: 10px; height: 100%;">
+                                    <div class="card-simples" style="background: var(--fundo); justify-content: center;">
+                                        <small style="color:var(--texto-sec); font-weight:600;"><i class="fas fa-gem" style="color:var(--esmeralda);"></i> Patrimônio Líquido</small>
+                                        <strong id="bi-patrimonio" style="font-size:16px; margin-top:5px; display:block;">R$ 0,00</strong>
+                                    </div>
+                                    <div class="card-simples" style="background: var(--fundo); justify-content: center;">
+                                        <small style="color:var(--texto-sec); font-weight:600;"><i class="fas fa-shield-alt" style="color:var(--azul);"></i> Sobrevivência</small>
+                                        <strong id="bi-sobrevivencia" class="txt-azul" style="font-size:16px; margin-top:5px; display:block;">0 Meses</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="carrossel-slide" id="bi-slide-2">
+                                <div class="card-simples mt-10" style="background: var(--fundo); height: 100%; justify-content: center;">
+                                    <div class="flex-between mb-10">
+                                        <small style="color:var(--texto-sec); font-weight:600;">Taxa de Poupança (Mensal)</small>
+                                        <span id="bi-taxa-poupanca" class="badge-neutro" style="font-weight:bold;">0%</span>
+                                    </div>
+                                    <div class="progress-bg"><div id="bar-poupanca" class="progress-fill" style="background:var(--esmeralda);"></div></div>
+                                    <small style="font-size: 10px; color: var(--texto-sec); margin-top: 10px; text-align: center;">O ideal é poupar no mínimo 20% do que ganha.</small>
+                                </div>
+                            </div>
+
+                            <div class="carrossel-slide" id="bi-slide-3">
+                                <div class="card-simples mt-10" style="background: var(--fundo); height: 100%; justify-content: center;">
+                                    <small style="color:var(--texto-sec); font-weight:600; display:block; margin-bottom:10px;">Composição de Gastos (Pago)</small>
+                                    <div class="flex-between" style="font-size:12px; margin-bottom:8px;">
+                                        <span><i class="fas fa-lock" style="color:var(--texto-sec);"></i> Fixos (<span id="bi-perc-fixo">0%</span>)</span>
+                                        <span><i class="fas fa-random" style="color:var(--alerta);"></i> Variáveis (<span id="bi-perc-var">0%</span>)</span>
+                                    </div>
+                                    <div style="display:flex; height:8px; border-radius:10px; overflow:hidden; background:var(--linha);">
+                                        <div id="bar-fixo" style="background:var(--texto-sec); width:0%; transition: 0.5s;"></div>
+                                        <div id="bar-var" style="background:var(--alerta); width:0%; transition: 0.5s;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; justify-content: center; gap: 6px; margin-top: 10px;">
+                            <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--esmeralda);"></div>
+                            <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--linha);"></div>
+                            <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--linha);"></div>
+                        </div>
                     </div>
 
                     <div class="card mt-15">
                         <strong class="titulo-sessao txt-alerta"><i class="fas fa-bell"></i> Radar de Vencimentos (7 dias)</strong>
-                        <div id="lista-radar-vencimentos" class="mt-15"><p class="texto-vazio">Tudo tranquilo por aqui.</p></div>
+                        <div id="carrossel-radar-container" class="carrossel-wrapper mt-10" style="min-height: 80px;">
+                            <div id="lista-radar-vencimentos">
+                                <p class="texto-vazio" style="padding: 10px;">Tudo tranquilo por aqui.</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card">
@@ -349,7 +433,7 @@
                             <div class="menu-ajuste-icon" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6;"><i class="fas fa-paint-roller"></i></div>
                             <div>
                                 <strong style="font-size: 14px; display:block;">Aparência</strong>
-                                <small style="color:var(--texto-sec); font-size: 11px;">Tema escuro e visual</small>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Temas escuros e visual</small>
                             </div>
                         </div>
                         <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
@@ -360,7 +444,7 @@
                             <div class="menu-ajuste-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--perigo);"><i class="fas fa-shield-alt"></i></div>
                             <div>
                                 <strong style="font-size: 14px; display:block;">Sistema e Dados</strong>
-                                <small style="color:var(--texto-sec); font-size: 11px;">Backups, exportar CSV, restauração e reset</small>
+                                <small style="color:var(--texto-sec); font-size: 11px;">Backups, exportar CSV e reset</small>
                             </div>
                         </div>
                         <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
@@ -370,12 +454,12 @@
         </main>
 
         <div id="modal-extrato-conta" class="modal-overlay" onclick="fecharModalExtratoConta()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-list-ul" style="color:var(--azul);"></i> Extrato da Conta</h3>
                     <button class="btn-icon" onclick="fecharModalExtratoConta()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                <div class="modal-body">
                     <div id="aviso-saldo-divergente"></div>
                     <div id="conteudo-extrato-conta"></div>
                 </div>
@@ -393,12 +477,12 @@
         </div>
 
         <div id="modal-lista-contratos" class="modal-overlay" onclick="fecharModalListaContratos()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-file-signature" style="color:var(--alerta);"></i> Gestão de Fixos</h3>
                     <button class="btn-icon" onclick="fecharModalListaContratos()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                <div class="modal-body">
                     <button class="btn-primary mb-15" style="width: 100%;" onclick="fecharModalListaContratos(); setTimeout(abrirModalContratos, 300);">
                         <i class="fas fa-plus-circle"></i> Novo Fixo ou Parcelamento
                     </button>
@@ -425,34 +509,34 @@
         </div>
 
         <div id="modal-metas-cartoes" class="modal-overlay" onclick="fecharModalMetasCartoes()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-bullseye" style="color:var(--azul);"></i> Análise das Metas</h3>
                     <button class="btn-icon" onclick="fecharModalMetasCartoes()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;" id="lista-metas-detalhadas"></div>
+                <div class="modal-body" id="lista-metas-detalhadas"></div>
             </div>
         </div>
 
-        <div id="modal-confirmacao" class="modal-overlay" style="z-index: 999999; align-items: center; justify-content: center;" onclick="fecharConfirmacao()">
+        <div id="modal-confirmacao" class="modal-overlay" onclick="fecharConfirmacao()">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 320px; text-align: center;">
                 <div style="font-size: 40px; color: var(--alerta); margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
                 <h3 style="margin-bottom: 10px; color: var(--texto-main);">Atenção</h3>
                 <p id="msg-confirmacao" style="font-size: 13px; color: var(--texto-sec); margin-bottom: 20px;"></p>
                 <div class="flex-between">
-                    <button class="btn-outline" style="width: 48%;" onclick="fecharConfirmacao()">Cancelar</button>
-                    <button class="btn-danger" style="width: 48%;" onclick="confirmarAcaoModal()">Sim, Confirmar</button>
+                    <button class="btn-outline" onclick="fecharConfirmacao()">Cancelar</button>
+                    <button class="btn-danger" onclick="confirmarAcaoModal()">Sim, Confirmar</button>
                 </div>
             </div>
         </div>
 
         <div id="modal-lancamento" class="modal-overlay" onclick="fecharModalLancamento()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column; overscroll-behavior: contain;">
+            <div class="modal-content" onclick="event.stopPropagation()" style="overscroll-behavior: contain;">
                 <div class="modal-header flex-between">
                     <h3 style="color: var(--texto-main);"><i class="fas fa-plus-circle" style="color: var(--azul);"></i> Novo Lançamento</h3>
                     <button class="btn-icon" onclick="fecharModalLancamento()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                <div class="modal-body">
                     <div class="grid-inputs mb-15">
                         <select id="lanc-direcao" class="input-moderno" onchange="if(typeof mudarDirecaoLancamento === 'function') mudarDirecaoLancamento()">
                             <option value="despesa">Saída (Despesa)</option>
@@ -471,7 +555,7 @@
                     </div>
                     
                     <div class="mb-10">
-                        <label class="label-moderno" style="margin-bottom:8px; display:block;">Categoria</label>
+                        <label class="label-moderno" style="margin-bottom:8px;">Categoria</label>
                         <div id="lanc-cat-chips" class="carrossel-chips"></div>
                         <input type="hidden" id="lanc-cat" value="">
                     </div>
@@ -495,7 +579,7 @@
                         </label>
                     </div>
                     
-                    <button class="btn-primary" style="width: 100%; padding: 12px; font-size: 15px;" onclick="if(typeof adicionarLancamento === 'function') adicionarLancamento()">Registrar Movimentação</button>
+                    <button class="btn-primary" style="padding: 12px; font-size: 15px;" onclick="if(typeof adicionarLancamento === 'function') adicionarLancamento()">Registrar Movimentação</button>
                 </div>
             </div>
         </div>
@@ -506,7 +590,7 @@
                     <h3 style="margin: 0 auto;"><i class="fas fa-tags" style="color:var(--esmeralda);"></i> Gestão de Categorias</h3>
                 </div>
                 <p style="font-size: 13px; color: var(--texto-sec); margin-bottom: 20px;">O que deseja fazer?</p>
-                <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; flex-direction: column; gap: 12px; padding: 0 20px 20px 20px;">
                     <button class="btn-primary" style="padding: 15px; font-size: 15px; background: var(--esmeralda);" onclick="abrirModalNovaCat()"><i class="fas fa-plus-circle"></i> Nova Categoria</button>
                     <button class="btn-outline" style="padding: 15px; font-size: 15px;" onclick="abrirModalListaCat()"><i class="fas fa-cog"></i> Ajustar Existentes</button>
                 </div>
@@ -567,20 +651,20 @@
                     </div>
 
                     <div class="flex-between">
-                        <button class="btn-outline" style="width:48%;" onclick="fecharModalNovaCat()">Cancelar</button>
-                        <button class="btn-primary" id="btn-salvar-cat" style="width:48%; background: var(--esmeralda);" onclick="salvarConfigNovaCategoria()">Salvar</button>
+                        <button class="btn-outline" onclick="fecharModalNovaCat()">Cancelar</button>
+                        <button class="btn-primary" id="btn-salvar-cat" style="background: var(--esmeralda);" onclick="salvarConfigNovaCategoria()">Salvar</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="modal-lista-cat" class="modal-overlay" onclick="fecharModalListaCat()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-cog" style="color:var(--azul);"></i> Ajustar Categorias</h3>
                     <button class="btn-icon" onclick="fecharModalListaCat()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;">
+                <div class="modal-body">
                     <div class="mb-15">
                         <strong class="label-moderno mb-10" style="border-bottom: 1px solid var(--linha); padding-bottom: 5px;">Saídas / Despesas (<span id="count-cat-desp">0</span>)</strong>
                         <div id="lista-categorias-despesas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
@@ -595,16 +679,24 @@
         </div>
 
         <div id="modal-aparencia" class="modal-overlay" onclick="fecharModalAparencia()">
-            <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 350px;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-paint-roller" style="color:var(--azul);"></i> Aparência</h3>
                     <button class="btn-icon" onclick="fecharModalAparencia()"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <div class="flex-between" style="padding: 15px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
-                        <span style="font-weight: 500; font-size: 14px;"><i class="fas fa-moon" style="color: var(--texto-sec); margin-right: 8px;"></i> Tema Escuro</span>
+                        <span style="font-weight: 500; font-size: 14px;"><i class="fas fa-moon" style="color: var(--texto-sec); margin-right: 8px;"></i> Tema Escuro OLED</span>
                         <label class="checkbox-moderno" style="margin: 0; padding: 0;">
-                            <input type="checkbox" id="toggle-tema-ajustes" onchange="toggleDarkMode()">
+                            <input type="checkbox" id="toggle-tema-ajustes" onchange="if(typeof toggleDarkMode === 'function') toggleDarkMode()">
+                            <span></span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex-between mt-10" style="padding: 15px; background: var(--input-bg); border-radius: 8px; border: 1px solid var(--linha);">
+                        <span style="font-weight: 500; font-size: 14px;"><i class="fas fa-water" style="color: var(--azul); margin-right: 8px;"></i> Oceano Noturno</span>
+                        <label class="checkbox-moderno" style="margin: 0; padding: 0;">
+                            <input type="checkbox" id="toggle-tema-oceano" onchange="if(typeof toggleOceanMode === 'function') toggleOceanMode()">
                             <span></span>
                         </label>
                     </div>
@@ -613,54 +705,54 @@
         </div>
         
         <div id="modal-sistema" class="modal-overlay" onclick="fecharModalSistema()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh;">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-shield-alt" style="color:var(--perigo);"></i> Sistema e Dados</h3>
                     <button class="btn-icon" onclick="fecharModalSistema()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto;">
+                <div class="modal-body">
                     <div class="grid-inputs mb-20">
                         <button class="btn-outline" onclick="exportarBackup()"><i class="fas fa-download"></i> Gerar Backup</button>
                         <button class="btn-outline" onclick="document.getElementById('file-upload').click()"><i class="fas fa-upload"></i> Restaurar</button>
                         <input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)">
                     </div>
                     
-                    <button class="btn-outline mb-20" style="width: 100%; border-color: var(--esmeralda); color: var(--esmeralda);" onclick="exportarExtratoCSV()"><i class="fas fa-file-csv"></i> Exportar Dados para Excel (CSV)</button>
+                    <button class="btn-outline mb-20" style="border-color: var(--esmeralda); color: var(--esmeralda);" onclick="exportarExtratoCSV()"><i class="fas fa-file-csv"></i> Exportar Dados para Excel (CSV)</button>
 
                     <strong class="label-moderno mb-10">Histórico de Backups Locais</strong>
                     <div id="lista-backups" style="margin-bottom: 20px;"></div>
                     
-                    <button class="btn-danger mt-20" style="width: 100%;" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica do App</button>
+                    <button class="btn-danger mt-20" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica do App</button>
                 </div>
             </div>
         </div>
 
         <div id="modal-salarios" class="modal-overlay" onclick="fecharModalSalarios()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-money-check-alt" style="color:var(--esmeralda);"></i> Rendas e Salários</h3>
                     <button class="btn-icon" onclick="fecharModalSalarios()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;">
-                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px;">Cadastre as suas fontes de rendimento. O motor irá avisá-lo e lançar o dinheiro automaticamente nos dias programados.</p>
+                <div class="modal-body">
+                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px;">Cadastre as suas fontes de rendimento automáticas.</p>
                     
-                    <button class="btn-primary mb-15" style="width: 100%; background: var(--esmeralda);" onclick="toggleFormNovoSalario()"><i class="fas fa-plus"></i> Novo Rendimento</button>
+                    <button class="btn-primary mb-15" style="background: var(--esmeralda);" onclick="toggleFormNovoSalario()"><i class="fas fa-plus"></i> Novo Rendimento</button>
                     
                     <div id="form-novo-salario" class="card mb-20" style="display: none; border: 1px dashed var(--esmeralda); background: transparent;">
                         <strong style="font-size: 14px; display:block; margin-bottom: 12px;"><i class="fas fa-plus-circle text-esmeralda"></i> Adicionar Nova Renda</strong>
                         <div class="grid-inputs mb-10">
-                            <div><label class="label-moderno">Nome da Renda</label><input type="text" id="sal-nome" class="input-moderno" placeholder="Ex: Salário Principal, Freela"></div>
+                            <div><label class="label-moderno">Nome da Renda</label><input type="text" id="sal-nome" class="input-moderno" placeholder="Ex: Salário Principal"></div>
                             <div><label class="label-moderno">Valor TOTAL (R$)</label><input type="text" inputmode="numeric" id="sal-valor" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event); atualizarDiasSalario()"></div>
                         </div>
                         <div class="mb-10">
-                            <label class="label-moderno">Frequência de Recebimento</label>
+                            <label class="label-moderno">Frequência</label>
                             <select id="sal-freq" class="input-moderno" onchange="atualizarDiasSalario()">
-                                <option value="mensal">Mensal (1 recebimento no mês)</option>
-                                <option value="quinzenal">Quinzenal (2 recebimentos no mês)</option>
-                                <option value="semanal">Semanal (4 recebimentos no mês)</option>
+                                <option value="mensal">Mensal (1 vez)</option>
+                                <option value="quinzenal">Quinzenal (2 vezes)</option>
+                                <option value="semanal">Semanal (4 vezes)</option>
                             </select>
                         </div>
-                        <label class="label-moderno" style="margin-bottom: 8px; display:block;">Quais dias do mês cai na conta?</label>
+                        <label class="label-moderno" style="margin-bottom: 8px;">Quais dias cai na conta?</label>
                         <div id="sal-dias-container" class="grid-inputs mb-10"></div>
                         <p id="sal-resumo-calculo" style="font-size:11px; color:var(--esmeralda); font-weight:bold; margin-bottom: 15px; text-align:right;"></p>
                         <div class="mb-15">
@@ -668,8 +760,8 @@
                             <select id="sal-conta" class="input-moderno"></select>
                         </div>
                         <div class="flex-between">
-                            <button class="btn-outline" style="width: 48%;" onclick="toggleFormNovoSalario()">Cancelar</button>
-                            <button class="btn-primary" style="width: 48%; background: var(--esmeralda);" onclick="salvarNovoSalario()">Salvar Rendimento</button>
+                            <button class="btn-outline" onclick="toggleFormNovoSalario()">Cancelar</button>
+                            <button class="btn-primary" style="background: var(--esmeralda);" onclick="salvarNovoSalario()">Salvar Rendimento</button>
                         </div>
                     </div>
                     
@@ -679,14 +771,12 @@
         </div>
 
         <div id="modal-contratos" class="modal-overlay" onclick="fecharModalContratos()">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-file-signature" style="color:var(--alerta);"></i> Novo Registro</h3>
                     <button class="btn-icon" onclick="fecharModalContratos()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body" style="overflow-y: auto; flex: 1;">
-                    <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px;">Adicione contas de consumo mensais ou registre novos consórcios/compras parceladas.</p>
-                    
+                <div class="modal-body">
                     <div class="segmented-control mb-15">
                         <button class="segmented-btn active" id="tab-fixa" onclick="mudarAbaContrato('fixa')">Conta Fixa (Mensal)</button>
                         <button class="segmented-btn" id="tab-parc" onclick="mudarAbaContrato('parc')">Parcelamento em Andamento</button>
@@ -698,41 +788,35 @@
                             <div><label class="label-moderno">Valor (R$)</label><input type="text" inputmode="numeric" id="fixa-valor" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)"></div>
                         </div>
                         <div class="grid-inputs mb-10">
-                            <div><label class="label-moderno">Vencimento (Dia)</label><input type="number" id="fixa-dia" class="input-moderno" min="1" max="31" placeholder="Ex: 10"></div>
+                            <div><label class="label-moderno">Vencimento (Dia)</label><input type="number" id="fixa-dia" class="input-moderno" min="1" max="31"></div>
                             <div><label class="label-moderno">Categoria</label><select id="fixa-cat" class="input-moderno"></select></div>
                         </div>
                         <div class="mb-15">
                             <label class="label-moderno">Forma de Pagamento Base</label>
                             <select id="fixa-conta" class="input-moderno"></select>
                         </div>
-                        <button class="btn-primary" style="width: 100%; background: var(--alerta);" onclick="if(typeof salvarContaFixa === 'function') salvarContaFixa()">Registar Conta Fixa</button>
+                        <button class="btn-primary" style="background: var(--alerta);" onclick="if(typeof salvarContaFixa === 'function') salvarContaFixa()">Registar Conta Fixa</button>
                     </div>
                     
                     <div id="area-parcelamento-antigo" style="display: none;">
                         <div style="background: rgba(37, 99, 235, 0.1); padding: 10px; border-radius: 8px; border-left: 3px solid var(--azul); font-size: 11px; color: var(--texto-sec); margin-bottom: 15px;">
-                            <strong>Atenção:</strong> Lança as parcelas pendentes no seu extrato. Suporta Cartões, Contas Correntes (Boletos) e Pix.
+                            Lança as parcelas pendentes no seu extrato. Suporta Cartões e Contas.
                         </div>
-                        <div class="mb-10">
-                            <label class="label-moderno">O que você comprou / Consórcio?</label>
-                            <input type="text" id="parc-desc" class="input-moderno" placeholder="Ex: Consórcio, Geladeira">
+                        <div class="mb-10"><label class="label-moderno">Descrição</label><input type="text" id="parc-desc" class="input-moderno"></div>
+                        <div class="grid-inputs mb-10">
+                            <div><label class="label-moderno">Valor Parcela</label><input type="text" inputmode="numeric" id="parc-valor" class="input-moderno" oninput="mascaraMoeda(event)"></div>
+                            <div><label class="label-moderno">Dia Vencimento</label><input type="number" id="parc-dia" class="input-moderno" min="1" max="31"></div>
                         </div>
                         <div class="grid-inputs mb-10">
-                            <div><label class="label-moderno">Valor da Parcela (R$)</label><input type="text" inputmode="numeric" id="parc-valor" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)"></div>
-                            <div><label class="label-moderno">Dia Vencimento</label><input type="number" id="parc-dia" class="input-moderno" min="1" max="31" placeholder="Ex: 10"></div>
-                        </div>
-                        <div class="grid-inputs mb-10">
-                            <div><label class="label-moderno">Parcela Atual</label><input type="number" id="parc-atual" class="input-moderno" min="1" placeholder="Ex: 5"></div>
-                            <div><label class="label-moderno">Total Parcelas</label><input type="number" id="parc-total" class="input-moderno" min="1" placeholder="Ex: 60"></div>
+                            <div><label class="label-moderno">Parcela Atual</label><input type="number" id="parc-atual" class="input-moderno" min="1"></div>
+                            <div><label class="label-moderno">Total Parcelas</label><input type="number" id="parc-total" class="input-moderno" min="1"></div>
                         </div>
                         <div class="grid-inputs mb-10">
                             <div><label class="label-moderno">Mês Parcela Atual</label><input type="month" id="parc-mes" class="input-moderno"></div>
                             <div><label class="label-moderno">Categoria</label><select id="parc-cat" class="input-moderno"></select></div>
                         </div>
-                        <div class="mb-15">
-                            <label class="label-moderno">Em qual Conta / Cartão?</label>
-                            <select id="parc-conta" class="input-moderno"></select>
-                        </div>
-                        <button class="btn-primary" style="width: 100%;" onclick="if(typeof salvarParcelamentoAndamento === 'function') salvarParcelamentoAndamento()">Gerar Parcelamento</button>
+                        <div class="mb-15"><label class="label-moderno">Conta / Cartão</label><select id="parc-conta" class="input-moderno"></select></div>
+                        <button class="btn-primary" onclick="if(typeof salvarParcelamentoAndamento === 'function') salvarParcelamentoAndamento()">Gerar Parcelamento</button>
                     </div>
                 </div>
             </div>
@@ -745,13 +829,11 @@
                     <p id="msg-modal-emp" class="mb-15" style="font-size:13px; color:var(--texto-sec);"></p>
                     <label class="checkbox-moderno mb-15" style="background: var(--input-bg); padding: 10px; border-radius: 8px;">
                         <input type="checkbox" id="emp-sem-previsao" onchange="if(typeof toggleCamposPrevisao === 'function') toggleCamposPrevisao()">
-                        <span style="font-weight: 500;">Sem previsão exata (Rolar mensalmente)</span>
+                        <span style="font-weight: 500;">Sem previsão exata</span>
                     </label>
                     <div id="container-campos-previsao">
-                        <label class="label-moderno">Número de Parcelas</label>
-                        <input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
-                        <label class="label-moderno mt-10">Intervalo (Dias)</label>
-                        <input type="number" id="emp-intervalo" class="input-moderno" value="30">
+                        <label class="label-moderno">Número de Parcelas</label><input type="number" id="emp-parcelas" class="input-moderno" value="1" min="1">
+                        <label class="label-moderno mt-10">Intervalo (Dias)</label><input type="number" id="emp-intervalo" class="input-moderno" value="30">
                     </div>
                 </div>
                 <div class="modal-footer grid-inputs mt-20">
@@ -765,8 +847,8 @@
             <div class="modal-content" onclick="event.stopPropagation()">
                 <div class="modal-header"><h3>💸 Pagamento Parcial</h3></div>
                 <div class="modal-body">
-                    <p class="mb-15" style="font-size:13px; color:var(--texto-sec);">Valor original pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong></p>
-                    <label class="label-moderno">Valor Pago/Recebido Agora (R$)</label>
+                    <p class="mb-15" style="font-size:13px; color:var(--texto-sec);">Valor pendente: <strong id="txt-valor-original-parcial" style="color:var(--texto-main); font-size: 15px;">R$ 0,00</strong></p>
+                    <label class="label-moderno">Valor Pago/Recebido Agora</label>
                     <input type="text" inputmode="numeric" id="input-valor-parcial" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
                     <input type="hidden" id="hidden-id-parcial">
                 </div>
@@ -782,7 +864,7 @@
                 <div class="modal-header"><h3>💸 Amortizar Fatura</h3></div>
                 <div class="modal-body">
                     <p style="font-size:12px; color:var(--texto-sec); margin-bottom:10px;">Fatura: <strong id="txt-fatura-id-parcial"></strong><br>Restante: <strong id="txt-valor-fatura-original"></strong></p>
-                    <label class="label-moderno">Valor a Amortizar (R$)</label>
+                    <label class="label-moderno">Valor a Amortizar</label>
                     <input type="text" inputmode="numeric" id="input-amortizar-fatura" class="input-moderno" placeholder="0,00" oninput="mascaraMoeda(event)">
                     <input type="hidden" id="hidden-fat-id">
                 </div>
@@ -869,7 +951,6 @@
             }
         });
 
-        // Modais Gerais
         function abrirModalLancamento() { 
             const m = document.getElementById('modal-lancamento'); m.style.display = 'flex'; 
             setTimeout(() => m.classList.add('active'), 10); 
@@ -889,114 +970,37 @@
             document.getElementById('gaveta-notificacoes').classList.remove('open'); 
         }
         
-        // Modais Aba Contas
-        window.fecharModalExtratoConta = function() {
-            const m = document.getElementById('modal-extrato-conta'); m.classList.remove('active');
-            setTimeout(() => m.style.display = 'none', 300);
-        };
-        window.fecharModalAjusteConta = function() {
-            const m = document.getElementById('modal-ajuste-conta'); m.classList.remove('active');
-            setTimeout(() => m.style.display = 'none', 300);
-        };
-
-        // Modais Contratos e Edição
-        window.abrirModalListaContratos = function() {
-            const m = document.getElementById('modal-lista-contratos'); m.style.display = 'flex';
-            setTimeout(() => m.classList.add('active'), 10);
-            if(typeof renderListaContratos === 'function') renderListaContratos();
-        };
-        window.fecharModalListaContratos = function() {
-            const m = document.getElementById('modal-lista-contratos'); m.classList.remove('active');
-            setTimeout(() => m.style.display = 'none', 300);
-        };
-        window.fecharModalEdicaoContrato = function() {
-            const m = document.getElementById('modal-edicao-contrato'); m.classList.remove('active');
-            setTimeout(() => m.style.display = 'none', 300);
-        };
+        window.fecharModalExtratoConta = function() { const m = document.getElementById('modal-extrato-conta'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.fecharModalAjusteConta = function() { const m = document.getElementById('modal-ajuste-conta'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.abrirModalListaContratos = function() { const m = document.getElementById('modal-lista-contratos'); m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); if(typeof renderListaContratos === 'function') renderListaContratos(); };
+        window.fecharModalListaContratos = function() { const m = document.getElementById('modal-lista-contratos'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.fecharModalEdicaoContrato = function() { const m = document.getElementById('modal-edicao-contrato'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.abrirModalMetasCartoes = function() { const m = document.getElementById('modal-metas-cartoes'); m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); if(typeof renderMetasIndividuais === 'function') renderMetasIndividuais(); };
+        window.fecharModalMetasCartoes = function() { const m = document.getElementById('modal-metas-cartoes'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.fecharModalParcial = function() { const m = document.getElementById('modal-pagamento-parcial'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.fecharModalFaturaParcial = function() { const m = document.getElementById('modal-fatura-parcial'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.fecharModalEmprestimo = function() { const m = document.getElementById('modal-emprestimo'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.fecharModalContratos = function() { const m = document.getElementById('modal-contratos'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
+        window.abrirModalContratos = function() { const m = document.getElementById('modal-contratos'); m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); };
+        
         window.mudarAbaListaContrato = function(aba) {
-            document.getElementById('tab-lista-fixa').classList.remove('active');
-            document.getElementById('tab-lista-parc').classList.remove('active');
-            document.getElementById('lista-contas-fixas-ativas').style.display = 'none';
-            document.getElementById('lista-parcelamentos-ativos').style.display = 'none';
-            
-            if (aba === 'fixa') {
-                document.getElementById('tab-lista-fixa').classList.add('active');
-                document.getElementById('lista-contas-fixas-ativas').style.display = 'block';
-            } else {
-                document.getElementById('tab-lista-parc').classList.add('active');
-                document.getElementById('lista-parcelamentos-ativos').style.display = 'block';
-            }
-        };
-
-        // Outros Modais
-        window.abrirModalMetasCartoes = function() {
-            const m = document.getElementById('modal-metas-cartoes'); m.style.display = 'flex'; 
-            setTimeout(() => m.classList.add('active'), 10);
-            if(typeof renderMetasIndividuais === 'function') renderMetasIndividuais();
-        };
-        window.fecharModalMetasCartoes = function() {
-            const m = document.getElementById('modal-metas-cartoes'); m.classList.remove('active'); 
-            setTimeout(() => m.style.display = 'none', 300);
+            document.getElementById('tab-lista-fixa').classList.remove('active'); document.getElementById('tab-lista-parc').classList.remove('active');
+            document.getElementById('lista-contas-fixas-ativas').style.display = 'none'; document.getElementById('lista-parcelamentos-ativos').style.display = 'none';
+            if (aba === 'fixa') { document.getElementById('tab-lista-fixa').classList.add('active'); document.getElementById('lista-contas-fixas-ativas').style.display = 'block'; }
+            else { document.getElementById('tab-lista-parc').classList.add('active'); document.getElementById('lista-parcelamentos-ativos').style.display = 'block'; }
         };
         
-        window.abrirModalContratos = function() { 
-            const m = document.getElementById('modal-contratos'); m.style.display = 'flex'; 
-            setTimeout(() => m.classList.add('active'), 10); 
-            
-            const selectCatFixa = document.getElementById('fixa-cat'); 
-            const selectCatParc = document.getElementById('parc-cat'); 
-            selectCatFixa.options.length = 0; selectCatParc.options.length = 0; 
-            const catDesp = (db.categorias || []).filter(c => c.tipo === 'despesa'); 
-            catDesp.forEach(c => { 
-                selectCatFixa.options.add(new Option(c.nome, c.nome)); 
-                selectCatParc.options.add(new Option(c.nome, c.nome)); 
-            }); 
-            
-            const selectContaFixa = document.getElementById('fixa-conta'); 
-            const selectContaParc = document.getElementById('parc-conta'); 
-            selectContaFixa.options.length = 0; selectContaParc.options.length = 0; 
-            (db.contas || []).forEach(c => { 
-                const nm = `${c.tipo==='cartao'?'💳':(c.tipo==='investimento'?'📈':'🏦')} ${c.nome}`;
-                selectContaFixa.options.add(new Option(nm, c.id)); 
-                selectContaParc.options.add(new Option(nm, c.id)); 
-            }); 
-            const hoje = new Date(); 
-            document.getElementById('parc-mes').value = `${hoje.getFullYear()}-${(hoje.getMonth()+1).toString().padStart(2,'0')}`; 
-        };
-        window.fecharModalContratos = function() { 
-            const m = document.getElementById('modal-contratos'); m.classList.remove('active'); 
-            setTimeout(() => m.style.display = 'none', 300); 
-        };
         window.mudarAbaContrato = function(aba) { 
-            document.getElementById('tab-fixa').classList.remove('active'); 
-            document.getElementById('tab-parc').classList.remove('active'); 
-            document.getElementById('area-conta-fixa').style.display = 'none'; 
-            document.getElementById('area-parcelamento-antigo').style.display = 'none'; 
-            if (aba === 'fixa') { 
-                document.getElementById('tab-fixa').classList.add('active'); 
-                document.getElementById('area-conta-fixa').style.display = 'block'; 
-            } else { 
-                document.getElementById('tab-parc').classList.add('active'); 
-                document.getElementById('area-parcelamento-antigo').style.display = 'block'; 
-            } 
-        };
-        window.fecharModalParcial = function() {
-            const m = document.getElementById('modal-pagamento-parcial'); m.classList.remove('active'); 
-            setTimeout(() => m.style.display = 'none', 300);
-        };
-        window.fecharModalFaturaParcial = function() {
-            const m = document.getElementById('modal-fatura-parcial'); m.classList.remove('active'); 
-            setTimeout(() => m.style.display = 'none', 300);
-        };
-        window.fecharModalEmprestimo = function() {
-            const m = document.getElementById('modal-emprestimo'); m.classList.remove('active'); 
-            setTimeout(() => m.style.display = 'none', 300);
+            document.getElementById('tab-fixa').classList.remove('active'); document.getElementById('tab-parc').classList.remove('active'); 
+            document.getElementById('area-conta-fixa').style.display = 'none'; document.getElementById('area-parcelamento-antigo').style.display = 'none'; 
+            if (aba === 'fixa') { document.getElementById('tab-fixa').classList.add('active'); document.getElementById('area-conta-fixa').style.display = 'block'; } 
+            else { document.getElementById('tab-parc').classList.add('active'); document.getElementById('area-parcelamento-antigo').style.display = 'block'; } 
         };
     </script>
 
-    <script src="core.js?v=27.4"></script>
-    <script src="engine.js?v=27.4"></script>
-    <script src="ui.js?v=27.4"></script>
-    <script src="app.js?v=27.4"></script>
+    <script src="core.js?v=28.2"></script>
+    <script src="engine.js?v=28.2"></script>
+    <script src="ui.js?v=28.2"></script>
+    <script src="app.js?v=28.2"></script>
 </body>
 </html>
