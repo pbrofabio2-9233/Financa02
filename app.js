@@ -714,3 +714,165 @@ window.fecharModalPagamentoFatura = function() {
     m.classList.remove('active');
     setTimeout(() => m.style.display = 'none', 300);
 };
+
+// ==========================================
+// FUNÇÃO: CONFIRMAR PAGAMENTO DA FATURA (Fix Categoria)
+// ==========================================
+window.confirmarPagamentoFatura = function() {
+    const fatID = document.getElementById('hidden-pagar-fat-id').value;
+    const valor = parseFloat(document.getElementById('hidden-pagar-fat-val').value);
+    const contaIdOrigem = document.getElementById('select-conta-pagar-fat').value;
+
+    if (!contaIdOrigem) return alert("Selecione uma conta para pagar a fatura.");
+    if (isNaN(valor) || valor <= 0) return alert("Valor inválido.");
+
+    // 1. Localiza a conta bancária para debitar o saldo
+    const contaBancaria = db.contas.find(c => c.id === contaIdOrigem);
+    if (!contaBancaria) return alert("Conta de origem não encontrada.");
+
+    // 2. Registra o pagamento no banco de dados
+    if (!db.faturasPagas) db.faturasPagas = [];
+    if (!db.faturasPagas.includes(fatID)) {
+        db.faturasPagas.push(fatID);
+    }
+
+    // 3. CRIA O LANÇAMENTO DE SAÍDA (Onde forçamos a categoria)
+    const nomeCartao = fatID.split('-')[0]; // Pega o ID do cartão
+    const novoLancamento = {
+        id: Date.now(),
+        data: new Date().toISOString().split('T')[0],
+        tipo: 'despesa',
+        contaId: contaIdOrigem,
+        desc: `PAGTO FATURA: ${nomeCartao.toUpperCase()}`,
+        valor: valor,
+        cat: 'Faturas', // <--- AQUI ESTÁ A MÁGICA
+        efetivado: true
+    };
+
+    db.lancamentos.push(novoLancamento);
+    contaBancaria.saldo -= valor;
+
+    // 4. Salva e Atualiza a Interface
+    save();
+    fecharModalPagamentoFatura();
+    if(typeof render === 'function') render();
+    
+    if(typeof showToast === 'function') {
+        showToast("Fatura paga e categorizada como 'Faturas'!", "sucesso");
+    }
+};
+
+// ==========================================
+// CORREÇÃO: BACKUP MOBILE BLINDADO
+// Substitui a função exportarBackup antiga
+// ==========================================
+window.exportarBackup = function() {
+    const dataStr = JSON.stringify(db);
+    // Usar Blob força o Android a baixar um arquivo real, não uma string corrompida
+    const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dataHoje = new Date().toISOString().split('T')[0];
+    const nomeArquivo = `EcoFinance_Backup_${dataHoje}.json`;
+    
+    a.href = url; 
+    a.download = nomeArquivo;
+    document.body.appendChild(a); 
+    a.click(); 
+    a.remove();
+    URL.revokeObjectURL(url); // Limpa a memória do celular
+    
+    let hist = JSON.parse(localStorage.getItem('eco_backups_history') || '[]');
+    hist.unshift({ data: new Date().toLocaleString('pt-BR'), nome: nomeArquivo });
+    if(hist.length > 5) hist.pop(); 
+    localStorage.setItem('eco_backups_history', JSON.stringify(hist));
+    
+    if(typeof showToast === 'function') showToast("Backup baixado com sucesso!", "sucesso");
+    window.renderHistoricoBackups();
+};
+
+// ==========================================
+// NOVO: IMPORTAÇÃO INTELIGENTE DE CSV BANCÁRIO
+// ==========================================
+window.abrirModalImportarCSV = function() {
+    const select = document.getElementById('csv-conta-destino');
+    if(!select) return alert("Adicione o HTML do Modal CSV no index.html!");
+    select.innerHTML = '';
+    (db.contas || []).forEach(c => select.options.add(new Option(`${c.tipo === 'cartao' ? '💳' : '🏦'} ${c.nome}`, c.id)));
+    document.getElementById('input-csv-file').value = '';
+    const m = document.getElementById('modal-importar-csv');
+    m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10);
+};
+
+window.fecharModalImportarCSV = function() {
+    const m = document.getElementById('modal-importar-csv');
+    m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300);
+};
+
+window.confirmarImportacaoCSV = function() {
+    const fileInput = document.getElementById('input-csv-file');
+    const contaId = document.getElementById('csv-conta-destino').value;
+
+    if (!fileInput.files.length || !contaId) return alert("Selecione a conta e o arquivo CSV do banco.");
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const lines = e.target.result.split('\n');
+        let importados = 0;
+
+        lines.forEach((line, index) => {
+            if (index === 0 || !line.trim()) return; // Pula cabeçalhos e linhas em branco
+            let colunas = line.split(line.includes(';') ? ';' : ',');
+            if (colunas.length < 3) return;
+
+            let dataCrua = colunas[0].trim();
+            let desc = colunas[1].trim();
+            let valStr = colunas[2].trim();
+
+            // Lógica para Extrato do Nubank (A descrição vem na coluna 4)
+            if (colunas.length >= 4 && !isNaN(parseFloat(colunas[1].replace(/["R$\s]/g, '').replace(',', '.')))) {
+                valStr = colunas[1].trim();
+                desc = colunas[3].trim();
+            }
+
+            // Normaliza Datas do Brasil
+            let dataFinal = new Date().toISOString().split('T')[0];
+            if (dataCrua.includes('/')) {
+                let p = dataCrua.split('/');
+                if(p.length === 3) dataFinal = `${p[2].substring(0,4)}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+            } else if (dataCrua.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                dataFinal = dataCrua;
+            }
+
+            // Normaliza os números (Milhares e Decimais)
+            let strVal = valStr.replace(/["R$\s]/g, '');
+            if (strVal.includes('.') && strVal.includes(',')) {
+                let lastVirgula = strVal.lastIndexOf(','); let lastPonto = strVal.lastIndexOf('.');
+                if (lastVirgula > lastPonto) strVal = strVal.replace(/\./g, '').replace(',', '.');
+                else strVal = strVal.replace(/,/g, '');
+            } else if (strVal.includes(',')) {
+                strVal = strVal.replace(',', '.');
+            }
+
+            let valor = parseFloat(strVal);
+            if (isNaN(valor) || valor === 0) return;
+
+            let isReceita = valor > 0;
+            let tipo = isReceita ? 'outras_receitas' : 'despesas_gerais';
+
+            // Injeta no sistema
+            db.lancamentos.push({
+                id: Date.now() + importados + Math.floor(Math.random() * 1000),
+                data: dataFinal, tipo: tipo, contaId: contaId, forma: 'Outros',
+                desc: desc.replace(/"/g, '') + ' (App)',
+                valor: Math.abs(valor), cat: 'Outros', efetivado: true
+            });
+
+            importados++;
+        });
+
+        save(); window.fecharModalImportarCSV(); showToast(`${importados} lançamentos importados com sucesso!`, "sucesso");
+        if(typeof render === 'function') render();
+    };
+    reader.readAsText(fileInput.files[0], 'UTF-8');
+};
