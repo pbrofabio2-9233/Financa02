@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v28.2</title>
+    <title>EcoFinance Pro v28.4</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
-    <link rel="stylesheet" href="style.css?v=28.2">
+    <link rel="stylesheet" href="style.css?v=28.4">
     <style>
         /* ==========================================
            ESTILOS ESPECÍFICOS DO INDEX E NOVOS LAYOUTS
@@ -137,7 +137,7 @@
         .filtro-mes-pill { display: inline-flex; align-items: center; background: var(--input-bg); border-radius: 30px; border: 1px solid var(--linha); overflow: hidden; box-shadow: var(--shadow-sm); height: 40px; }
         .filtro-mes-pill button { background: transparent; border: none; padding: 0 15px; color: var(--azul); cursor: pointer; height: 100%; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
         .filtro-mes-pill button:active { background: rgba(0,0,0,0.05); }
-        .filtro-mes-pill input { border: none; background: transparent; color: var(--texto-main); font-weight: 700; font-size: 14px; text-align: center; width: 120px; padding: 0; outline: none; }
+        .filtro-mes-pill input { border: none; background: transparent; color: var(--texto-main); font-weight: 700; font-size: 14px; width: 145px; padding: 0 5px; outline: none; }
 
         @media (min-width: 1024px) {
             html, body { overflow-x: clip !important; }
@@ -334,26 +334,29 @@
 
             <section id="aba-historico" class="secao-app">
                 <div class="container">
-                    <div style="display: flex; justify-content: center; margin-bottom: 15px;">
-                        <div class="filtro-mes-pill">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
+                        <div class="filtro-mes-pill" style="flex: 1; justify-content: space-between;">
                             <button onclick="mudarMesFiltro(-1)"><i class="fas fa-chevron-left"></i></button>
                             <input type="month" id="filtro-mes" onchange="if(typeof renderHistorico === 'function') renderHistorico(); if(typeof renderGrafico === 'function') renderGrafico();">
                             <button onclick="mudarMesFiltro(1)"><i class="fas fa-chevron-right"></i></button>
                         </div>
                     </div>
 
-                    <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; margin-bottom: 10px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
-                        <input type="hidden" id="filtro-status" value="todos">
-                        <button class="status-btn active" onclick="mudarFiltroStatus('todos', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: none; background: var(--azul); color: #fff; cursor: pointer;">Todos</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('pago', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">✅ Pago</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('receita', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">💰 Receita</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('em_aberto', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⏳ Em Aberto</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('atencao', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⚠️ Atenção</button>
-                        <button class="status-btn" onclick="mudarFiltroStatus('atrasado', this)" style="flex: 0 0 auto; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">🚨 Atrasado</button>
-                    </div>
+                    <div style="background: var(--card-bg); padding: 10px; border-radius: 12px; border: 1px solid var(--linha); margin-bottom: 15px;">
+                        <small style="color: var(--texto-sec); font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; display: block;">Status</small>
+                        <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                            <input type="hidden" id="filtro-status" value="todos">
+                            <button class="status-btn active" onclick="mudarFiltroStatus('todos', this)" style="flex: 0 0 auto; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; border: none; background: var(--azul); color: #fff; cursor: pointer;">Todos</button>
+                            <button class="status-btn" onclick="mudarFiltroStatus('pago', this)" style="flex: 0 0 auto; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">✅ Pago</button>
+                            <button class="status-btn" onclick="mudarFiltroStatus('receita', this)" style="flex: 0 0 auto; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">💰 Receita</button>
+                            <button class="status-btn" onclick="mudarFiltroStatus('em_aberto', this)" style="flex: 0 0 auto; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">⏳ Em Aberto</button>
+                            <button class="status-btn" onclick="mudarFiltroStatus('atrasado', this)" style="flex: 0 0 auto; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid var(--linha); background: var(--input-bg); color: var(--texto-sec); cursor: pointer;">🚨 Atrasado</button>
+                        </div>
 
-                    <div id="filtro-categoria-container" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; margin-left: -5px; padding-left: 5px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
-                        <input type="hidden" id="filtro-cat" value="todas">
+                        <small style="color: var(--texto-sec); font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 6px; display: block;">Categoria</small>
+                        <div id="filtro-categoria-container" style="display: flex; gap: 6px; overflow-x: auto; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
+                            <input type="hidden" id="filtro-cat" value="todas">
+                        </div>
                     </div>
                     
                     <div id="lista-historico-filtros"></div>
@@ -416,7 +419,7 @@
                         <i class="fas fa-chevron-right" style="color:var(--texto-sec); font-size: 12px;"></i>
                     </div>
 
-                    <div class="menu-ajuste-card" onclick="abrirModalListaContratos()">
+                    <div class="menu-ajuste-card" onclick="if(typeof abrirModalListaContratos === 'function') abrirModalListaContratos()">
                         <div style="display:flex; align-items:center;">
                             <div class="menu-ajuste-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--alerta);"><i class="fas fa-file-signature"></i></div>
                             <div>
@@ -688,7 +691,7 @@
             </div>
         </div>
 
-                <div id="modal-aparencia" class="modal-overlay" onclick="fecharModalAparencia()">
+        <div id="modal-aparencia" class="modal-overlay" onclick="fecharModalAparencia()">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 350px;">
                 <div class="modal-header flex-between">
                     <h3><i class="fas fa-paint-roller" style="color:var(--azul);"></i> Aparência</h3>
@@ -1048,7 +1051,6 @@
         window.fecharModalFaturaParcial = function() { const m = document.getElementById('modal-fatura-parcial'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
         window.fecharModalEmprestimo = function() { const m = document.getElementById('modal-emprestimo'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
         window.fecharModalContratos = function() { const m = document.getElementById('modal-contratos'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
-        window.abrirModalContratos = function() { const m = document.getElementById('modal-contratos'); m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); };
         
         window.mudarAbaListaContrato = function(aba) {
             document.getElementById('tab-lista-fixa').classList.remove('active'); document.getElementById('tab-lista-parc').classList.remove('active');
@@ -1065,32 +1067,32 @@
         };
     </script>
 
-    <script src="core.js?v=28.2"></script>
-    <script src="engine.js?v=28.2"></script>
-    <script src="ui.js?v=28.2"></script>
-    <script src="app.js?v=28.2"></script>
+    <script src="core.js?v=28.4"></script>
+    <script src="engine.js?v=28.4"></script>
+    <script src="ui.js?v=28.4"></script>
+    <script src="app.js?v=28.4"></script>
     
     <div id="modal-importar-csv" class="modal-overlay" style="display:none; z-index: 999999;">
-    <div class="modal-content" style="max-width: 400px;">
-        <h3 style="margin-bottom: 5px; color: var(--texto-main);"><i class="fas fa-file-csv" style="color: var(--esmeralda);"></i> Importar Extrato (CSV)</h3>
-        <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px; line-height: 1.4;">
-            Faça download do extrato no seu banco em formato CSV. O arquivo deve ter as colunas: <strong>Data, Descrição e Valor</strong>. (Compatível com Nubank, Inter e padrão brasileiro).
-        </p>
-        
-        <div class="mb-10">
-            <label class="label-moderno">Conta de Destino (Onde o dinheiro entrou/saiu)</label>
-            <select id="csv-conta-destino" class="input-moderno"></select>
-        </div>
-        <div class="mb-15">
-            <label class="label-moderno">Ficheiro CSV do Banco</label>
-            <input type="file" id="input-csv-file" accept=".csv" class="input-moderno" style="padding:10px; background: var(--fundo);">
-        </div>
-        
-        <div class="flex-between pt-10" style="border-top: 1px dashed var(--linha);">
-            <button class="btn-outline" style="width: 48%;" onclick="fecharModalImportarCSV()">Cancelar</button>
-            <button class="btn-primary" style="width: 48%; background: var(--esmeralda);" onclick="confirmarImportacaoCSV()">Importar Dados</button>
+        <div class="modal-content" style="max-width: 400px;">
+            <h3 style="margin-bottom: 5px; color: var(--texto-main);"><i class="fas fa-file-csv" style="color: var(--esmeralda);"></i> Importar Extrato (CSV)</h3>
+            <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px; line-height: 1.4;">
+                Faça download do extrato no seu banco em formato CSV. O arquivo deve ter as colunas: <strong>Data, Descrição e Valor</strong>. (Compatível com Nubank, Inter e padrão brasileiro).
+            </p>
+            
+            <div class="mb-10">
+                <label class="label-moderno">Conta de Destino (Onde o dinheiro entrou/saiu)</label>
+                <select id="csv-conta-destino" class="input-moderno"></select>
+            </div>
+            <div class="mb-15">
+                <label class="label-moderno">Ficheiro CSV do Banco</label>
+                <input type="file" id="input-csv-file" accept=".csv" class="input-moderno" style="padding:10px; background: var(--fundo);">
+            </div>
+            
+            <div class="flex-between pt-10" style="border-top: 1px dashed var(--linha);">
+                <button class="btn-outline" style="width: 48%;" onclick="fecharModalImportarCSV()">Cancelar</button>
+                <button class="btn-primary" style="width: 48%; background: var(--esmeralda);" onclick="confirmarImportacaoCSV()">Importar Dados</button>
+            </div>
         </div>
     </div>
-</div>
 </body>
 </html>
