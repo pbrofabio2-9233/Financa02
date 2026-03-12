@@ -1,5 +1,5 @@
 // ==========================================
-// CORE.JS - Banco de Dados e Inicialização (v26.0.3 - Múltiplos Salários e Contratos)
+// CORE.JS - Banco de Dados, Inicialização e Memória (Otimizado)
 // ==========================================
 
 let db = {
@@ -14,128 +14,76 @@ let db = {
     faturasPagas: [],
     amortizacoesFaturas: {},
     recorrencias: [],
-    salarios: [] // NOVO: Matriz de múltiplos salários com divisão de valores
+    salarios: []
 };
 
+// Padronização Absoluta das Chaves de Memória (Evita duplicação de bancos)
+const DB_KEY = 'eco_db';
+const THEME_KEY = 'eco_tema';
+
 function save() {
-    localStorage.setItem('ecoDB', JSON.stringify(db));
+    localStorage.setItem(DB_KEY, JSON.stringify(db));
 }
 
 function load() {
-    const saved = localStorage.getItem('ecoDB');
-    if (saved) {
-        let parsed = JSON.parse(saved);
-        db = { ...db, ...parsed };
-        
-        // Garante a existência das matrizes vitais
-        if (!db.categorias) db.categorias = [];
-        if (!db.faturasPagas) db.faturasPagas = [];
-        if (!db.amortizacoesFaturas) db.amortizacoesFaturas = {};
-        if (!db.recorrencias) db.recorrencias = [];
-        if (!db.salarios) db.salarios = [];
-
-        // Migração do usuário (se ele tinha a config antiga de salário, converte para o novo formato)
-        if (db.configSalario) {
-            if (db.configSalario.ativo) {
-                db.salarios.push({
-                    id: Date.now(),
-                    nome: 'Salário Principal',
-                    valorTotal: db.configSalario.valor,
-                    frequencia: 'mensal',
-                    dias: [db.configSalario.dia],
-                    contaId: db.configSalario.contaId
-                });
-            }
-            delete db.configSalario; // Limpa o velho
-            save();
+    // Sistema de Migração Inteligente: Puxa do banco velho (ecoDB) para o novo (eco_db) se necessário
+    let saved = localStorage.getItem(DB_KEY);
+    
+    if (!saved) {
+        saved = localStorage.getItem('ecoDB'); 
+        if (saved) {
+            localStorage.setItem(DB_KEY, saved); 
+            localStorage.removeItem('ecoDB'); 
         }
     }
-}
 
-function exportarBackup() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    const date = new Date();
-    const nomeArquivo = `EcoFinance_Backup_${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}.json`;
-    downloadAnchorNode.setAttribute("download", nomeArquivo);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
-    registrarBackupLocal(nomeArquivo);
-}
-
-function importarArquivoJSON(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
+    if (saved) {
         try {
-            const importedDB = JSON.parse(e.target.result);
-            if (importedDB && importedDB.contas && importedDB.lancamentos) {
-                db = importedDB;
+            let parsed = JSON.parse(saved);
+            db = { ...db, ...parsed };
+            
+            // Garantia Estrutural (Evita o erro "Cannot read properties of undefined")
+            if (!db.categorias) db.categorias = [];
+            if (!db.faturasPagas) db.faturasPagas = [];
+            if (!db.amortizacoesFaturas) db.amortizacoesFaturas = {};
+            if (!db.recorrencias) db.recorrencias = [];
+            if (!db.salarios) db.salarios = [];
+            if (!db.lancamentos) db.lancamentos = [];
+            if (!db.contas) db.contas = [];
+
+            // Migração legado para o formato de múltiplos salários
+            if (db.configSalario) {
+                if (db.configSalario.ativo) {
+                    db.salarios.push({
+                        id: Date.now(),
+                        nome: 'Salário Principal',
+                        valorTotal: db.configSalario.valor,
+                        frequencia: 'mensal',
+                        dias: [db.configSalario.dia],
+                        contaId: db.configSalario.contaId
+                    });
+                }
+                delete db.configSalario; 
                 save();
-                alert("Backup restaurado com sucesso!");
-                location.reload();
-            } else {
-                alert("Arquivo de backup inválido.");
             }
         } catch (err) {
-            alert("Erro ao ler o arquivo.");
-        }
-    };
-    reader.readAsText(file);
-}
-
-function confirmarReset() {
-    if(confirm("ATENÇÃO: Isso apagará TODOS os seus dados. Tem certeza?")) {
-        if(confirm("Última chance! Confirma a exclusão de tudo?")) {
-            localStorage.removeItem('ecoDB');
-            location.reload();
+            console.error("Erro Crítico ao ler o banco de dados:", err);
         }
     }
 }
 
-function registrarBackupLocal(nome) {
-    let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    const dbString = JSON.stringify(db);
-    const sizeKB = (new Blob([dbString]).size / 1024).toFixed(1) + ' KB';
-    hist.unshift({ id: Date.now(), data: new Date().toLocaleString(), nome: nome, size: sizeKB, dados: dbString });
-    if (hist.length > 5) hist.pop(); 
-    localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
-    if (typeof renderAbaConfig === 'function') renderAbaConfig();
-}
-
-function restaurarBackupLocal(id) {
-    if(!confirm("Deseja restaurar este backup? Os dados atuais serão substituídos.")) return;
-    let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    const b = hist.find(x => x.id === id);
-    if (b) {
-        db = JSON.parse(b.dados);
-        save();
-        location.reload();
-    }
-}
-
-function excluirBackupLocal(id) {
-    if(!confirm("Excluir este backup histórico?")) return;
-    let hist = JSON.parse(localStorage.getItem('ecoDB_backups')) || [];
-    hist = hist.filter(x => x.id !== id);
-    localStorage.setItem('ecoDB_backups', JSON.stringify(hist));
-    if (typeof renderAbaConfig === 'function') renderAbaConfig();
-}
-
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    localStorage.setItem('ecoTheme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-    if (typeof renderGrafico === 'function') renderGrafico();
-    if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao();
-}
-
+// ==========================================
+// INICIALIZAÇÃO
+// ==========================================
 load();
+
 window.addEventListener('DOMContentLoaded', () => {
-    if (localStorage.getItem('ecoTheme') === 'dark') {
-        document.body.classList.add('dark-mode');
-    }
+    // Validação e aplicação do tema no carregamento
+    const temaAtual = localStorage.getItem(THEME_KEY) || 'light';
+    document.body.classList.remove('dark-mode', 'ocean-mode');
+    if (temaAtual === 'dark') document.body.classList.add('dark-mode');
+    else if (temaAtual === 'ocean') document.body.classList.add('ocean-mode');
+
+    // Inicia a renderização caso o arquivo UI já esteja pronto
     if (typeof render === 'function') render();
 });
