@@ -1,11 +1,11 @@
 /* ==========================================
-   STYLE.CSS - Core Styles (v28.1 - Ultra Contraste)
+   STYLE.CSS - Core Styles (v28.4 - Proteção Visual e Smart Scroll)
    ========================================== */
 :root {
-    --fundo: #e2e8f0;       /* Fundo cinza azulado mais escuro para destacar o branco */
-    --card-bg: #ffffff;     /* Cartões em branco puro */
-    --input-bg: #f8fafc;    /* Fundo suave para inputs dentro dos cartões */
-    --linha: #cbd5e1;       /* Bordas mais marcadas */
+    --fundo: #e2e8f0;       
+    --card-bg: #ffffff;     
+    --input-bg: #f8fafc;    
+    --linha: #cbd5e1;       
     --texto-main: #0f172a;
     --texto-sec: #475569;
     --azul: #2563eb;
@@ -13,16 +13,16 @@
     --perigo: #ef4444;
     --alerta: #f59e0b;
     --sucesso: #10b981;
-    --shadow-sm: 0 4px 15px rgba(0,0,0,0.08); /* Sombra mais intensa */
+    --shadow-sm: 0 4px 15px rgba(0,0,0,0.08); 
     --shadow-md: 0 8px 25px rgba(0,0,0,0.12);
 }
 
 /* 1. Tema Escuro (Preto Absoluto OLED + Contraste Extremo) */
 body.dark-mode {
-    --fundo: #000000;       /* Preto absoluto (OLED) para máximo contraste */
-    --card-bg: #1e293b;     /* Cartões em ardósia escuro */
-    --input-bg: #0f172a;    /* Inputs mais escuros que o cartão */
-    --linha: #334155;       /* Bordas bem definidas */
+    --fundo: #000000;       
+    --card-bg: #1e293b;     
+    --input-bg: #0f172a;    
+    --linha: #334155;       
     --texto-main: #f8fafc;
     --texto-sec: #94a3b8;
     --shadow-sm: 0 4px 15px rgba(0,0,0,0.6);
@@ -31,8 +31,8 @@ body.dark-mode {
 
 /* 2. Novo Tema (Oceano Noturno) */
 body.ocean-mode {
-    --fundo: #030a14;       /* Azul marinho quase preto */
-    --card-bg: #0f1f35;     /* Azul profundo para os cartões */
+    --fundo: #030a14;       
+    --card-bg: #0f1f35;     
     --input-bg: #050d17;
     --linha: #1e3a5f;
     --texto-main: #e2e8f0;
@@ -76,6 +76,19 @@ h1, h2, h3, h4 { color: var(--texto-main); font-weight: 700; }
 .txt-azul { color: var(--azul) !important; }
 .texto-vazio { text-align: center; color: var(--texto-sec); font-size: 13px; padding: 20px; font-style: italic; }
 
+/* ==========================================
+   PROTEÇÃO CONTRA QUEBRA DE LINHA EM VALORES
+   ========================================== */
+.cartao-saldo, .card-simples h3, #uso-meta-texto, .val-nowrap-mobile, #dash-faturas {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#uso-meta-texto { font-size: clamp(18px, 6vw, 28px) !important; }
+.cartao-saldo { font-size: clamp(20px, 6vw, 26px) !important; }
+.card-simples h3 { font-size: clamp(15px, 4.5vw, 20px) !important; }
+#dash-faturas { font-size: clamp(17px, 5vw, 22px) !important; }
+
 /* Layouts Grelha */
 .grid-resumo-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .grid-resumo-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
@@ -95,7 +108,6 @@ h1, h2, h3, h4 { color: var(--texto-main); font-weight: 700; }
     transition: background 0.3s, border-color 0.3s, box-shadow 0.3s;
 }
 
-/* Ajuste nos Cartões Simples para maior contraste nos temas escuros */
 .card-simples { 
     background: var(--input-bg); 
     border-radius: 12px; 
@@ -291,7 +303,19 @@ body.dark-mode select.input-moderno, body.ocean-mode select.input-moderno {
 
 .modal-header { padding: 20px 25px; border-bottom: 1px solid var(--linha); transition: border-color 0.3s; }
 .modal-header h3 { font-size: 18px; display: flex; align-items: center; gap: 8px; margin: 0; }
-.modal-body { padding: 25px; overflow-y: auto; flex: 1; }
+
+/* SMART SCROLL APLICADO AQUI */
+.modal-body { 
+    padding: 25px; 
+    overflow-y: auto; 
+    flex: 1; 
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* IE and Edge */
+}
+.modal-body::-webkit-scrollbar { 
+    display: none; /* Chrome, Safari e Opera */
+}
+
 .modal-footer { padding: 20px 25px; border-top: 1px solid var(--linha); background: var(--card-bg); transition: background 0.3s, border-color 0.3s; }
 
 /* Segmented Controls (Abas) */
@@ -329,7 +353,7 @@ body.dark-mode select.input-moderno, body.ocean-mode select.input-moderno {
 .cartao-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .cartao-nome { font-weight: 700; font-size: 16px; letter-spacing: 0.5px; }
 .cartao-tipo { font-size: 11px; background: rgba(255,255,255,0.2); padding: 4px 8px; border-radius: 10px; text-transform: uppercase; font-weight: 700; }
-.cartao-saldo { font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+.cartao-saldo { font-weight: 800; letter-spacing: -1px; }
 
 .limite-bg { background: rgba(255,255,255,0.2); height: 6px; border-radius: 6px; overflow: hidden; }
 .limite-fill { background: #fff; height: 100%; border-radius: 6px; }
