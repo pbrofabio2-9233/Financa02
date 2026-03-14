@@ -1,5 +1,5 @@
 // ==========================================
-// APP.JS - Navegação, Temas e Sistema (Limpo e Otimizado)
+// APP.JS - Navegação, Temas e Sistema (Correção de Backup)
 // ==========================================
 
 // ----------------------------------------------------
@@ -16,6 +16,40 @@ window.abrirModalSalarios = function() {
 
 window.fecharModalSalarios = function() {
     const m = document.getElementById('modal-salarios');
+    if (m) {
+        m.classList.remove('active');
+        setTimeout(() => m.style.display = 'none', 300);
+    }
+};
+
+// MODAL DE PAGAMENTO DE FATURA (Injetado para correção do Item 1)
+window.alternarPagamentoFatura = function(idFatura, valorFatura) {
+    document.getElementById('hidden-pagar-fat-id').value = idFatura;
+    
+    if(valorFatura !== undefined) {
+        document.getElementById('txt-pagar-fat-valor').innerText = "R$ " + (typeof fmtBR === 'function' ? fmtBR(valorFatura) : valorFatura.toFixed(2).replace('.', ','));
+        document.getElementById('hidden-pagar-fat-val').value = valorFatura;
+    }
+    
+    // Carrega dinamicamente as contas de onde o dinheiro pode sair
+    let selectConta = document.getElementById('select-conta-pagar-fat');
+    if(selectConta && typeof db !== 'undefined' && db.contas) {
+        selectConta.innerHTML = '';
+        let contasValidas = db.contas.filter(c => c.tipo !== 'cartao'); // Só pode pagar com dinheiro/conta corrente
+        contasValidas.forEach(c => {
+            selectConta.innerHTML += `<option value="${c.id}">${c.nome} (Saldo: R$ ${typeof fmtBR === 'function' ? fmtBR(c.saldo) : c.saldo})</option>`;
+        });
+    }
+    
+    const modal = document.getElementById('modal-pagar-fatura');
+    if(modal) {
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    }
+};
+
+window.fecharModalPagamentoFatura = function() {
+    const m = document.getElementById('modal-pagar-fatura');
     if (m) {
         m.classList.remove('active');
         setTimeout(() => m.style.display = 'none', 300);
@@ -77,9 +111,12 @@ window.fecharModalSistema = function() {
 };
 
 window.exportarBackup = function() {
-    if (!window.db) return alert("Erro: Banco de dados não encontrado.");
+    // CORREÇÃO PONTO 1: Busca o banco de dados independente de como o navegador o alocou na memória
+    const bancoDados = (typeof window.db !== 'undefined' && window.db) ? window.db : (typeof db !== 'undefined' ? db : null);
     
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.db));
+    if (!bancoDados) return alert("Erro: Banco de dados não encontrado na memória atual.");
+    
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bancoDados));
     const downloadNode = document.createElement('a');
     const dataHoje = new Date().toISOString().split('T')[0];
     
@@ -150,6 +187,26 @@ window.navegar = function(idSecao, elemento) {
         window.iniciarCarrosselBI();
         window.iniciarCarrosselRadar();
     }
+};
+
+// Roteadores Rápidos Injetados
+window.irParaExtrato = function() {
+    if (typeof fecharNotificacoes === 'function') fecharNotificacoes();
+    window.navegar('historico');
+    
+    // Atualiza o menu visualmente
+    document.querySelectorAll('#menu-lateral .menu-item').forEach(el => el.classList.remove('active'));
+    let itensMenu = document.querySelectorAll('#menu-lateral .menu-item');
+    if (itensMenu.length >= 3) itensMenu[2].classList.add('active'); // O índice 2 normalmente é o Extrato
+};
+
+window.irParaFaturas = function() {
+    window.navegar('faturas');
+    
+    // Atualiza o menu visualmente
+    document.querySelectorAll('#menu-lateral .menu-item').forEach(el => el.classList.remove('active'));
+    let itensMenu = document.querySelectorAll('#menu-lateral .menu-item');
+    if (itensMenu.length >= 2) itensMenu[1].classList.add('active'); // O índice 1 normalmente é o de Faturas
 };
 
 window.toggleNovaContaArea = function() {
