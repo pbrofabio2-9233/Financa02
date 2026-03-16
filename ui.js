@@ -25,7 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
     styleFix.innerHTML = `
         #modal-confirmacao, .swal2-container, .alert-modal { z-index: 999999 !important; }
         
-        /* Oculta botão flutuante mobile no desktop, formata apenas o botão do topo */
         @media (min-width: 768px) {
             .fab-container, .btn-flutuante { display: none !important; }
             
@@ -54,25 +53,15 @@ document.addEventListener("DOMContentLoaded", () => {
             .header-app { align-items: center !important; }
         }
         
-        /* Resolve ícone do calendário no modo escuro para date E month */
-        body.dark-mode input[type="date"], body.ocean-mode input[type="date"],
-        .dark-mode input[type="date"], .ocean-mode input[type="date"],
-        body.dark-mode input[type="month"], body.ocean-mode input[type="month"],
-        .dark-mode input[type="month"], .ocean-mode input[type="month"] {
-            color-scheme: dark;
-        }
         body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator,
         body.ocean-mode input[type="date"]::-webkit-calendar-picker-indicator,
-        .dark-mode input[type="date"]::-webkit-calendar-picker-indicator,
-        .ocean-mode input[type="date"]::-webkit-calendar-picker-indicator,
         body.dark-mode input[type="month"]::-webkit-calendar-picker-indicator,
-        body.ocean-mode input[type="month"]::-webkit-calendar-picker-indicator,
-        .dark-mode input[type="month"]::-webkit-calendar-picker-indicator,
-        .ocean-mode input[type="month"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
+        body.ocean-mode input[type="month"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) brightness(2) !important;
+            opacity: 1 !important;
+            cursor: pointer;
         }
 
-        /* Animação do Glow Up Reforçada */
         @keyframes highlightPulse {
             0% { background-color: rgba(245, 158, 11, 0.4) !important; transform: scale(1.02); }
             50% { background-color: rgba(245, 158, 11, 0.1) !important; transform: scale(1); }
@@ -85,17 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.head.appendChild(styleFix);
 });
-
-window.ativarEscudoFantasma = function() {
-    let shield = document.getElementById('ghost-click-shield');
-    if (!shield) {
-        shield = document.createElement('div');
-        shield.id = 'ghost-click-shield';
-        shield.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:9999998; background:transparent; touch-action:none;';
-        document.body.appendChild(shield);
-    }
-    shield.style.display = 'block'; setTimeout(() => shield.style.display = 'none', 300); 
-}
 
 // ----------------------------------------------------
 // 2. FUNÇÕES DE DATA E UTILIDADES
@@ -115,7 +93,7 @@ window.formatarMesFaturaLogico = function(mesAnoStr) {
 }
 
 // ----------------------------------------------------
-// 3. MENU SUSPENSO E LONG PRESS
+// 3. MENU SUSPENSO E REGRAS DE EXTRATO/FATURA
 // ----------------------------------------------------
 let longPressTimer;
 let currentLancIdCtx = null;
@@ -127,54 +105,266 @@ if (!document.getElementById('context-menu-lancamento')) {
     document.body.appendChild(menu);
 }
 
-window.fecharMenuCtx = function() { const menu = document.getElementById('context-menu-lancamento'); if(menu && menu.style.display !== 'none') menu.style.display = 'none'; clearTimeout(longPressTimer); };
+if (!document.getElementById('context-menu-fatura')) {
+    const menuFat = document.createElement('div');
+    menuFat.id = 'context-menu-fatura';
+    menuFat.style.cssText = 'display:none; position:fixed; z-index:99999; background:var(--card-bg); border:1px solid var(--linha); border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.5); flex-direction:column; padding:5px; min-width:180px; overflow:hidden;';
+    document.body.appendChild(menuFat);
+}
+
+window.fecharMenuCtx = function() { 
+    const menu = document.getElementById('context-menu-lancamento'); 
+    if(menu && menu.style.display !== 'none') menu.style.display = 'none'; 
+    const menuFat = document.getElementById('context-menu-fatura'); 
+    if(menuFat && menuFat.style.display !== 'none') menuFat.style.display = 'none'; 
+    clearTimeout(longPressTimer); 
+};
+
 window.addEventListener('scroll', () => { fecharMenuCtx(); }, true);
-document.addEventListener('click', (e) => { const m = document.getElementById('context-menu-lancamento'); if(m && !m.contains(e.target)) fecharMenuCtx(); });
+document.addEventListener('click', (e) => { 
+    const m = document.getElementById('context-menu-lancamento'); 
+    const mF = document.getElementById('context-menu-fatura'); 
+    if((m && !m.contains(e.target)) || (mF && !mF.contains(e.target))) fecharMenuCtx(); 
+});
 
-window.iniciarLongPress = function(e, id) { longPressTimer = setTimeout(() => { currentLancIdCtx = id; mostrarContextMenu(e, id); }, 450); };
+window.iniciarLongPress = function(e, id, isFatura = false) { 
+    longPressTimer = setTimeout(() => { 
+        if (isFatura) mostrarContextMenuFatura(e, id); 
+        else { currentLancIdCtx = id; mostrarContextMenu(e, id); }
+    }, 450); 
+};
 window.cancelarLongPress = function() { clearTimeout(longPressTimer); };
-window.mostrarContextMenuRightClick = function(e, id) { e.preventDefault(); currentLancIdCtx = id; mostrarContextMenu(e, id); };
 
+window.mostrarContextMenuRightClick = function(e, id, isFatura = false) { 
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    if (isFatura) mostrarContextMenuFatura(e, id); 
+    else { currentLancIdCtx = id; mostrarContextMenu(e, id); }
+};
+
+window.criarBotaoCtx = function(onclick, icone, cor, texto) {
+    return `<button onclick="${onclick}" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="${icone}" style="color:${cor}; width:20px; text-align:center;"></i> ${texto}</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
+};
+
+// ==============================================================
+// LÓGICA DO MENU SUSPENSO DE EXTRATOS 
+// ==============================================================
 window.mostrarContextMenu = function(e, id) {
     if ("vibrate" in navigator) navigator.vibrate(50);
     const menu = document.getElementById('context-menu-lancamento'); if(!menu) return;
-    const lanc = (db.lancamentos || []).find(x => x.id === id); if (!lanc) return;
-    const c = (db.contas || []).find(x => x.id === lanc.contaId); const isCartao = c && c.tipo === 'cartao';
-
-    let btnAcaoStatus = ''; let btnAjustar = '';
-    let btnExcluir = `<button onclick="acionarExcluirCtx(event)" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-trash" style="color:var(--perigo);"></i> Excluir</button>`;
-
+    const lanc = (db.lancamentos || []).find(x => String(x.id) === String(id)); if (!lanc) return;
+    const c = (db.contas || []).find(x => String(x.id) === String(lanc.contaId)); const isCartao = c && c.tipo === 'cartao';
+    
+    let html = '';
+    const isReceita = T_RECEITAS.includes(lanc.tipo);
+    const isDespesa = T_DESPESAS.includes(lanc.tipo);
+    const isFixoParcelado = lanc.idGrupo || lanc.idRecorrencia || lanc.rolagem;
+    
+    // REGRA DE ESTORNOS
     if (String(lanc.id).startsWith('pg_fat_')) {
-        const fatID = lanc.id.replace('pg_fat_', '');
-        btnAcaoStatus = `<button onclick="acionarEstornoFaturaCtx(event, '${fatID}')" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-undo" style="color:var(--alerta);"></i> Estornar Fatura (Reabrir)</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
-        btnExcluir = ''; 
-    } else if (String(lanc.id).startsWith('am_fat_')) {
+        html += window.criarBotaoCtx(`acionarEstornoFaturaCtx(event, '${lanc.id.replace('pg_fat_', '')}')`, 'fas fa-undo', 'var(--alerta)', 'Reabrir Fatura');
+    } 
+    else if (String(lanc.id).startsWith('am_fat_')) {
         const match = String(lanc.id).match(/am_fat_(.+)_(\d+)/);
-        const fatID = match ? match[1] : '';
-        btnAcaoStatus = `<button onclick="acionarEstornoAmortizacaoCtx(event, '${fatID}')" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-undo" style="color:var(--alerta);"></i> Estornar Amortização</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
-        btnExcluir = '';
-    } else {
+        html += window.criarBotaoCtx(`acionarEstornoAmortizacaoCtx(event, '${match ? match[1] : ''}')`, 'fas fa-undo', 'var(--alerta)', 'Estornar Amortização');
+    } 
+    // REGRAS DE LANÇAMENTOS NORMAIS
+    else {
         if (isCartao) {
             const mesFatLogico = window.getMesFaturaLogico(lanc.data, c.fechamento || 1);
-            btnAcaoStatus = `<button onclick="acionarVerFaturaCtx(event, '${lanc.contaId}', '${mesFatLogico}')" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-file-invoice" style="color:var(--azul);"></i> Ver Fatura</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
-        } else {
-            if (lanc.efetivado) btnAcaoStatus = `<button onclick="acionarReabrirCtx(event)" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-undo" style="color:var(--alerta);"></i> Reabrir</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
-            else btnAcaoStatus = `<button onclick="acionarPagarCtx(event)" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-check" style="color:var(--sucesso);"></i> Pagar</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
+            const isFaturaPaga = (db.faturasPagas || []).includes(`${c.id}-${mesFatLogico}`);
+            
+            html += window.criarBotaoCtx(`acionarVerFaturaCtx(event, '${lanc.contaId}', '${mesFatLogico}')`, 'fas fa-file-invoice', 'var(--azul)', 'Ver fatura');
+            
+            if (isFixoParcelado) {
+                html += window.criarBotaoCtx(`acionarEdicaoParcelamento('${lanc.idGrupo || lanc.idRecorrencia}')`, 'fas fa-boxes', 'var(--alerta)', 'Ver parcelamento');
+            } else {
+                if (!isFaturaPaga) {
+                    html += window.criarBotaoCtx('acionarAjusteCtx(event)', 'fas fa-edit', 'var(--azul)', 'Ajustes');
+                    html += window.criarBotaoCtx('acionarExcluirCtx(event)', 'fas fa-trash', 'var(--perigo)', 'Excluir');
+                }
+            }
+        } 
+        else {
+            if (isFixoParcelado) {
+                html += window.criarBotaoCtx(`acionarEdicaoParcelamento('${lanc.idGrupo || lanc.idRecorrencia}')`, 'fas fa-boxes', 'var(--alerta)', 'Ver parcelamento');
+                if (lanc.efetivado) {
+                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                } else {
+                    html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check', 'var(--sucesso)', 'Pagar');
+                }
+            } 
+            else if (lanc.tipo === 'rec_emprestimo') {
+                if (!lanc.efetivado) {
+                    html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check-double', 'var(--sucesso)', 'Confirmar recebimento');
+                } else {
+                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                }
+                html += window.criarBotaoCtx(`acionarVerOrigem('${lanc.idOrigem || ''}')`, 'fas fa-search-dollar', 'var(--azul)', 'Ver origem');
+            } 
+            else if (isReceita) {
+                if (lanc.efetivado) {
+                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                } else {
+                    html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check-double', 'var(--sucesso)', 'Confirmar recebimento');
+                    html += window.criarBotaoCtx('acionarAjusteCtx(event)', 'fas fa-edit', 'var(--azul)', 'Ajustes');
+                    html += window.criarBotaoCtx('acionarExcluirCtx(event)', 'fas fa-trash', 'var(--perigo)', 'Excluir');
+                }
+            } 
+            else if (isDespesa) {
+                if (lanc.efetivado) {
+                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                } else {
+                    html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check', 'var(--sucesso)', 'Pagar');
+                    html += window.criarBotaoCtx('acionarAjusteCtx(event)', 'fas fa-edit', 'var(--azul)', 'Ajustes');
+                    html += window.criarBotaoCtx('acionarExcluirCtx(event)', 'fas fa-trash', 'var(--perigo)', 'Excluir');
+                }
+            }
         }
-        if (!lanc.efetivado) btnAjustar = `<button onclick="acionarAjusteCtx(event)" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="fas fa-edit" style="color:var(--azul);"></i> Ajustar Lançamento</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
     }
 
-    menu.innerHTML = `${btnAcaoStatus}${btnAjustar}${btnExcluir}`;
+    menu.innerHTML = html;
     menu.style.display = 'flex';
-    let x = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX; let y = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+    if (menu.lastChild && menu.lastChild.tagName === 'DIV') menu.lastChild.remove();
+
+    let x = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX; 
+    let y = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
     const rect = menu.getBoundingClientRect();
     if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10;
     if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10;
     menu.style.left = `${x}px`; menu.style.top = `${y}px`;
 };
 
+// ==============================================================
+// LÓGICA DO MENU SUSPENSO DE FATURAS (CORREÇÃO ABSOLUTA DA DATA/UUID)
+// ==============================================================
+window.mostrarContextMenuFatura = function(e, fatID) {
+    if ("vibrate" in navigator) navigator.vibrate(50);
+    const menu = document.getElementById('context-menu-fatura'); if(!menu) return;
+    
+    // CORREÇÃO CRÍTICA: Os IDs das contas podem conter hifens, o que quebrava o split e gerava NaN.
+    // Agora extraímos exatamente as duas últimas posições (Ano e Mês) garantindo que a data seja sempre válida.
+    const parts = fatID.split('-');
+    if (parts.length < 3) return;
+    const mesFat = `${parts[parts.length - 2]}-${parts[parts.length - 1]}`;
+    const contaId = parts.slice(0, parts.length - 2).join('-');
+    
+    const c = (db.contas || []).find(x => String(x.id) === String(contaId)); if (!c) return;
+    
+    const isPaga = (db.faturasPagas || []).includes(fatID);
+    
+    const hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    
+    let anoFat = parseInt(mesFat.split('-')[0], 10);
+    let mesFatNum = parseInt(mesFat.split('-')[1], 10);
+    let diaFech = parseInt(c.fechamento, 10) || 1;
+    
+    // Fatura YYYY-MM fecha categoricamente no dia 'diaFech' do mês MM.
+    const dataFechamento = new Date(anoFat, mesFatNum - 1, diaFech, 0, 0, 0);
+    const isFechada = hoje.getTime() >= dataFechamento.getTime();
+    
+    let html = '';
+    
+    if (isPaga) {
+        // 8.3 Fatura Paga
+        html += window.criarBotaoCtx(`acionarEstornoFaturaCtx(event, '${fatID}')`, 'fas fa-undo', 'var(--alerta)', 'Reabrir fatura');
+    } 
+    else if (isFechada) {
+        // 8.1 Fatura Fechada (Não paga)
+        html += window.criarBotaoCtx(`acionarAmortizarCtx(event, '${fatID}')`, 'fas fa-hand-holding-usd', 'var(--sucesso)', 'Pagamento parcial');
+        html += window.criarBotaoCtx(`acionarQuitarFaturaCtx(event, '${fatID}')`, 'fas fa-check-double', 'var(--esmeralda)', 'Quitar fatura');
+    } 
+    else {
+        // 8.2 Fatura Aberta
+        html += window.criarBotaoCtx(`acionarAmortizarCtx(event, '${fatID}')`, 'fas fa-forward', 'var(--azul)', 'Adiantamento');
+    }
+
+    menu.innerHTML = html;
+    menu.style.display = 'flex';
+    if (menu.lastChild && menu.lastChild.tagName === 'DIV') menu.lastChild.remove();
+
+    let x = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX; 
+    let y = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+    const rect = menu.getBoundingClientRect();
+    if (x + rect.width > window.innerWidth) x = window.innerWidth - rect.width - 10;
+    if (y + rect.height > window.innerHeight) y = window.innerHeight - rect.height - 10;
+    menu.style.left = `${x}px`; menu.style.top = `${y}px`;
+};
+
+// Funções Engatilhadas pelo Menu Suspenso (Com Correção do "Pagar" direto no Banco)
 window.acionarEstornoFaturaCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof motorEstornarFatura === 'function') motorEstornarFatura(fatID); };
 window.acionarEstornoAmortizacaoCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof estornarAmortizacaoFatura === 'function') estornarAmortizacaoFatura(fatID); };
+window.acionarAmortizarCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof amortizarFatura === 'function') amortizarFatura(fatID); };
+window.acionarQuitarFaturaCtx = function(e, fatID) { 
+    if(e) e.stopPropagation(); fecharMenuCtx(); 
+    let totalFat = 0;
+    (db.lancamentos || []).forEach(l => {
+        if(String(l.contaId) === String(fatID.split('-')[0])) {
+            const m = window.getMesFaturaLogico(l.data, db.contas.find(c=>String(c.id) === String(l.contaId)).fechamento||1);
+            const refMes = fatID.split('-');
+            const mesFatFormatado = `${refMes[refMes.length-2]}-${refMes[refMes.length-1]}`;
+            if(m === mesFatFormatado) {
+                totalFat += T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
+            }
+        }
+    });
+    const amortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
+    const restante = totalFat - amortizado;
+    if(typeof motorPagarFatura === 'function') motorPagarFatura(fatID, restante);
+};
+
+// CORREÇÃO CRÍTICA DO EXTRATO: Força o pagamento/reabertura diretamente pelo db.lancamentos e salva, garantindo o funcionamento.
+window.acionarPagarCtx = function(e) { 
+    if(e) e.stopPropagation(); 
+    fecharMenuCtx(); 
+    if(!currentLancIdCtx) return;
+    
+    const lanc = db.lancamentos.find(x => String(x.id) === String(currentLancIdCtx));
+    if(lanc) {
+        lanc.efetivado = true;
+        if(typeof save === 'function') save();
+        if(typeof showToast === 'function') showToast(T_RECEITAS.includes(lanc.tipo) ? "Recebimento confirmado!" : "Pagamento confirmado!", "sucesso");
+        if(typeof render === 'function') render();
+        if(typeof renderHistorico === 'function') renderHistorico();
+    } else if(typeof confirmarPagamento === 'function') {
+        confirmarPagamento(currentLancIdCtx); 
+    }
+};
+
+window.acionarReabrirCtx = function(e) { 
+    if(e) e.stopPropagation(); 
+    fecharMenuCtx(); 
+    if(!currentLancIdCtx) return;
+    
+    const lanc = db.lancamentos.find(x => String(x.id) === String(currentLancIdCtx));
+    if(lanc) {
+        lanc.efetivado = false;
+        if(typeof save === 'function') save();
+        if(typeof showToast === 'function') showToast("Lançamento reaberto!", "alerta");
+        if(typeof render === 'function') render();
+        if(typeof renderHistorico === 'function') renderHistorico();
+    } else if(typeof confirmarReabertura === 'function') {
+        confirmarReabertura(currentLancIdCtx); 
+    }
+};
+
+window.acionarEdicaoParcelamento = function(id) {
+    fecharMenuCtx();
+    if (typeof abrirModalListaContratos === 'function') abrirModalListaContratos();
+    setTimeout(() => { if (typeof abrirModalEdicaoContrato === 'function') abrirModalEdicaoContrato(id); }, 400);
+};
+
+window.acionarVerOrigem = function(idOrigem) {
+    fecharMenuCtx();
+    const l = (db.lancamentos || []).find(x => String(x.id) === String(idOrigem));
+    if(l) {
+        const c = (db.contas || []).find(x => String(x.id) === String(l.contaId));
+        if(c && c.tipo === 'cartao') {
+            const mesFatLogico = window.getMesFaturaLogico(l.data, c.fechamento || 1);
+            acionarVerFaturaCtx(null, c.id, mesFatLogico);
+        } else alert("A origem desta restituição não está atrelada a uma fatura ativa.");
+    } else alert("O lançamento que originou esta restituição foi excluído ou não foi identificado.");
+};
 
 window.acionarVerFaturaCtx = function(e, contaId, mesLogicoFat) {
     if(e) e.stopPropagation(); fecharMenuCtx();
@@ -214,73 +404,125 @@ window.acionarVerFaturaCtx = function(e, contaId, mesLogicoFat) {
     }, 500);
 };
 
-window.acionarPagarCtx = function(e) { if(e) e.stopPropagation(); fecharMenuCtx(); if(currentLancIdCtx && typeof confirmarPagamento === 'function') confirmarPagamento(currentLancIdCtx); };
-window.acionarReabrirCtx = function(e) { if(e) e.stopPropagation(); fecharMenuCtx(); if(currentLancIdCtx && typeof confirmarReabertura === 'function') confirmarReabertura(currentLancIdCtx); };
 window.acionarAjusteCtx = function(e) {
     if(e) e.stopPropagation();
     if(currentLancIdCtx) {
         if (typeof window.abrirModalEdicaoLancamento === 'function') window.abrirModalEdicaoLancamento(currentLancIdCtx);
         else {
             const el = document.getElementById(`edit-lanc-${currentLancIdCtx}`);
-            if(el) { el.style.display = 'block'; const icon = document.getElementById(`icon-${currentLancIdCtx}`); if(icon) icon.classList.add('open'); setTimeout(() => { const card = el.closest('.fatura-card'); if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100); }
+            if(el) { el.style.display = 'block'; setTimeout(() => { const card = el.closest('.fatura-card'); if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100); }
         }
     }
     fecharMenuCtx();
 };
 window.acionarExcluirCtx = function(e) { if(e) e.stopPropagation(); fecharMenuCtx(); if(currentLancIdCtx && typeof excluirLancamento === 'function') excluirLancamento(currentLancIdCtx); };
 
+// ==============================================================
+// MODAL DE METAS INDIVIDUAIS POR CARTÃO (Força criação do HTML para evitar sumir)
+// ==============================================================
+window.abrirModalMetasIndividuais = function() {
+    let modalAntigo = document.getElementById('modal-metas-individuais');
+    if (modalAntigo) {
+        modalAntigo.remove(); // CORREÇÃO: Remove o modal se existir, forçando o navegador a recriar do zero e exibir corretamente a lista.
+    }
+    
+    let modal = document.createElement('div');
+    modal.id = 'modal-metas-individuais';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; justify-content:center; align-items:center; padding:20px; opacity:0; transition: opacity 0.3s ease;';
+    modal.innerHTML = `
+        <div class="modal-content" style="background:var(--card-bg); width:100%; max-width:400px; border-radius:16px; padding:20px; box-shadow:var(--shadow-md); position:relative; transform: translateY(20px); transition: transform 0.3s ease;">
+            <button class="btn-icon" style="position:absolute; top:15px; right:15px; font-size:18px; color:var(--texto-sec);" onclick="fecharModalMetasIndividuais()"><i class="fas fa-times"></i></button>
+            <h3 style="margin-bottom:20px; color:var(--texto-main); font-size: 16px;"><i class="fas fa-bullseye" style="color:var(--esmeralda);"></i> Metas por Cartão (Fatura Atual)</h3>
+            <div id="lista-metas-individuais" style="max-height:60vh; overflow-y:auto; padding-right:5px;"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    const lista = document.getElementById('lista-metas-individuais');
+    let html = '';
+    const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
+    
+    if (cartoes.length === 0) {
+        html = '<p class="texto-vazio" style="font-size:13px; text-align:center;">Nenhum cartão de crédito cadastrado.</p>';
+    } else {
+        const hoje = new Date();
+        cartoes.forEach(c => {
+            let diaFech = parseInt(c.fechamento, 10) || 1;
+            let mesAtivo = hoje.getMonth() + 1; let anoAtivo = hoje.getFullYear();
+            
+            if (hoje.getDate() >= diaFech) { 
+                mesAtivo += 1; 
+                if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; } 
+            }
+            const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
+            
+            let usoMeta = 0;
+            (db.lancamentos || []).forEach(l => {
+                if (String(l.contaId) === String(c.id)) {
+                    const mesFat = window.getMesFaturaLogico(l.data, diaFech);
+                    if (mesFat === strMesAtivo) {
+                        if (T_DESPESAS_CARTAO.includes(l.tipo)) usoMeta += parseFloat(l.valor) || 0;
+                        else if (T_RECEITAS.includes(l.tipo)) usoMeta -= parseFloat(l.valor) || 0;
+                    }
+                }
+            });
+            
+            if (usoMeta < 0) usoMeta = 0;
+            const metaDefinida = parseFloat(c.meta) || 0;
+            const pMeta = metaDefinida > 0 ? (usoMeta / metaDefinida) * 100 : 0;
+            const corBarra = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--esmeralda)');
+            
+            html += `
+            <div style="margin-bottom:15px; border-bottom:1px solid var(--linha); padding-bottom:15px;">
+                <div class="flex-between" style="margin-bottom:8px;">
+                    <strong style="font-size:14px; color:var(--texto-main);">${c.nome}</strong>
+                    <span style="font-size:12px; font-weight:bold; color:${corBarra};">${pMeta.toFixed(1)}%</span>
+                </div>
+                <div class="flex-between" style="font-size:12px; color:var(--texto-sec); margin-bottom:6px;">
+                    <span>Uso: R$ ${fmtBR(usoMeta)}</span>
+                    <span>Meta: R$ ${fmtBR(metaDefinida)}</span>
+                </div>
+                <div style="background:var(--fundo); height:8px; border-radius:8px; overflow:hidden;">
+                    <div style="background:${corBarra}; width:${Math.min(pMeta, 100)}%; height:100%; border-radius:8px; transition: width 0.5s ease;"></div>
+                </div>
+            </div>
+            `;
+        });
+    }
+    lista.innerHTML = html;
+    
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.querySelector('.modal-content').style.transform = 'translateY(0)';
+    }, 10);
+};
+
+window.fecharModalMetasIndividuais = function() {
+    const modal = document.getElementById('modal-metas-individuais');
+    if (modal) {
+        modal.style.opacity = '0';
+        modal.querySelector('.modal-content').style.transform = 'translateY(20px)';
+        setTimeout(() => {
+            modal.style.display = 'none';
+            modal.remove(); // Limpeza completa do DOM ao fechar
+        }, 300);
+    }
+};
+
 // ----------------------------------------------------
-// 4. CARROSSÉIS AUTOMÁTICOS
+// 4. CARROSSÉIS AUTOMÁTICOS E RENDERIZAÇÃO GERAL
 // ----------------------------------------------------
 let biInterval, radarInterval;
+window.iniciarCarrosselBI = function() { clearInterval(biInterval); const slides = document.querySelectorAll('#carrossel-bi-container .carrossel-slide'); const dots = document.querySelectorAll('.bi-dot'); if(slides.length <= 1) return; let slideIndex = 0; biInterval = setInterval(() => { slides[slideIndex].classList.remove('active'); if(dots[slideIndex]) dots[slideIndex].style.background = 'var(--linha)'; slideIndex = (slideIndex + 1) % slides.length; slides[slideIndex].classList.add('active'); if(dots[slideIndex]) dots[slideIndex].style.background = 'var(--esmeralda)'; }, 9000); };
+window.iniciarCarrosselRadar = function() { clearInterval(radarInterval); const slides = document.querySelectorAll('#carrossel-radar-container .radar-slide'); if(slides.length <= 1) return; let slideIndex = 0; radarInterval = setInterval(() => { slides[slideIndex].classList.remove('active'); slideIndex = (slideIndex + 1) % slides.length; slides[slideIndex].classList.add('active'); }, 6000); };
 
-window.iniciarCarrosselBI = function() {
-    clearInterval(biInterval);
-    const slides = document.querySelectorAll('#carrossel-bi-container .carrossel-slide');
-    const dots = document.querySelectorAll('.bi-dot');
-    if(slides.length <= 1) return;
-    let slideIndex = 0;
-
-    biInterval = setInterval(() => {
-        slides[slideIndex].classList.remove('active');
-        if(dots[slideIndex]) dots[slideIndex].style.background = 'var(--linha)';
-        slideIndex = (slideIndex + 1) % slides.length;
-        slides[slideIndex].classList.add('active');
-        if(dots[slideIndex]) dots[slideIndex].style.background = 'var(--esmeralda)';
-    }, 9000); 
-};
-
-window.iniciarCarrosselRadar = function() {
-    clearInterval(radarInterval);
-    const slides = document.querySelectorAll('#carrossel-radar-container .radar-slide');
-    if(slides.length <= 1) return;
-    let slideIndex = 0;
-
-    radarInterval = setInterval(() => {
-        slides[slideIndex].classList.remove('active');
-        slideIndex = (slideIndex + 1) % slides.length;
-        slides[slideIndex].classList.add('active');
-    }, 6000); 
-};
-
-// ----------------------------------------------------
-// 5. MOTOR PRINCIPAL DE RENDERIZAÇÃO E MATEMÁTICA
-// ----------------------------------------------------
 window.render = function() {
     if (typeof db === 'undefined' || !db.contas) return;
-
-    const hoje = new Date(); 
-    const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`;
-    const diaHoje = hoje.getDate();
+    const hoje = new Date(); const mesCorrente = `${hoje.getFullYear()}-${(hoje.getMonth() + 1).toString().padStart(2, '0')}`; const diaHoje = hoje.getDate();
     
-    let calc = { 
-        receitasPagas: 0, receitasTotalMes: 0, 
-        despesasPagas: 0, despesasTotalMes: 0, 
-        faturas: 0, faturasFuturas: 0, 
-        saldoLivre: 0, investido: 0, 
-        usoMetaCartao: 0, metaTotalCartao: 0, gastosFixos: 0, gastosVariaveis: 0 
-    };
-    
+    let calc = { receitasPagas: 0, receitasTotalMes: 0, despesasPagas: 0, despesasTotalMes: 0, faturas: 0, faturasFuturas: 0, saldoLivre: 0, investido: 0, usoMetaCartao: 0, metaTotalCartao: 0, gastosFixos: 0, gastosVariaveis: 0 };
     const catFixas = (db.categorias || []).filter(c => c.fixa).map(c => c.nome);
     let faturasFuturasMapa = {}; 
 
@@ -291,8 +533,7 @@ window.render = function() {
     });
 
     (db.lancamentos || []).forEach(l => {
-        const conta = (db.contas || []).find(c => c.id === l.contaId); 
-        if(!conta) return;
+        const conta = (db.contas || []).find(c => String(c.id) === String(l.contaId)); if(!conta) return;
         
         if (conta.tipo === 'cartao') {
             const mesFatura = window.getMesFaturaLogico(l.data, conta.fechamento || 1); 
@@ -300,68 +541,46 @@ window.render = function() {
             
             if (!(db.faturasPagas || []).includes(fatID)) {
                 const valMutante = T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-                
-                if (mesFatura > mesCorrente) {
-                    faturasFuturasMapa[mesFatura] = (faturasFuturasMapa[mesFatura] || 0) + valMutante;
-                } else {
-                    calc.faturas += valMutante;
-                }
+                if (mesFatura > mesCorrente) faturasFuturasMapa[mesFatura] = (faturasFuturasMapa[mesFatura] || 0) + valMutante;
+                else calc.faturas += valMutante;
             }
             
             let mesAtivoFatura = hoje.getMonth() + 1; let anoAtivoFatura = hoje.getFullYear();
             if (diaHoje >= (conta.fechamento || 1)) { mesAtivoFatura += 1; if (mesAtivoFatura > 12) { mesAtivoFatura = 1; anoAtivoFatura += 1; } }
             if (mesFatura === `${anoAtivoFatura}-${mesAtivoFatura.toString().padStart(2, '0')}`) {
-                if (['despesas_gerais', 'despesa', 'emprestei_cartao'].includes(l.tipo)) calc.usoMetaCartao += l.valor;
+                if (['despesas_gerais', 'despesa'].includes(l.tipo)) calc.usoMetaCartao += l.valor;
                 else if (T_RECEITAS.includes(l.tipo)) calc.usoMetaCartao -= l.valor;
             }
-            if (mesFatura === mesCorrente && ['despesas_gerais', 'despesa'].includes(l.tipo)) { 
+            if (mesFatura === mesCorrente && ['despesas_gerais', 'despesa', 'emprestei_cartao'].includes(l.tipo)) { 
                 if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor; else calc.gastosVariaveis += l.valor; 
             }
         } else {
             if (l.data.substring(0,7) === mesCorrente) {
-                if (T_RECEITAS.includes(l.tipo)) {
-                    calc.receitasTotalMes += l.valor; 
-                    if (l.efetivado) calc.receitasPagas += l.valor;
-                }
+                if (T_RECEITAS.includes(l.tipo)) { calc.receitasTotalMes += l.valor; if (l.efetivado) calc.receitasPagas += l.valor; }
                 if (T_DESPESAS.includes(l.tipo) && !['emprestei_cartao', 'emp_cartao'].includes(l.tipo)) { 
                     calc.despesasTotalMes += l.valor; 
-                    if (l.efetivado) {
-                        calc.despesasPagas += l.valor; 
-                        if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor; else calc.gastosVariaveis += l.valor; 
-                    }
+                    if (l.efetivado) { calc.despesasPagas += l.valor; if(catFixas.includes(l.cat)) calc.gastosFixos += l.valor; else calc.gastosVariaveis += l.valor; }
                 }
             }
         }
     });
 
     let mesesFuturosOrdenados = Object.keys(faturasFuturasMapa).sort();
-    if (mesesFuturosOrdenados.length > 0) {
-        calc.faturasFuturas = faturasFuturasMapa[mesesFuturosOrdenados[0]];
-    }
+    if (mesesFuturosOrdenados.length > 0) calc.faturasFuturas = faturasFuturasMapa[mesesFuturosOrdenados[0]];
 
     if (calc.usoMetaCartao < 0) calc.usoMetaCartao = 0;
     if (db.amortizacoesFaturas) {
         Object.keys(db.amortizacoesFaturas).forEach(fatID => {
             if (!(db.faturasPagas || []).includes(fatID)) {
-                if (fatID.includes(mesCorrente)) {
-                    calc.faturas -= db.amortizacoesFaturas[fatID];
-                } else if (mesesFuturosOrdenados.length > 0 && fatID.includes(mesesFuturosOrdenados[0])) {
-                    calc.faturasFuturas -= db.amortizacoesFaturas[fatID];
-                }
+                if (fatID.includes(mesCorrente)) calc.faturas -= db.amortizacoesFaturas[fatID];
+                else if (mesesFuturosOrdenados.length > 0 && fatID.includes(mesesFuturosOrdenados[0])) calc.faturasFuturas -= db.amortizacoesFaturas[fatID];
             }
         });
     }
 
     const setTexto = (id, texto) => { const el = document.getElementById(id); if(el) el.innerText = texto; };
     
-    setTexto('dash-receitas', `R$ ${fmtBR(calc.receitasPagas)}`); 
-    setTexto('dash-prev-receitas', `R$ ${fmtBR(calc.receitasTotalMes)}`); 
-    setTexto('dash-despesas', `R$ ${fmtBR(calc.despesasPagas)}`); 
-    setTexto('dash-prev-gastos', `R$ ${fmtBR(calc.despesasTotalMes)}`);  
-    setTexto('dash-faturas', `R$ ${fmtBR(calc.faturas)}`); 
-    setTexto('dash-faturas-futuras', `R$ ${fmtBR(calc.faturasFuturas)}`); 
-    setTexto('dash-saldo-livre', `R$ ${fmtBR(calc.saldoLivre)}`); 
-    setTexto('dash-investido', `R$ ${fmtBR(calc.investido)}`);
+    setTexto('dash-receitas', `R$ ${fmtBR(calc.receitasPagas)}`); setTexto('dash-prev-receitas', `R$ ${fmtBR(calc.receitasTotalMes)}`); setTexto('dash-despesas', `R$ ${fmtBR(calc.despesasPagas)}`); setTexto('dash-prev-gastos', `R$ ${fmtBR(calc.despesasTotalMes)}`);  setTexto('dash-faturas', `R$ ${fmtBR(calc.faturas)}`); setTexto('dash-faturas-futuras', `R$ ${fmtBR(calc.faturasFuturas)}`); setTexto('dash-saldo-livre', `R$ ${fmtBR(calc.saldoLivre)}`); setTexto('dash-investido', `R$ ${fmtBR(calc.investido)}`);
 
     const saldoProjetado = calc.saldoLivre - (calc.despesasTotalMes - calc.despesasPagas) - calc.faturas + (calc.receitasTotalMes - calc.receitasPagas); 
     const projElem = document.getElementById('dash-projecao');
@@ -372,6 +591,16 @@ window.render = function() {
     const metaBar = document.getElementById('meta-bar');
     if(metaBar) { metaBar.style.width = Math.min(pMeta, 100) + "%"; metaBar.style.background = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981'); }
     setTexto('meta-percentual', `${pMeta.toFixed(1)}%`);
+
+    const metaTextoElem = document.getElementById('uso-meta-texto');
+    if(metaTextoElem) {
+        const cardMetas = metaTextoElem.closest('.card-simples');
+        if (cardMetas) {
+            cardMetas.style.cursor = 'pointer';
+            cardMetas.setAttribute('title', 'Clique para ver as metas por cartão');
+            cardMetas.onclick = function() { window.abrirModalMetasIndividuais(); };
+        }
+    }
 
     const patrimonioLiquido = calc.saldoLivre + calc.investido - calc.faturas; 
     const patElem = document.getElementById('bi-patrimonio');
@@ -386,8 +615,7 @@ window.render = function() {
     if(barPoupanca) barPoupanca.style.width = `${Math.min(Math.max(0, taxaPoupanca), 100)}%`;
 
     const totalGastosBI = calc.gastosFixos + calc.gastosVariaveis; 
-    const percFixo = totalGastosBI > 0 ? (calc.gastosFixos / totalGastosBI) * 100 : 0; 
-    const percVar = totalGastosBI > 0 ? (calc.gastosVariaveis / totalGastosBI) * 100 : 0;
+    const percFixo = totalGastosBI > 0 ? (calc.gastosFixos / totalGastosBI) * 100 : 0; const percVar = totalGastosBI > 0 ? (calc.gastosVariaveis / totalGastosBI) * 100 : 0;
     setTexto('bi-perc-fixo', `${percFixo.toFixed(0)}%`); setTexto('bi-perc-var', `${percVar.toFixed(0)}%`);
     const barFixo = document.getElementById('bar-fixo'); const barVar = document.getElementById('bar-var');
     if(barFixo) barFixo.style.width = `${percFixo}%`; if(barVar) barVar.style.width = `${percVar}%`;
@@ -397,35 +625,23 @@ window.render = function() {
     if (typeof renderHistorico === 'function') renderHistorico(); 
     if (typeof renderAbaContas === 'function') renderAbaContas(); 
     if (typeof renderAbaFaturas === 'function') renderAbaFaturas(); 
-    
-    // Assegura chamada da interface de Contratos e Salários
     if (typeof renderListaContratos === 'function') renderListaContratos();
     if (typeof renderListaSalarios === 'function') renderListaSalarios();
-    
-    setTimeout(() => { 
-        if (typeof renderGrafico === 'function') renderGrafico(); 
-        if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao(); 
-    }, 100);
+    setTimeout(() => { if (typeof renderGrafico === 'function') renderGrafico(); if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao(); }, 100);
 }
 
 // ----------------------------------------------------
-// 6. HISTÓRICO E EXTRATOS
+// 5. HISTÓRICO E EXTRATOS (SEM BOTÕES INLINE)
 // ----------------------------------------------------
 window.renderFiltrosExtratoDinamicamente = function() {
-    const selectCat = document.getElementById('filtro-cat');
-    const selectConta = document.getElementById('filtro-conta');
-    
+    const selectCat = document.getElementById('filtro-cat'); const selectConta = document.getElementById('filtro-conta');
     if (selectCat) {
-        let catAtual = selectCat.value || 'todas';
-        let catsUnicas = new Set();
+        let catAtual = selectCat.value || 'todas'; let catsUnicas = new Set();
         (db.lancamentos || []).forEach(l => { if(l.cat) catsUnicas.add(l.cat); });
-        let arrayCats = Array.from(catsUnicas).sort((a,b) => a.localeCompare(b));
-        
         let htmlCat = `<option value="todas">Todas</option>`;
-        arrayCats.forEach(cat => { htmlCat += `<option value="${cat}" ${catAtual === cat ? 'selected' : ''}>${cat}</option>`; });
+        Array.from(catsUnicas).sort((a,b) => a.localeCompare(b)).forEach(cat => { htmlCat += `<option value="${cat}" ${catAtual === cat ? 'selected' : ''}>${cat}</option>`; });
         selectCat.innerHTML = htmlCat;
     }
-    
     if (selectConta) {
         let contaAtual = selectConta.value || 'todas';
         let htmlConta = `<option value="todas">Todas as Contas e Cartões</option>`;
@@ -436,7 +652,6 @@ window.renderFiltrosExtratoDinamicamente = function() {
 
 window.renderHistorico = function() {
     const lista = document.getElementById('lista-historico-filtros'); if(!lista) return;
-    
     if (typeof window.renderFiltrosExtratoDinamicamente === 'function') window.renderFiltrosExtratoDinamicamente();
 
     const inputMes = document.getElementById('filtro-mes'); 
@@ -446,18 +661,26 @@ window.renderHistorico = function() {
     const contaFiltro = document.getElementById('filtro-conta') ? document.getElementById('filtro-conta').value : 'todas';
     
     if (inputMes && !inputMes.value) inputMes.value = mesFiltro;
-    
     const limiteAtencao = new Date(); limiteAtencao.setHours(0,0,0,0); limiteAtencao.setDate(limiteAtencao.getDate() + 7);
 
     let lancs = (db.lancamentos || []).map(l => {
         if(!l || !l.data) return null; 
-        const c = (db.contas || []).find(x => x.id === l.contaId); 
+        const c = (db.contas || []).find(x => String(x.id) === String(l.contaId)); 
         let dtRef = new Date(l.data + 'T00:00:00'); let status = '';
         
         if (c && c.tipo === 'cartao') { 
             const mesFat = window.getMesFaturaLogico(l.data, c.fechamento || 1); 
+            
+            let anoFat = parseInt(mesFat.split('-')[0]);
+            let mesFatNum = parseInt(mesFat.split('-')[1]);
+            let diaFech = parseInt(c.fechamento) || 1;
+            let diaVenc = parseInt(c.vencimento) || 1;
+            let mesFechamento = mesFatNum; let anoFechamento = anoFat;
+            if (diaFech > diaVenc) { mesFechamento -= 1; if (mesFechamento < 1) { mesFechamento = 12; anoFechamento -= 1; } }
+            const dataFechamento = new Date(anoFechamento, mesFechamento - 1, diaFech, 0, 0, 0);
+
             if ((db.faturasPagas || []).includes(`${c.id}-${mesFat}`)) status = 'pago'; 
-            else if (new Date() >= new Date(`${mesFat.split('-')[0]}-${mesFat.split('-')[1]}-${(c.fechamento || 1).toString().padStart(2,'0')}T00:00:00`)) status = 'atencao'; 
+            else if (new Date() >= dataFechamento) status = 'atencao'; 
             else status = 'em_aberto'; 
         } else { 
             if (l.efetivado) status = T_RECEITAS.includes(l.tipo) ? 'receita' : 'pago'; 
@@ -466,20 +689,13 @@ window.renderHistorico = function() {
             else status = 'em_aberto'; 
         }
         return { ...l, statusCalculado: status, contaObj: c, isReceita: T_RECEITAS.includes(l.tipo) };
-    }).filter(l => l !== null && 
-                   l.data.substring(0,7) === mesFiltro && 
-                   (statusFiltro === 'todos' || l.statusCalculado === statusFiltro) && 
-                   (catFiltro === 'todas' || l.cat === catFiltro) &&
-                   (contaFiltro === 'todas' || l.contaId === contaFiltro)
-             )
-      .sort((a, b) => new Date(b.data) - new Date(a.data) || b.id - a.id);
+    }).filter(l => l !== null && l.data.substring(0,7) === mesFiltro && (statusFiltro === 'todos' || l.statusCalculado === statusFiltro) && (catFiltro === 'todas' || l.cat === catFiltro) && (contaFiltro === 'todas' || l.contaId === contaFiltro)).sort((a, b) => new Date(b.data) - new Date(a.data) || b.id - a.id);
     
     if(lancs.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Nenhum registro encontrado com estes filtros.</div>"; return; }
 
     const catDBList = [...(db.categorias || [])];
     lista.innerHTML = `<div class="flex-between" style="margin-bottom: 12px; align-items: center; padding: 0 5px;"><span style="font-size: 12px; color: var(--texto-sec); font-weight: 600;"><i class="fas fa-list"></i> ${lancs.length} registros</span></div>` + lancs.map(l => {
         const c = l.contaObj; let chipHtml = ''; 
-        
         const chipStyle = `padding:3px 8px; border-radius:6px; font-size:9px; font-weight:800; letter-spacing:0.5px; text-transform:uppercase; color:#fff; flex-shrink:0;`;
         if (c && c.tipo === 'cartao') chipHtml = `<span style="${chipStyle} background:var(--${l.statusCalculado==='pago'?'sucesso':(l.statusCalculado==='atencao'?'alerta':'azul')});">FATURA ${l.statusCalculado==='pago'?'PAGA':(l.statusCalculado==='atencao'?'FECHADA':'ABERTA')}</span>`; 
         else chipHtml = `<span style="${chipStyle} background:var(--${l.statusCalculado==='receita'?'esmeralda':(l.statusCalculado==='pago'?'sucesso':(l.statusCalculado==='atrasado'?'perigo':(l.statusCalculado==='atencao'?'alerta':'azul')))});">${l.statusCalculado==='receita'?'RECEBIDO':(l.statusCalculado==='pago'?'PAGO':(l.statusCalculado==='atrasado'?'ATRASADO':(l.statusCalculado==='atencao'?'ATENÇÃO':(l.isReceita?'A RECEBER':'EM ABERTO'))))}</span>`; 
@@ -494,19 +710,12 @@ window.renderHistorico = function() {
                 <div class="flex-between" style="margin-bottom: 8px; gap: 8px;"><strong style="font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">${l.desc || 'Sem descrição'}</strong>${chipHtml}</div>
                 <div class="flex-between" style="align-items: center; gap: 10px;">
                     <div style="display:flex; flex-direction:column; gap:4px; flex:1; min-width:0;">
-                        <small style="color:var(--texto-sec); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Excluída'}
-                        </small>
-                        <span style="font-size:11px; font-weight:600; color:var(--texto-sec); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${catDB&&catDB.icone?catDB.icone+' ':''}${l.cat || 'Outros'}
-                        </span>
-                        ${(!l.efetivado && c && c.tipo !== 'cartao') ? `<div style="display:flex; gap:6px; margin-top:4px;"><button class="btn-primary" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); ${l.rolagem ? `confirmarQuitacao('${l.id}')` : `confirmarPagamento('${l.id}')`}">${l.rolagem ? 'Quitar' : (l.isReceita ? 'Receber' : 'Pagar')}</button>${l.rolagem ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); abrirModalParcial('${l.id}', ${l.valor})">Parcial</button>` : ''}</div>` : ''}
+                        <small style="color:var(--texto-sec); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${(l.data || '').split('-').reverse().join('/')} • ${c?c.nome:'Excluída'}</small>
+                        <span style="font-size:11px; font-weight:600; color:var(--texto-sec); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${catDB&&catDB.icone?catDB.icone+' ':''}${l.cat || 'Outros'}</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:8px; flex-shrink: 0;">
-                        <strong style="color: ${T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)'}; font-size:16px; white-space: nowrap; flex-shrink: 0;">
-                            ${l.isReceita ? '+' : '-'} R$ ${fmtBR(l.valor || 0)}
-                        </strong>
-                        <i class="fas fa-chevron-down fatura-chevron" id="icon-${l.id}" style="font-size:11px; color:var(--texto-sec); opacity:0.3; flex-shrink:0; ${l.efetivado ? 'display:none;' : ''}"></i>
+                        <strong style="color: ${T_DESPESAS.includes(l.tipo) ? 'var(--perigo)' : 'var(--sucesso)'}; font-size:16px; white-space: nowrap; flex-shrink: 0;">${l.isReceita ? '+' : '-'} R$ ${fmtBR(l.valor || 0)}</strong>
+                        <button class="btn-icon" style="width:30px; height:30px; margin-left: 5px; flex-shrink: 0;" onclick="mostrarContextMenuRightClick(event, '${l.id}')"><i class="fas fa-ellipsis-v" style="color:var(--texto-sec);"></i></button>
                     </div>
                 </div>
             </div>
@@ -514,9 +723,8 @@ window.renderHistorico = function() {
                 <label class="label-moderno">Editar Descrição</label><input type="text" id="e-lanc-desc-${l.id}" class="input-moderno mb-10" value="${l.desc || ''}">
                 <label class="label-moderno">Conta Origem/Destino</label><select id="e-lanc-conta-${l.id}" class="input-moderno mb-10">${accOpts}</select>
                 <label class="label-moderno">Categoria</label><select id="e-lanc-cat-${l.id}" class="input-moderno mb-10">${catOpts}</select>
-                <div class="grid-inputs mb-10"><div><label class="label-moderno">Data</label><input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data || ''}"></div><div><label class="label-moderno">Valor (R$)</label><input type="text" inputmode="numeric" id="e-lanc-val-${l.id}" class="input-moderno" value="${(l.valor || 0).toFixed(2).replace('.', ',')}" oninput="mascaraMoeda(event)"></div></div>
+                <div class="grid-inputs mb-10"><div><label class="label-moderno">Data</label><input type="date" id="e-lanc-data-${l.id}" class="input-moderno" value="${l.data || ''}"></div><div><label class="label-moderno">Valor (R$)</label><input type="text" inputmode="numeric" id="e-lanc-val-${l.id}" class="input-moderno" value="${(l.valor || 0).toFixed(2).replace('.', ',')}" oninput="if(typeof mascaraMoeda === 'function') mascaraMoeda(event)"></div></div>
                 <div class="flex-between mt-10" style="gap:8px;">
-                    <button class="btn-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--perigo); border-radius: 10px; width: 42px; height: 42px;" onclick="excluirLancamento('${l.id}')" title="Excluir"><i class="fas fa-trash"></i></button>
                     <button class="btn-outline" style="flex: 1; padding: 12px; font-size: 13px; border-radius: 10px;" onclick="toggleEditLancamento('${l.id}')">Cancelar</button>
                     <button class="btn-primary" style="flex: 1; padding: 12px; font-size: 13px; border-radius: 10px;" onclick="salvarEdicaoLancamento('${l.id}')">Salvar</button>
                 </div>
@@ -533,19 +741,16 @@ window.toggleEditLancamento = function(id) {
         if(icon) icon.classList.toggle('open'); 
         return;
     }
-    
     if (typeof window.abrirModalEdicaoLancamento === 'function') {
         window.abrirModalEdicaoLancamento(id);
     } else {
         const el = document.getElementById(`edit-lanc-${id}`); 
-        const icon = document.getElementById(`icon-${id}`); 
         if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none'; 
-        if(icon) icon.classList.toggle('open'); 
     }
 }
 
 // ----------------------------------------------------
-// 7. ABAS SECUNDÁRIAS (Contas, Faturas, Radares)
+// 6. ABAS SECUNDÁRIAS (Contas, Faturas, Radares)
 // ----------------------------------------------------
 window.renderAbaContas = function() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return; lista.innerHTML = ``;
@@ -558,7 +763,7 @@ window.renderAbaContas = function() {
             const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
             
             (db.lancamentos || []).forEach(l => { 
-                if (l.contaId === c.id) { 
+                if (String(l.contaId) === String(c.id)) { 
                     const mesLancLogico = window.getMesFaturaLogico(l.data, c.fechamento || 1); 
                     const isPaga = (db.faturasPagas || []).includes(`${c.id}-${mesLancLogico}`); 
                     let valorCalc = 0; 
@@ -566,7 +771,7 @@ window.renderAbaContas = function() {
                     if (valorCalc !== 0) { if (mesLancLogico === strMesAtivo) usoMeta += valorCalc; if (!isPaga) usoLimite += valorCalc; } 
                 }
             });
-            Object.keys(db.amortizacoesFaturas || {}).forEach(fatID => { if (fatID.split('-')[0] === c.id && !(db.faturasPagas || []).includes(fatID)) usoLimite -= db.amortizacoesFaturas[fatID]; });
+            Object.keys(db.amortizacoesFaturas || {}).forEach(fatID => { if (fatID.split('-')[0] === String(c.id) && !(db.faturasPagas || []).includes(fatID)) usoLimite -= db.amortizacoesFaturas[fatID]; });
             if (usoLimite < 0) usoLimite = 0; if (usoMeta < 0) usoMeta = 0;
             const pLimite = c.limite > 0 ? (usoLimite / c.limite) * 100 : 0; const pMeta = c.meta > 0 ? (usoMeta / c.meta) * 100 : 0;
             
@@ -575,58 +780,6 @@ window.renderAbaContas = function() {
         lista.innerHTML += `<div class="cartao-banco" style="background: linear-gradient(135deg, ${c.cor}, #1e293b); margin-bottom: 10px;"><div class="cartao-header"><span class="cartao-nome">${c.nome}</span><span class="cartao-tipo">${isCartao ? 'Crédito' : (c.tipo==='investimento' ? 'Investimento' : 'Corrente')}</span></div><div class="cartao-saldo">R$ ${fmtBR(isCartao ? ((c.limite || 0) - usoLimite) : (c.saldo || 0))}</div>${isCartao ? '<small style="display:block; opacity:0.8; font-size:10px; margin-top:5px;">Limite Disponível</small>' : ''} ${extraHtml}<div class="cartao-acoes"><button class="btn-cartao-acao" onclick="abrirModalExtratoConta('${c.id}')"><i class="fas fa-list-ul"></i> Extrato</button><button class="btn-cartao-acao" onclick="abrirModalAjusteConta('${c.id}')"><i class="fas fa-cog"></i> Ajustes</button></div></div>`;
     });
 }
-
-window.renderMetasIndividuais = function() {
-    const lista = document.getElementById('lista-metas-detalhadas');
-    if(!lista) return;
-
-    const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
-    if (cartoes.length === 0) {
-        lista.innerHTML = '<p class="texto-vazio">Você não possui cartões de crédito cadastrados com metas estipuladas.</p>';
-        return;
-    }
-
-    const hoje = new Date(); 
-    const diaHoje = hoje.getDate();
-    let html = '';
-
-    cartoes.forEach(c => {
-        let mesAtivo = hoje.getMonth() + 1; let anoAtivo = hoje.getFullYear();
-        if (diaHoje >= (c.fechamento || 1)) { mesAtivo += 1; if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; } }
-        const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
-        
-        let usoMeta = 0;
-        (db.lancamentos || []).forEach(l => { 
-            if (l.contaId === c.id) { 
-                const mesLancLogico = window.getMesFaturaLogico(l.data, c.fechamento || 1); 
-                let valorCalc = 0; 
-                if (T_DESPESAS_CARTAO.includes(l.tipo)) valorCalc = l.valor; else if (T_RECEITAS.includes(l.tipo)) valorCalc = -l.valor; 
-                if (valorCalc !== 0 && mesLancLogico === strMesAtivo) usoMeta += valorCalc; 
-            }
-        });
-
-        if (usoMeta < 0) usoMeta = 0;
-        const pMeta = c.meta > 0 ? (usoMeta / c.meta) * 100 : 0;
-        const corBarra = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981');
-
-        html += `
-        <div class="salario-card" style="margin-bottom: 12px; display: block; border-left: 4px solid ${c.cor};">
-            <div class="flex-between" style="margin-bottom: 8px;">
-                <strong style="font-size: 14px; color: var(--texto-main);"><i class="fas fa-credit-card"></i> ${c.nome}</strong>
-                <span class="badge-neutro" style="background: ${corBarra}20; color: ${corBarra}; font-weight: bold;">${pMeta.toFixed(1)}%</span>
-            </div>
-            <div class="flex-between" style="margin-bottom: 6px;">
-                <small style="color: var(--texto-sec); font-size: 11px;">Fatura Atual: R$ ${fmtBR(usoMeta)}</small>
-                <small style="color: var(--texto-main); font-size: 11px; font-weight: bold;">Meta: R$ ${fmtBR(c.meta || 0)}</small>
-            </div>
-            <div class="progress-bg" style="height: 8px;">
-                <div class="progress-fill" style="width: ${Math.min(pMeta, 100)}%; background: ${corBarra};"></div>
-            </div>
-        </div>`;
-    });
-
-    lista.innerHTML = html;
-};
 
 window.renderAbaFaturas = function() {
     const abas = document.getElementById('abas-cartoes-fatura'); 
@@ -638,46 +791,90 @@ window.renderAbaFaturas = function() {
     if(cartoes.length === 0) { abas.innerHTML = ""; lista.innerHTML = "<div class='card texto-vazio'>Nenhum cartão cadastrado.</div>"; return; }
     if(!window.cartaoAtivoFatura && cartoes.length > 0) window.cartaoAtivoFatura = cartoes[0].id;
     
-    abas.innerHTML = `<div class="segmented-control">` + cartoes.map(c => `<button class="segmented-btn ${c.id === window.cartaoAtivoFatura ? 'active' : ''}" onclick="window.cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('') + `</div>`;
+    abas.innerHTML = `<div class="segmented-control">` + cartoes.map(c => `<button class="segmented-btn ${String(c.id) === String(window.cartaoAtivoFatura) ? 'active' : ''}" onclick="window.cartaoAtivoFatura='${c.id}'; renderAbaFaturas();">${c.nome}</button>`).join('') + `</div>`;
     
-    const c = cartoes.find(x => x.id === window.cartaoAtivoFatura); 
+    const c = cartoes.find(x => String(x.id) === String(window.cartaoAtivoFatura)); 
     if(!c) return; 
 
+    const hoje = new Date();
+    let mesAtivo = hoje.getMonth() + 1; let anoAtivo = hoje.getFullYear();
+    if (hoje.getDate() >= (c.fechamento || 1)) { mesAtivo += 1; if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; } }
+    const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
+    
+    let usoMetaAtual = 0;
     let mesesFatura = {};
+
     (db.lancamentos || []).forEach(l => { 
-        if(l.contaId !== c.id) return; 
+        if(String(l.contaId) !== String(c.id)) return; 
         const mesFat = window.getMesFaturaLogico(l.data, c.fechamento || 1); 
+        
+        if (mesFat === strMesAtivo) {
+            if (T_DESPESAS_CARTAO.includes(l.tipo)) usoMetaAtual += l.valor;
+            else if (T_RECEITAS.includes(l.tipo)) usoMetaAtual -= l.valor;
+        }
+
         if(!mesesFatura[mesFat]) mesesFatura[mesFat] = { total: 0, lancamentos: [] }; 
         mesesFatura[mesFat].total += T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor; 
         mesesFatura[mesFat].lancamentos.push(l); 
     });
 
-    const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01')); 
-    if(mesesOrdenados.length === 0) { lista.innerHTML = "<div class='card texto-vazio'>Sem faturas registradas.</div>"; return; }
+    if(usoMetaAtual < 0) usoMetaAtual = 0;
+    const pMeta = c.meta > 0 ? (usoMetaAtual / c.meta) * 100 : 0;
+    
+    const htmlMetaIndividual = `
+        <div style="background:var(--card-bg); border:1px solid var(--linha); border-radius:12px; padding:15px; margin-bottom:15px; box-shadow:var(--shadow-sm);">
+            <div class="flex-between" style="margin-bottom:8px;">
+                <div>
+                    <strong style="display:block; font-size:13px; color:var(--texto-main);"><i class="fas fa-bullseye" style="color:var(--esmeralda);"></i> Meta da Fatura Atual</strong>
+                    <small style="color:var(--texto-sec); font-size:11px;">Fatura ${window.formatarMesFaturaLogico(strMesAtivo)}</small>
+                </div>
+                <div style="text-align:right;">
+                    <strong style="color:${pMeta > 100 ? 'var(--perigo)' : 'var(--texto-main)'}; font-size:14px;">R$ ${fmtBR(usoMetaAtual)}</strong>
+                    <small style="display:block; color:var(--texto-sec); font-size:11px;">de R$ ${fmtBR(c.meta || 0)}</small>
+                </div>
+            </div>
+            <div style="background:var(--fundo); height:8px; border-radius:8px; overflow:hidden;">
+                <div style="background:${pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--esmeralda)')}; width:${Math.min(pMeta, 100)}%; height:100%; border-radius:8px;"></div>
+            </div>
+        </div>
+    `;
 
-    lista.innerHTML = mesesOrdenados.map(mes => {
+    const mesesOrdenados = Object.keys(mesesFatura).sort((a,b) => new Date(b+'-01') - new Date(a+'-01')); 
+    if(mesesOrdenados.length === 0) { lista.innerHTML = htmlMetaIndividual + "<div class='card texto-vazio'>Sem faturas registradas.</div>"; return; }
+
+    lista.innerHTML = htmlMetaIndividual + mesesOrdenados.map(mes => {
         const fatID = `${c.id}-${mes}`; const estaPaga = (db.faturasPagas || []).includes(fatID); 
         const jaAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0; 
         const totalFinal = mesesFatura[mes].total - jaAmortizado;
-        let statusTag = estaPaga ? '<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">PAGO</span>' : (new Date() >= new Date(`${mes.split('-')[0]}-${mes.split('-')[1]}-${(c.fechamento || 1).toString().padStart(2, '0')}T00:00:00`) ? '<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">FECHADA</span>' : '<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">EM ABERTO</span>');
+        
+        let anoFatM = parseInt(mes.split('-')[0]);
+        let mesFatNumM = parseInt(mes.split('-')[1]);
+        let diaFechM = parseInt(c.fechamento) || 1;
+        const dataFech = new Date(anoFatM, mesFatNumM - 1, diaFechM, 0, 0, 0);
+        
+        const hojeCompare = new Date(); hojeCompare.setHours(0,0,0,0);
+        const isFechadaM = hojeCompare.getTime() >= dataFech.getTime();
 
-        const botoesAcaoHtml = estaPaga 
-            ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); if(typeof motorEstornarFatura === 'function') motorEstornarFatura('${fatID}')">Reabrir</button>`
-            : `${totalFinal > 0 ? `<button class="btn-outline" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); amortizarFatura('${fatID}')">Amortizar</button>` : ''}
-               <button class="btn-primary" style="padding:6px 10px; font-size:10px; width:auto;" onclick="event.stopPropagation(); if(typeof motorPagarFatura === 'function') motorPagarFatura('${fatID}', ${totalFinal})">Pagar</button>`;
+        let statusTag = estaPaga ? '<span class="status-badge" style="background:var(--sucesso); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">PAGO</span>' : (isFechadaM ? '<span class="status-badge" style="background:var(--alerta); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">FECHADA</span>' : '<span class="status-badge" style="background:var(--azul); color:#fff; font-size:9px; padding:3px 8px; border-radius:6px; font-weight:800;">EM ABERTO</span>');
 
         return `
         <div class="card fatura-card ${estaPaga ? 'paga' : ''}" id="fat-card-${fatID}" style="padding:0; overflow:hidden; border:1px solid ${estaPaga?'var(--sucesso)':'var(--linha)'}; margin-bottom: 12px; transition: 0.3s;">
-            <div style="padding:15px; cursor:pointer; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" onclick="toggleEditLancamento('det-fat-${fatID}')">
+            <div style="padding:15px; cursor:context-menu; user-select:none; background:${estaPaga?'rgba(16,185,129,0.05)':'var(--card-bg)'};" 
+                 oncontextmenu="mostrarContextMenuRightClick(event, '${fatID}', true)" 
+                 onmousedown="iniciarLongPress(event, '${fatID}', true)" 
+                 onmouseup="cancelarLongPress()" 
+                 onmouseleave="cancelarLongPress()" 
+                 ontouchstart="iniciarLongPress(event, '${fatID}', true)" 
+                 ontouchend="cancelarLongPress()" 
+                 ontouchmove="cancelarLongPress(); fecharMenuCtx();" 
+                 onclick="toggleEditLancamento('det-fat-${fatID}')">
                 <div class="flex-between" style="margin-bottom: 8px;"><strong style="font-size:14px;"><i class="fas fa-file-invoice-dollar" style="color:var(--texto-sec);"></i> Fatura ${window.formatarMesFaturaLogico(mes)}</strong>${statusTag}</div>
                 <div class="flex-between" style="align-items: center;">
                     <div style="display:flex; flex-direction:column; gap:2px;">
                         <small style="color:var(--texto-sec); font-size:11px;">Venc: ${(c.vencimento||1).toString().padStart(2,'0')}/${mes.split('-')[1]}</small>
                         <div style="display:flex; align-items:center; gap:8px;"><strong class="${estaPaga?'txt-sucesso':'txt-perigo'}" style="font-size:16px;">R$ ${fmtBR(totalFinal)}</strong><i class="fas fa-chevron-down fatura-chevron" id="icon-det-fat-${fatID}" style="font-size:11px; color:var(--texto-sec);"></i></div>
                     </div>
-                    <div style="display:flex; gap:6px;">
-                        ${botoesAcaoHtml}
-                    </div>
+                    <button class="btn-icon" style="width:30px; height:30px; margin-left: 5px; flex-shrink: 0;" onclick="mostrarContextMenuRightClick(event, '${fatID}', true)"><i class="fas fa-ellipsis-v" style="color:var(--texto-sec);"></i></button>
                 </div>
                 ${jaAmortizado > 0 ? `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);"><div class="flex-between" style="font-size:10px; color:var(--texto-sec); margin-bottom:4px;"><span>Amortizado: R$ ${fmtBR(jaAmortizado)}</span><div style="display:flex; align-items:center; gap:6px;"><span class="txt-sucesso" style="font-weight:bold;">${((jaAmortizado/mesesFatura[mes].total)*100).toFixed(0)}%</span><button class="btn-icon" style="color:var(--perigo); font-size:11px; padding:2px 6px; border-radius:4px; background:rgba(239, 68, 68, 0.1);" onclick="event.stopPropagation(); estornarAmortizacaoFatura('${fatID}')" title="Estornar Amortização"><i class="fas fa-undo"></i></button></div></div><div class="micro-bar-bg"><div class="micro-bar-fill" style="width:${(jaAmortizado/mesesFatura[mes].total)*100}%"></div></div></div>` : ''}
             </div>
@@ -698,7 +895,7 @@ window.renderRadarVencimentos = function() {
     let alertas = [];
 
     (db.lancamentos || []).forEach(l => {
-        const conta = (db.contas || []).find(c => c.id === l.contaId); if (conta && conta.tipo === 'cartao') return; 
+        const conta = (db.contas || []).find(c => String(c.id) === String(l.contaId)); if (conta && conta.tipo === 'cartao') return; 
         const d = new Date(l.data + 'T00:00:00'); d.setHours(0,0,0,0);
         if (!l.efetivado && T_DESPESAS.includes(l.tipo) && d <= limite7) {
             const dias = Math.round((d - hoje) / 86400000);
@@ -708,7 +905,7 @@ window.renderRadarVencimentos = function() {
 
     (db.contas || []).filter(c => c.tipo === 'cartao').forEach(c => {
         let meses = {};
-        (db.lancamentos || []).forEach(l => { if(l.contaId === c.id) { const m = window.getMesFaturaLogico(l.data, c.fechamento || 1); meses[m] = (meses[m]||0) + (T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor); } });
+        (db.lancamentos || []).forEach(l => { if(String(l.contaId) === String(c.id)) { const m = window.getMesFaturaLogico(l.data, c.fechamento || 1); meses[m] = (meses[m]||0) + (T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor); } });
         Object.keys(meses).forEach(m => {
             const fatID = `${c.id}-${m}`; if ((db.faturasPagas || []).includes(fatID)) return;
             const t = meses[m] - ((db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0); if (t <= 0) return;
@@ -724,7 +921,7 @@ window.renderRadarVencimentos = function() {
 }
 
 // ----------------------------------------------------
-// 8. SALÁRIOS, CONTRATOS, PARCELAMENTOS
+// 7. RESTANTE DO CÓDIGO (CONTRATOS, SALÁRIOS, CATEGORIAS, CONTAS)
 // ----------------------------------------------------
 
 window.atualizarDiasSalario = function() {
@@ -738,9 +935,7 @@ window.atualizarDiasSalario = function() {
     if (freq === 'semanal') {
         const diasSemana = [{v:1, l:'Seg'}, {v:2, l:'Ter'}, {v:3, l:'Qua'}, {v:4, l:'Qui'}, {v:5, l:'Sex'}, {v:6, l:'Sáb'}, {v:0, l:'Dom'}];
         let html = '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top: 5px;">';
-        diasSemana.forEach(d => {
-            html += `<label style="display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer;"><input type="checkbox" id="sal-dia-${d.v}" value="${d.v}"> ${d.l}</label>`;
-        });
+        diasSemana.forEach(d => { html += `<label style="display:flex; align-items:center; gap:4px; font-size:12px; cursor:pointer;"><input type="checkbox" id="sal-dia-${d.v}" value="${d.v}"> ${d.l}</label>`; });
         html += '</div>';
         container.innerHTML = html;
     } else if (freq === 'quinzenal') {
@@ -750,11 +945,7 @@ window.atualizarDiasSalario = function() {
     }
 };
 
-document.addEventListener('change', function(e) {
-    if (e.target && e.target.id === 'sal-freq') {
-        if (typeof atualizarDiasSalario === 'function') atualizarDiasSalario();
-    }
-});
+document.addEventListener('change', function(e) { if (e.target && e.target.id === 'sal-freq') { if (typeof atualizarDiasSalario === 'function') atualizarDiasSalario(); } });
 
 window.salvarNovoSalarioAbsoluto = function() {
     const nomeEl = document.getElementById('sal-nome'); const valorEl = document.getElementById('sal-valor'); const freqEl = document.getElementById('sal-freq'); const contaEl = document.getElementById('sal-conta');
@@ -794,7 +985,6 @@ window.abrirEdicaoSalario = function(id) {
             const inputs = document.querySelectorAll('#sal-dias-container input');
             inputs.forEach(input => { if(input.type === 'checkbox') input.checked = false; else input.value = ''; });
             sal.dias.forEach((d, index) => { let cb = document.getElementById(`sal-dia-${d}`); if (cb && cb.type === 'checkbox') cb.checked = true; else if (inputs[index] && (inputs[index].type === 'number' || inputs[index].type === 'text')) { inputs[index].value = d; } });
-            if (typeof calcularResumoSalario === 'function') calcularResumoSalario();
         }, 100);
     }
     const form = document.getElementById('form-novo-salario'); if (form) form.style.display = 'block';
@@ -891,8 +1081,8 @@ window.renderListaContratos = function() {
     const conSafe = db.contas || [];
 
     const gerarCard = (item, isParc) => {
-        const catObj = catSafe.find(c => c.nome === (item.categoria||item.cat) || c.id === (item.categoria||item.cat)) || { icone: isParc?'📦':'📌', nome: item.categoria||'Outros' };
-        const contaObj = conSafe.find(c => c.id === (item.contaId || item.conta)) || { nome: 'Conta Excluída', cor: '#ccc' };
+        const catObj = catSafe.find(c => c.nome === (item.categoria||item.cat) || String(c.id) === String(item.categoria||item.cat)) || { icone: isParc?'📦':'📌', nome: item.categoria||'Outros' };
+        const contaObj = conSafe.find(c => String(c.id) === String(item.contaId || item.conta)) || { nome: 'Conta Excluída', cor: '#ccc' };
         const colorVal = isParc ? 'var(--alerta)' : 'var(--perigo)';
         const badgeHtml = isParc && item.badge ? `<span style="display: inline-block; background: rgba(245, 158, 11, 0.1); color: var(--alerta); padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-top: 4px; width: max-content;">Parcela ${item.badge}</span>` : '';
 
@@ -1038,7 +1228,7 @@ window.abrirEdicaoParcelamento = function(idGrupo) {
     (db.categorias || []).forEach(c => { catOptions += `<option value="${c.nome}" ${lancBase.cat === c.nome ? 'selected' : ''}>${c.icone || ''} ${c.nome}</option>`; });
 
     let contaOptions = '';
-    (db.contas || []).forEach(c => { contaOptions += `<option value="${c.id}" ${lancBase.contaId === c.id ? 'selected' : ''}>${c.tipo === 'cartao' ? '💳' : '🏦'} ${c.nome}</option>`; });
+    (db.contas || []).forEach(c => { contaOptions += `<option value="${c.id}" ${String(lancBase.contaId) === String(c.id) ? 'selected' : ''}>${c.tipo === 'cartao' ? '💳' : '🏦'} ${c.nome}</option>`; });
 
     let html = `
         <div style="background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 8px; border-left: 3px solid var(--azul); font-size: 11px; color: var(--texto-sec); margin-bottom: 15px;">
@@ -1118,10 +1308,6 @@ window.salvarEdicaoParcelamento = function(idGrupo) {
     if(typeof showToast === 'function') showToast(`${atualizados} parcelas atualizadas!`, "sucesso");
 };
 
-// ----------------------------------------------------
-// 9. MODAIS DE CATEGORIAS
-// ----------------------------------------------------
-
 window.abrirModalCategorias = function() { fecharModalListaCat(); fecharModalNovaCat(); const m = document.getElementById('modal-categorias'); if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); } };
 window.fecharModalCategorias = function() { const m = document.getElementById('modal-categorias'); if(m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } };
 window.abrirModalNovaCat = function() { fecharModalCategorias(); fecharModalListaCat(); document.getElementById('nova-cat-id').value = ''; document.getElementById('nova-cat-icone').value = ''; document.getElementById('nova-cat-nome').value = ''; document.getElementById('nova-cat-fixa').checked = false; document.getElementById('label-form-cat').innerHTML = "<i class='fas fa-plus' style='color:var(--esmeralda);'></i> Nova Categoria"; document.getElementById('btn-salvar-cat').innerText = "Salvar"; const m = document.getElementById('modal-nova-cat'); if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); } };
@@ -1146,7 +1332,7 @@ window.renderModalCategorias = function() {
 };
 
 window.editarCategoria = function(id) { 
-    const cat = (db.categorias || []).find(c => c.id === id); if(!cat) return; 
+    const cat = (db.categorias || []).find(c => String(c.id) === String(id)); if(!cat) return; 
     document.getElementById('nova-cat-id').value = cat.id; document.getElementById('nova-cat-icone').value = cat.icone || ''; document.getElementById('nova-cat-nome').value = cat.nome; document.getElementById('nova-cat-tipo').value = cat.tipo; document.getElementById('nova-cat-cor').value = cat.cor || '#94a3b8'; document.getElementById('nova-cat-fixa').checked = !!cat.fixa; 
     removerSelecaoPaleta(); document.getElementById('label-form-cat').innerHTML = "<i class='fas fa-edit' style='color:var(--azul);'></i> Editar Categoria"; document.getElementById('btn-salvar-cat').innerText = "Salvar Alterações"; 
     fecharModalListaCat(); setTimeout(() => { const m = document.getElementById('modal-nova-cat'); if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); } }, 300);
@@ -1157,9 +1343,9 @@ window.salvarConfigNovaCategoria = function() {
     if(!nome) { alert("Dê um nome para a categoria."); return; } 
     db.categorias = db.categorias || []; 
     if (id) { 
-        const cat = db.categorias.find(c => c.id === id); 
+        const cat = db.categorias.find(c => String(c.id) === String(id)); 
         if (cat) { 
-            if (db.categorias.find(c => c.nome.toLowerCase() === nome.toLowerCase() && c.id !== id && c.tipo === tipo)) { alert("Já existe outra categoria com este nome."); return; } 
+            if (db.categorias.find(c => c.nome.toLowerCase() === nome.toLowerCase() && String(c.id) !== String(id) && c.tipo === tipo)) { alert("Já existe outra categoria com este nome."); return; } 
             if (cat.nome !== nome) db.lancamentos.forEach(l => { if (l.cat === cat.nome) l.cat = nome; }); 
             cat.nome = nome; cat.icone = icone; cat.tipo = tipo; cat.cor = cor; cat.fixa = fixa; 
             save(); if(typeof showToast === 'function') showToast("Categoria atualizada!", "ajuste"); 
@@ -1176,16 +1362,16 @@ window.salvarConfigNovaCategoria = function() {
 window.excluirCategoria = function(id) { 
     if(typeof abrirConfirmacao === 'function') {
         abrirConfirmacao("Excluir categoria? Lançamentos antigos perdem a cor, mas o nome fica.", () => {
-            db.categorias = db.categorias.filter(c => c.id !== id); 
+            db.categorias = db.categorias.filter(c => String(c.id) !== String(id)); 
             save(); renderModalCategorias(); if(typeof render === 'function') render(); if(typeof showToast === 'function') showToast("Categoria excluída!", "exclusao");
         });
     }
 };
 
 window.abrirModalExtratoConta = function(id) {
-    const c = (db.contas || []).find(x => x.id === id); if (!c) return;
+    const c = (db.contas || []).find(x => String(x.id) === String(id)); if (!c) return;
     const isCartao = c.tipo === 'cartao'; let saldoCalc = 0; 
-    let lancsAsc = (db.lancamentos || []).filter(l => l.contaId === c.id).sort((a,b) => new Date(a.data) - new Date(b.data) || a.id - b.id); 
+    let lancsAsc = (db.lancamentos || []).filter(l => String(l.contaId) === String(c.id)).sort((a,b) => new Date(a.data) - new Date(b.data) || a.id - b.id); 
     let ledgerItems = [];
     lancsAsc.forEach(l => { 
         if (l.efetivado) { 
@@ -1210,11 +1396,11 @@ window.abrirModalExtratoConta = function(id) {
 }
 
 window.abrirModalAjusteConta = function(id) {
-    const c = (db.contas || []).find(x => x.id === id); if (!c) return;
+    const c = (db.contas || []).find(x => String(x.id) === String(id)); if (!c) return;
     const isCartao = c.tipo === 'cartao';
     document.getElementById('conteudo-ajuste-conta').innerHTML = `
         <div class="grid-inputs mb-10"><div><label class="label-moderno">Nome da Conta</label><input type="text" id="edit-nome-${c.id}" class="input-moderno" value="${c.nome}"></div><div><label class="label-moderno">Cor Principal</label><input type="color" id="edit-cor-${c.id}" value="${c.cor}" style="width:100%; height:45px; border:none; border-radius:8px;"></div></div>
-        ${isCartao ? `<div class="grid-inputs mb-10"><div><label class="label-moderno">Limite Total</label><input type="text" inputmode="numeric" id="edit-limite-${c.id}" class="input-moderno" value="${(c.limite||0).toFixed(2).replace('.',',')}" oninput="mascaraMoeda(event)"></div><div><label class="label-moderno">Meta de Gasto (Mensal)</label><input type="text" inputmode="numeric" id="edit-meta-${c.id}" class="input-moderno" value="${(c.meta||0).toFixed(2).replace('.',',')}" oninput="mascaraMoeda(event)"></div></div><div class="grid-inputs"><div><label class="label-moderno">Dia Fechamento</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento||1}"></div><div><label class="label-moderno">Dia Vencimento</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento||1}"></div></div>` : `<div class="mb-10"><label class="label-moderno">Ajustar Saldo Atual (R$)</label><input type="text" inputmode="numeric" id="edit-saldo-${c.id}" class="input-moderno" value="${(c.saldo||0).toFixed(2).replace('.',',')}" oninput="mascaraMoeda(event)"></div>`}
+        ${isCartao ? `<div class="grid-inputs mb-10"><div><label class="label-moderno">Limite Total</label><input type="text" inputmode="numeric" id="edit-limite-${c.id}" class="input-moderno" value="${(c.limite||0).toFixed(2).replace('.',',')}" oninput="if(typeof mascaraMoeda === 'function') mascaraMoeda(event)"></div><div><label class="label-moderno">Meta de Gasto (Mensal)</label><input type="text" inputmode="numeric" id="edit-meta-${c.id}" class="input-moderno" value="${(c.meta||0).toFixed(2).replace('.',',')}" oninput="if(typeof mascaraMoeda === 'function') mascaraMoeda(event)"></div></div><div class="grid-inputs"><div><label class="label-moderno">Dia Fechamento</label><input type="number" id="edit-fecha-${c.id}" class="input-moderno" value="${c.fechamento||1}"></div><div><label class="label-moderno">Dia Vencimento</label><input type="number" id="edit-venc-${c.id}" class="input-moderno" value="${c.vencimento||1}"></div></div>` : `<div class="mb-10"><label class="label-moderno">Ajustar Saldo Atual (R$)</label><input type="text" inputmode="numeric" id="edit-saldo-${c.id}" class="input-moderno" value="${(c.saldo||0).toFixed(2).replace('.',',')}" oninput="if(typeof mascaraMoeda === 'function') mascaraMoeda(event)"></div>`}
         <div class="flex-between mt-20 pt-15" style="border-top: 1px dashed var(--linha);"><button class="btn-outline txt-perigo" style="border-color: var(--perigo);" onclick="fecharModalAjusteConta(); excluirConta('${c.id}')"><i class="fas fa-trash"></i> Excluir</button><button class="btn-primary" onclick="salvarEdicaoConta('${c.id}'); fecharModalAjusteConta();">Salvar Alterações</button></div>`;
     const m = document.getElementById('modal-ajuste-conta'); m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10);
 }
