@@ -235,14 +235,12 @@ window.mostrarContextMenu = function(e, id) {
 };
 
 // ==============================================================
-// LÓGICA DO MENU SUSPENSO DE FATURAS (CORREÇÃO ABSOLUTA DA DATA/UUID)
+// LÓGICA DO MENU SUSPENSO DE FATURAS
 // ==============================================================
 window.mostrarContextMenuFatura = function(e, fatID) {
     if ("vibrate" in navigator) navigator.vibrate(50);
     const menu = document.getElementById('context-menu-fatura'); if(!menu) return;
     
-    // CORREÇÃO CRÍTICA: Os IDs das contas podem conter hifens, o que quebrava o split e gerava NaN.
-    // Agora extraímos exatamente as duas últimas posições (Ano e Mês) garantindo que a data seja sempre válida.
     const parts = fatID.split('-');
     if (parts.length < 3) return;
     const mesFat = `${parts[parts.length - 2]}-${parts[parts.length - 1]}`;
@@ -259,23 +257,19 @@ window.mostrarContextMenuFatura = function(e, fatID) {
     let mesFatNum = parseInt(mesFat.split('-')[1], 10);
     let diaFech = parseInt(c.fechamento, 10) || 1;
     
-    // Fatura YYYY-MM fecha categoricamente no dia 'diaFech' do mês MM.
     const dataFechamento = new Date(anoFat, mesFatNum - 1, diaFech, 0, 0, 0);
     const isFechada = hoje.getTime() >= dataFechamento.getTime();
     
     let html = '';
     
     if (isPaga) {
-        // 8.3 Fatura Paga
         html += window.criarBotaoCtx(`acionarEstornoFaturaCtx(event, '${fatID}')`, 'fas fa-undo', 'var(--alerta)', 'Reabrir fatura');
     } 
     else if (isFechada) {
-        // 8.1 Fatura Fechada (Não paga)
         html += window.criarBotaoCtx(`acionarAmortizarCtx(event, '${fatID}')`, 'fas fa-hand-holding-usd', 'var(--sucesso)', 'Pagamento parcial');
         html += window.criarBotaoCtx(`acionarQuitarFaturaCtx(event, '${fatID}')`, 'fas fa-check-double', 'var(--esmeralda)', 'Quitar fatura');
     } 
     else {
-        // 8.2 Fatura Aberta
         html += window.criarBotaoCtx(`acionarAmortizarCtx(event, '${fatID}')`, 'fas fa-forward', 'var(--azul)', 'Adiantamento');
     }
 
@@ -291,9 +285,60 @@ window.mostrarContextMenuFatura = function(e, fatID) {
     menu.style.left = `${x}px`; menu.style.top = `${y}px`;
 };
 
-// Funções Engatilhadas pelo Menu Suspenso (Com Correção do "Pagar" direto no Banco)
+// ==============================================================
+// SOLUÇÃO ABSOLUTA: ESTORNO DE AMORTIZAÇÃO E REABERTURA DE FATURA
+// ==============================================================
+window.estornarAmortizacaoFatura = function(fatID) {
+    if(!confirm("Deseja realmente estornar o pagamento parcial desta fatura? O valor voltará para a conta origem e a fatura será reaberta.")) return;
+
+    const valAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
+    if(valAmortizado <= 0) {
+        alert("Não há valor amortizado para estornar.");
+        return;
+    }
+
+    // 1. Acha o lançamento da amortização, devolve o dinheiro pra conta e exclui o lançamento
+    const lancIndex = db.lancamentos.findIndex(l => String(l.id).startsWith(`am_fat_${fatID}`));
+    if (lancIndex !== -1) {
+        const l = db.lancamentos[lancIndex];
+        const contaOrigem = db.contas.find(c => String(c.id) === String(l.contaId));
+        if (contaOrigem && contaOrigem.tipo !== 'cartao') {
+            contaOrigem.saldo += l.valor; 
+        }
+        db.lancamentos.splice(lancIndex, 1);
+    }
+
+    // 2. Zera a amortização
+    db.amortizacoesFaturas[fatID] = 0;
+
+    // 3. SE a fatura estiver "Paga", nós REABRIMOS ela
+    if (db.faturasPagas && db.faturasPagas.includes(fatID)) {
+        db.faturasPagas = db.faturasPagas.filter(id => id !== fatID); // Reabre
+        
+        // 4. MÁGICA: Transforma a 'Quitação' em uma 'Amortização' para o valor do extrato bater perfeitamente!
+        let lancQuitacao = db.lancamentos.find(l => String(l.id).startsWith('pg_fat_' + fatID));
+        if (lancQuitacao) {
+            lancQuitacao.id = lancQuitacao.id.replace('pg_fat_', 'am_fat_');
+            lancQuitacao.desc = lancQuitacao.desc.replace('Pagamento Fatura', 'Pag. Parcial Fatura');
+            db.amortizacoesFaturas[fatID] = lancQuitacao.valor;
+        }
+    }
+
+    if(typeof save === 'function') save();
+    if(typeof showToast === 'function') showToast("Amortização estornada. Fatura reaberta!", "alerta");
+    
+    if (typeof fecharMenuCtx === 'function') fecharMenuCtx();
+    if(typeof render === 'function') render();
+    if(typeof renderHistorico === 'function') renderHistorico();
+};
+
+window.acionarEstornoAmortizacaoCtx = function(e, fatID) { 
+    if(e) e.stopPropagation(); 
+    fecharMenuCtx(); 
+    window.estornarAmortizacaoFatura(fatID);
+};
+
 window.acionarEstornoFaturaCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof motorEstornarFatura === 'function') motorEstornarFatura(fatID); };
-window.acionarEstornoAmortizacaoCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof estornarAmortizacaoFatura === 'function') estornarAmortizacaoFatura(fatID); };
 window.acionarAmortizarCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof amortizarFatura === 'function') amortizarFatura(fatID); };
 window.acionarQuitarFaturaCtx = function(e, fatID) { 
     if(e) e.stopPropagation(); fecharMenuCtx(); 
@@ -313,7 +358,6 @@ window.acionarQuitarFaturaCtx = function(e, fatID) {
     if(typeof motorPagarFatura === 'function') motorPagarFatura(fatID, restante);
 };
 
-// CORREÇÃO CRÍTICA DO EXTRATO: Força o pagamento/reabertura diretamente pelo db.lancamentos e salva, garantindo o funcionamento.
 window.acionarPagarCtx = function(e) { 
     if(e) e.stopPropagation(); 
     fecharMenuCtx(); 
@@ -418,80 +462,98 @@ window.acionarAjusteCtx = function(e) {
 window.acionarExcluirCtx = function(e) { if(e) e.stopPropagation(); fecharMenuCtx(); if(currentLancIdCtx && typeof excluirLancamento === 'function') excluirLancamento(currentLancIdCtx); };
 
 // ==============================================================
-// MODAL DE METAS INDIVIDUAIS POR CARTÃO (Força criação do HTML para evitar sumir)
+// MODAL DE METAS INDIVIDUAIS POR CARTÃO (CORREÇÃO ABSOLUTA COM TRY-CATCH)
 // ==============================================================
 window.abrirModalMetasIndividuais = function() {
-    let modalAntigo = document.getElementById('modal-metas-individuais');
-    if (modalAntigo) {
-        modalAntigo.remove(); // CORREÇÃO: Remove o modal se existir, forçando o navegador a recriar do zero e exibir corretamente a lista.
-    }
+    let modal = document.getElementById('modal-metas-individuais');
     
-    let modal = document.createElement('div');
-    modal.id = 'modal-metas-individuais';
-    modal.className = 'modal-overlay';
-    modal.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; justify-content:center; align-items:center; padding:20px; opacity:0; transition: opacity 0.3s ease;';
-    modal.innerHTML = `
-        <div class="modal-content" style="background:var(--card-bg); width:100%; max-width:400px; border-radius:16px; padding:20px; box-shadow:var(--shadow-md); position:relative; transform: translateY(20px); transition: transform 0.3s ease;">
-            <button class="btn-icon" style="position:absolute; top:15px; right:15px; font-size:18px; color:var(--texto-sec);" onclick="fecharModalMetasIndividuais()"><i class="fas fa-times"></i></button>
-            <h3 style="margin-bottom:20px; color:var(--texto-main); font-size: 16px;"><i class="fas fa-bullseye" style="color:var(--esmeralda);"></i> Metas por Cartão (Fatura Atual)</h3>
-            <div id="lista-metas-individuais" style="max-height:60vh; overflow-y:auto; padding-right:5px;"></div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    
-    const lista = document.getElementById('lista-metas-individuais');
-    let html = '';
-    const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
-    
-    if (cartoes.length === 0) {
-        html = '<p class="texto-vazio" style="font-size:13px; text-align:center;">Nenhum cartão de crédito cadastrado.</p>';
-    } else {
-        const hoje = new Date();
-        cartoes.forEach(c => {
-            let diaFech = parseInt(c.fechamento, 10) || 1;
-            let mesAtivo = hoje.getMonth() + 1; let anoAtivo = hoje.getFullYear();
-            
-            if (hoje.getDate() >= diaFech) { 
-                mesAtivo += 1; 
-                if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; } 
-            }
-            const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
-            
-            let usoMeta = 0;
-            (db.lancamentos || []).forEach(l => {
-                if (String(l.contaId) === String(c.id)) {
-                    const mesFat = window.getMesFaturaLogico(l.data, diaFech);
-                    if (mesFat === strMesAtivo) {
-                        if (T_DESPESAS_CARTAO.includes(l.tipo)) usoMeta += parseFloat(l.valor) || 0;
-                        else if (T_RECEITAS.includes(l.tipo)) usoMeta -= parseFloat(l.valor) || 0;
-                    }
-                }
-            });
-            
-            if (usoMeta < 0) usoMeta = 0;
-            const metaDefinida = parseFloat(c.meta) || 0;
-            const pMeta = metaDefinida > 0 ? (usoMeta / metaDefinida) * 100 : 0;
-            const corBarra = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--esmeralda)');
-            
-            html += `
-            <div style="margin-bottom:15px; border-bottom:1px solid var(--linha); padding-bottom:15px;">
-                <div class="flex-between" style="margin-bottom:8px;">
-                    <strong style="font-size:14px; color:var(--texto-main);">${c.nome}</strong>
-                    <span style="font-size:12px; font-weight:bold; color:${corBarra};">${pMeta.toFixed(1)}%</span>
-                </div>
-                <div class="flex-between" style="font-size:12px; color:var(--texto-sec); margin-bottom:6px;">
-                    <span>Uso: R$ ${fmtBR(usoMeta)}</span>
-                    <span>Meta: R$ ${fmtBR(metaDefinida)}</span>
-                </div>
-                <div style="background:var(--fundo); height:8px; border-radius:8px; overflow:hidden;">
-                    <div style="background:${corBarra}; width:${Math.min(pMeta, 100)}%; height:100%; border-radius:8px; transition: width 0.5s ease;"></div>
-                </div>
+    if (!modal) {
+        // Criamos o HTML apenas uma vez e reaproveitamos o container para evitar bugs de DOM
+        modal = document.createElement('div');
+        modal.id = 'modal-metas-individuais';
+        modal.className = 'modal-overlay';
+        modal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; justify-content:center; align-items:center; padding:20px; opacity:0; transition: opacity 0.3s ease;';
+        modal.innerHTML = `
+            <div class="modal-content" style="background:var(--card-bg); width:100%; max-width:400px; border-radius:16px; padding:20px; box-shadow:var(--shadow-md); position:relative; transform: translateY(20px); transition: transform 0.3s ease;">
+                <button class="btn-icon" style="position:absolute; top:15px; right:15px; font-size:18px; color:var(--texto-sec);" onclick="fecharModalMetasIndividuais()"><i class="fas fa-times"></i></button>
+                <h3 style="margin-bottom:20px; color:var(--texto-main); font-size: 16px;"><i class="fas fa-bullseye" style="color:var(--esmeralda);"></i> Metas por Cartão</h3>
+                <div id="conteudo-lista-metas-cartoes" style="max-height:60vh; overflow-y:auto; padding-right:5px;"></div>
             </div>
-            `;
-        });
+        `;
+        document.body.appendChild(modal);
     }
+    
+    const lista = document.getElementById('conteudo-lista-metas-cartoes');
+    let html = '';
+    
+    // TRY-CATCH para garantir que mesmo se houver erro, algo será renderizado
+    try {
+        const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
+        
+        if (cartoes.length === 0) {
+            html = '<p class="texto-vazio" style="font-size:13px; text-align:center;">Nenhum cartão de crédito cadastrado.</p>';
+        } else {
+            const hoje = new Date();
+            cartoes.forEach(c => {
+                let diaFech = parseInt(c.fechamento, 10) || 1;
+                let mesAtivo = hoje.getMonth() + 1; 
+                let anoAtivo = hoje.getFullYear();
+                
+                if (hoje.getDate() >= diaFech) { 
+                    mesAtivo += 1; 
+                    if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; } 
+                }
+                const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
+                
+                let usoMeta = 0;
+                (db.lancamentos || []).forEach(l => {
+                    if (String(l.contaId) === String(c.id)) {
+                        const mesFat = window.getMesFaturaLogico(l.data, diaFech);
+                        if (mesFat === strMesAtivo) {
+                            // Validando tipos via array blindado
+                            const despesasValidas = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
+                            const receitasValidas = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
+                            
+                            if (despesasValidas.includes(l.tipo)) usoMeta += parseFloat(l.valor) || 0;
+                            else if (receitasValidas.includes(l.tipo)) usoMeta -= parseFloat(l.valor) || 0;
+                        }
+                    }
+                });
+                
+                if (usoMeta < 0) usoMeta = 0;
+                const metaDefinida = parseFloat(c.meta) || 0;
+                const pMeta = metaDefinida > 0 ? (usoMeta / metaDefinida) * 100 : 0;
+                const corBarra = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--esmeralda)');
+                
+                // Variável de formatação local segura
+                const formatoMeta = window.fmtBR ? window.fmtBR(metaDefinida) : metaDefinida.toFixed(2);
+                const formatoUso = window.fmtBR ? window.fmtBR(usoMeta) : usoMeta.toFixed(2);
+                
+                html += `
+                <div style="margin-bottom:15px; border-bottom:1px solid var(--linha); padding-bottom:15px;">
+                    <div class="flex-between" style="margin-bottom:8px;">
+                        <strong style="font-size:14px; color:var(--texto-main);">${c.nome || 'Cartão'}</strong>
+                        <span style="font-size:12px; font-weight:bold; color:${corBarra};">${pMeta.toFixed(1)}%</span>
+                    </div>
+                    <div class="flex-between" style="font-size:12px; color:var(--texto-sec); margin-bottom:6px;">
+                        <span>Uso: R$ ${formatoUso}</span>
+                        <span>Meta: R$ ${formatoMeta}</span>
+                    </div>
+                    <div style="background:var(--fundo); height:8px; border-radius:8px; overflow:hidden;">
+                        <div style="background:${corBarra}; width:${Math.min(pMeta, 100)}%; height:100%; border-radius:8px; transition: width 0.5s ease;"></div>
+                    </div>
+                </div>
+                `;
+            });
+        }
+    } catch (err) {
+        console.error("Erro interno ao montar metas:", err);
+        html = `<div style="text-align:center; padding:10px;"><p style="color:var(--perigo); font-size:12px;">Ops! Ocorreu um erro ao carregar as metas: ${err.message}</p></div>`;
+    }
+    
     lista.innerHTML = html;
     
+    // Exibe o modal
     modal.style.display = 'flex';
     setTimeout(() => {
         modal.style.opacity = '1';
@@ -506,7 +568,6 @@ window.fecharModalMetasIndividuais = function() {
         modal.querySelector('.modal-content').style.transform = 'translateY(20px)';
         setTimeout(() => {
             modal.style.display = 'none';
-            modal.remove(); // Limpeza completa do DOM ao fechar
         }, 300);
     }
 };
@@ -876,7 +937,7 @@ window.renderAbaFaturas = function() {
                     </div>
                     <button class="btn-icon" style="width:30px; height:30px; margin-left: 5px; flex-shrink: 0;" onclick="mostrarContextMenuRightClick(event, '${fatID}', true)"><i class="fas fa-ellipsis-v" style="color:var(--texto-sec);"></i></button>
                 </div>
-                ${jaAmortizado > 0 ? `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);"><div class="flex-between" style="font-size:10px; color:var(--texto-sec); margin-bottom:4px;"><span>Amortizado: R$ ${fmtBR(jaAmortizado)}</span><div style="display:flex; align-items:center; gap:6px;"><span class="txt-sucesso" style="font-weight:bold;">${((jaAmortizado/mesesFatura[mes].total)*100).toFixed(0)}%</span><button class="btn-icon" style="color:var(--perigo); font-size:11px; padding:2px 6px; border-radius:4px; background:rgba(239, 68, 68, 0.1);" onclick="event.stopPropagation(); estornarAmortizacaoFatura('${fatID}')" title="Estornar Amortização"><i class="fas fa-undo"></i></button></div></div><div class="micro-bar-bg"><div class="micro-bar-fill" style="width:${(jaAmortizado/mesesFatura[mes].total)*100}%"></div></div></div>` : ''}
+                ${jaAmortizado > 0 ? `<div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--linha);"><div class="flex-between" style="font-size:10px; color:var(--texto-sec); margin-bottom:4px;"><span>Amortizado: R$ ${fmtBR(jaAmortizado)}</span><div style="display:flex; align-items:center; gap:6px;"><span class="txt-sucesso" style="font-weight:bold;">${((jaAmortizado/mesesFatura[mes].total)*100).toFixed(0)}%</span><button class="btn-icon" style="color:var(--perigo); font-size:11px; padding:2px 6px; border-radius:4px; background:rgba(239, 68, 68, 0.1);" onclick="event.stopPropagation(); window.estornarAmortizacaoFatura('${fatID}')" title="Estornar Amortização"><i class="fas fa-undo"></i></button></div></div><div class="micro-bar-bg"><div class="micro-bar-fill" style="width:${(jaAmortizado/mesesFatura[mes].total)*100}%"></div></div></div>` : ''}
             </div>
             <div id="edit-lanc-det-fat-${fatID}" style="display:none; padding:15px; border-top:1px dashed var(--linha); background:var(--input-bg);" onclick="event.stopPropagation()">
                 ${mesesFatura[mes].lancamentos.map(l => `<div class="flex-between mb-10" style="font-size:12px; border-bottom:1px solid var(--linha); padding-bottom:5px;"><span>${(l.data || '').split('-').reverse().join('/')} - ${l.desc}</span><strong class="${T_RECEITAS.includes(l.tipo)?'txt-sucesso':'txt-perigo'}">R$ ${fmtBR(l.valor || 0)}</strong></div>`).join('')}
