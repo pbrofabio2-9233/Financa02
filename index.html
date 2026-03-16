@@ -832,7 +832,7 @@
                     <div class="grid-inputs mb-20">
                         <button class="btn-outline" onclick="exportarBackup()"><i class="fas fa-download"></i> Gerar Backup</button>
                         <button class="btn-outline" onclick="document.getElementById('file-upload').click()"><i class="fas fa-upload"></i> Restaurar</button>
-                        <input type="file" id="file-upload" style="display:none;" accept=".json" onchange="importarArquivoJSON(event)">
+                        <input type="file" id="file-upload" style="display:none;" accept=".json, application/json, text/plain, */*" onchange="importarArquivoJSON(event)">
                     </div>
                     
                     <button class="btn-outline mb-20" style="border-color: var(--esmeralda); color: var(--esmeralda);" onclick="exportarExtratoCSV()"><i class="fas fa-file-csv"></i> Exportar Dados para Excel (CSV)</button>
