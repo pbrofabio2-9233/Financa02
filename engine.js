@@ -37,7 +37,6 @@ function showToast(mensagem, tipo = 'sucesso') {
     setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(-20px)'; setTimeout(() => toast.remove(), 400); }, 3000);
 }
 
-// PONTO 4 (Correção do campo de conta vazio no cadastro de salários)
 window.preencherSelectContasSalario = function() {
     const selectConta = document.getElementById('sal-conta');
     if (!selectConta || !db || !db.contas) return;
@@ -129,7 +128,7 @@ window.verificarNotificacoesMotor = function() {
         }
     });
 
-    // Faturas de Cartão de Crédito
+    // Faturas
     (db.contas || []).filter(c => c.tipo === 'cartao').forEach(c => {
         let meses = {};
         (db.lancamentos || []).forEach(l => {
@@ -482,6 +481,7 @@ function verificarDataFutura() {
     document.getElementById('lanc-efetivado').checked = dtLanc <= hoje;
 }
 
+// LÓGICA DO LANÇAMENTO DE EMPRÉSTIMOS DE CARTÃO E DE DÍVIDAS
 window.adicionarLancamento = function() {
     const data = document.getElementById('lanc-data').value; 
     const tipo = document.getElementById('lanc-tipo').value;
@@ -507,6 +507,8 @@ window.adicionarLancamento = function() {
         }
     }
 
+    let transacoesCriadas = [];
+
     if (qtdParcelas > 1 && forma === 'Crédito') {
         const valorParcela = valor / qtdParcelas;
         let [anoStr, mesStr, diaStr] = data.split('-');
@@ -518,7 +520,9 @@ window.adicionarLancamento = function() {
         for (let i = 1; i <= qtdParcelas; i++) {
             let d = new Date(dataBase); d.setMonth(d.getMonth() + (i - 1));
             let dataParcelada = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
-            db.lancamentos.push({ id: Date.now() + i, idGrupo: groupId, data: dataParcelada, tipo, contaId, forma, desc: `${desc} (${i}/${qtdParcelas})`, valor: valorParcela, cat, efetivado: (i===1 ? efetivado : false) });
+            let novaTrans = { id: Date.now() + i, idGrupo: groupId, data: dataParcelada, tipo, contaId, forma, desc: `${desc} (${i}/${qtdParcelas})`, valor: valorParcela, cat, efetivado: (i===1 ? efetivado : false) };
+            db.lancamentos.push(novaTrans);
+            transacoesCriadas.push(novaTrans);
         }
     } else {
         if (conta && conta.tipo !== 'cartao' && efetivado) {
@@ -533,17 +537,60 @@ window.adicionarLancamento = function() {
             if(!db.contratos) db.contratos = [];
             db.contratos.push({ id: newIdFixa, tipo: 'fixa', desc, valor, dia: parseInt(diaStr), categoria: cat, conta: contaId });
             novoLancamento.idRecorrencia = newIdFixa; 
-            db.lancamentos.push(novoLancamento); 
-        } else {
-            db.lancamentos.push(novoLancamento); 
         }
+        db.lancamentos.push(novoLancamento); 
+        transacoesCriadas.push(novoLancamento);
+    }
 
-        if (['emprestei_cartao', 'emprestei_dinheiro', 'tomei_emprestimo'].includes(tipo)) {
-            abrirModalEmprestimo(novoLancamento); save(); 
-            if(typeof fecharModalLancamento === 'function') fecharModalLancamento();
-            if(recalcFatID) setTimeout(() => window.recalcularFaturaPaga(recalcFatID.conta, recalcFatID.mes), 50);
-            return; 
-        }
+    // REGRA 6: Gerar a Restituição de Empréstimo Automática atrelada à Fatura
+    if (tipo === 'emprestei_cartao') {
+        const contaBanco = db.contas.find(c => c.tipo !== 'cartao') || db.contas[0];
+        
+        transacoesCriadas.forEach((t, idx) => {
+            const mesFat = window.obterMesFaturaAviso(t.data, conta.fechamento || 1);
+            let [aFat, mFat] = mesFat.split('-').map(Number);
+            
+            let vencFatMes = mFat;
+            let vencFatAno = aFat;
+            
+            if ((conta.vencimento||1) < (conta.fechamento||1)) {
+                vencFatMes++;
+                if (vencFatMes > 12) { vencFatMes = 1; vencFatAno++; }
+            }
+            
+            const dataRecebimento = `${vencFatAno}-${vencFatMes.toString().padStart(2, '0')}-${(conta.vencimento||1).toString().padStart(2, '0')}`;
+            
+            db.lancamentos.push({
+                id: Date.now() + 1000 + idx,
+                data: dataRecebimento,
+                tipo: 'rec_emprestimo',
+                contaId: contaBanco ? contaBanco.id : t.contaId,
+                forma: 'Pix',
+                desc: `Restituição: ${t.desc}`,
+                valor: t.valor,
+                cat: 'Terceiros',
+                efetivado: false, // Regra 6 (Sempre pendente, aguardando o usuário confirmar)
+                idOrigem: t.id // Elo de exclusão
+            });
+        });
+        
+        save(); 
+        document.getElementById('lanc-desc').value = ""; document.getElementById('lanc-valor').value = ""; document.getElementById('lanc-fixo').checked = false; document.getElementById('lanc-data').valueAsDate = new Date(); 
+        verificarDataFutura();
+        if(forma === 'Crédito') atualizarParcelasCartao();
+        if(typeof fecharModalLancamento === 'function') fecharModalLancamento();
+        if(recalcFatID) setTimeout(() => window.recalcularFaturaPaga(recalcFatID.conta, recalcFatID.mes), 50);
+        if(typeof render === 'function') render();
+        if(typeof renderHistorico === 'function') renderHistorico();
+        verificarNotificacoesMotor();
+        showToast(qtdParcelas > 1 ? `Empréstimo parcelado em ${qtdParcelas}x com restituições geradas!` : "Empréstimo registrado com restituição automática!", "sucesso");
+        return; 
+        
+    } else if (['emprestei_dinheiro', 'tomei_emprestimo'].includes(tipo)) {
+        abrirModalEmprestimo(transacoesCriadas[0]); save(); 
+        if(typeof fecharModalLancamento === 'function') fecharModalLancamento();
+        if(recalcFatID) setTimeout(() => window.recalcularFaturaPaga(recalcFatID.conta, recalcFatID.mes), 50);
+        return; 
     }
     
     save(); 
@@ -588,9 +635,30 @@ window.gerarParcelasEmprestimo = function() {
     verificarNotificacoesMotor();
 }
 
+window.abrirModalParcial = function(id, maxValor) {
+    const val = prompt(`Pagamento Parcial\nValor atual: R$ ${maxValor.toFixed(2).replace('.',',')}\n\nQuanto você deseja pagar/amortizar agora?`);
+    if(val) {
+        const num = parseFloat(val.replace(',', '.'));
+        if(num > 0 && num <= maxValor) {
+            let idInput = document.getElementById('hidden-id-parcial');
+            if(!idInput) { idInput = document.createElement('input'); idInput.id = 'hidden-id-parcial'; idInput.type = 'hidden'; document.body.appendChild(idInput); }
+            idInput.value = id;
+            
+            let valInput = document.getElementById('input-valor-parcial');
+            if(!valInput) { valInput = document.createElement('input'); valInput.id = 'input-valor-parcial'; valInput.type = 'hidden'; document.body.appendChild(valInput); }
+            valInput.value = num;
+            
+            confirmarPagamentoParcial();
+        } else {
+            alert("Valor inválido.");
+        }
+    }
+};
+
 window.confirmarPagamentoParcial = function() {
     const idInput = document.getElementById('hidden-id-parcial').value;
-    const valorPago = window.parseMoeda ? window.parseMoeda('input-valor-parcial') : parseFloat(document.getElementById('input-valor-parcial').value.replace(/\./g, '').replace(',', '.'));
+    const valEl = document.getElementById('input-valor-parcial').value;
+    const valorPago = window.parseMoeda ? window.parseMoeda('input-valor-parcial') : parseFloat(valEl.replace(/\./g, '').replace(',', '.'));
     
     if (!idInput || valorPago <= 0) return alert("Insira um valor válido e maior que zero.");
     const lOriginal = db.lancamentos.find(l => l.id == idInput); if (!lOriginal) return;
@@ -662,66 +730,79 @@ window.confirmarReabertura = function(id) {
     verificarNotificacoesMotor();
 }
 
-// ==========================================
-// FATURAS: PAGAR, ESTORNAR E AMORTIZAR
-// ==========================================
-
 window.motorPagarFatura = function(fatID, valorTotal) {
     if ((db.faturasPagas || []).includes(fatID)) {
         return alert("Esta fatura já consta como paga.");
     }
-    const m = document.getElementById('modal-pagar-fatura');
-    if(m) {
-        document.getElementById('hidden-pagar-fat-id').value = fatID;
-        document.getElementById('hidden-pagar-fat-val').value = valorTotal;
-        m.style.display = 'flex'; 
-        setTimeout(() => m.classList.add('active'), 10);
+    
+    if (typeof window.alternarPagamentoFatura === 'function') {
+        window.alternarPagamentoFatura(fatID, valorTotal);
+    } else {
+        const m = document.getElementById('modal-pagar-fatura');
+        if(m) {
+            document.getElementById('hidden-pagar-fat-id').value = fatID;
+            document.getElementById('hidden-pagar-fat-val').value = valorTotal;
+            m.style.display = 'flex'; 
+            setTimeout(() => m.classList.add('active'), 10);
+        }
     }
 };
 
 window.confirmarPagamentoFaturaBanco = function() {
     const fatID = document.getElementById('hidden-pagar-fat-id').value; 
-    const valorTotalFatura = parseFloat(document.getElementById('hidden-pagar-fat-val').value);
-    const contaSelecionadaId = document.getElementById('select-conta-pagar-fat').value;
-
-    if (!contaSelecionadaId) return alert("Selecione uma conta bancária para debitar o valor.");
+    const valorTotalFatura = parseFloat(document.getElementById('hidden-pagar-fat-val').value) || 0;
+    const contaSelecionadaId = document.getElementById('select-conta-pagar-fat') ? document.getElementById('select-conta-pagar-fat').value : null;
 
     if (!db.faturasPagas) db.faturasPagas = [];
     if (db.faturasPagas.includes(fatID)) return alert("Fatura já processada!");
 
     db.lancamentos = db.lancamentos.filter(l => String(l.id) !== `pg_fat_${fatID}`);
 
-    const contaDebito = db.contas.find(c => c.id === contaSelecionadaId);
-    if (!contaDebito) return;
-    contaDebito.saldo -= valorTotalFatura;
-
     const fatIDParts = fatID.split('-'); 
     const contaCartao = db.contas.find(c => c.id === fatIDParts[0]);
     const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
-    
-    db.lancamentos.push({ 
-        id: `pg_fat_${fatID}`, 
-        desc: `Pagamento Fatura ${contaCartao.nome} (${meses[fatIDParts[2]]}/${fatIDParts[1]})`, 
-        valor: valorTotalFatura, 
-        data: new Date().toISOString().split('T')[0], 
-        contaId: contaDebito.id, 
-        cat: 'Outros', 
-        tipo: 'despesas_gerais', 
-        forma: 'Pix', 
-        efetivado: true 
-    });
+
+    if (valorTotalFatura > 0.01) {
+        if (!contaSelecionadaId) return alert("Selecione uma conta bancária para debitar o valor.");
+        const contaDebito = db.contas.find(c => c.id === contaSelecionadaId);
+        if (!contaDebito) return;
+        contaDebito.saldo -= valorTotalFatura;
+
+        db.lancamentos.push({ 
+            id: `pg_fat_${fatID}`, 
+            desc: `Pagamento Fatura ${contaCartao.nome} (${meses[fatIDParts[2]]}/${fatIDParts[1]})`, 
+            valor: valorTotalFatura, 
+            data: new Date().toISOString().split('T')[0], 
+            contaId: contaDebito.id, 
+            cat: 'Outros', 
+            tipo: 'despesas_gerais', 
+            forma: 'Pix', 
+            efetivado: true 
+        });
+    } else {
+        db.lancamentos.push({ 
+            id: `pg_fat_${fatID}`, 
+            desc: `Baixa Fatura ${contaCartao.nome} (${meses[fatIDParts[2]]}/${fatIDParts[1]}) - Amortizada`, 
+            valor: 0, 
+            data: new Date().toISOString().split('T')[0], 
+            contaId: contaCartao.id,
+            cat: 'Outros', 
+            tipo: 'despesas_gerais', 
+            forma: 'Baixa', 
+            efetivado: true 
+        });
+    }
 
     db.faturasPagas.push(fatID);
     save();
     
     if(typeof fecharModalPagamentoFatura === 'function') fecharModalPagamentoFatura();
-    showToast("Fatura paga com sucesso!", "sucesso");
+    showToast("Fatura Paga / Finalizada com sucesso!", "sucesso");
     if(typeof render === 'function') render();
     if(typeof renderHistorico === 'function') renderHistorico();
     verificarNotificacoesMotor();
 };
 
-// PONTO 2 (Gatilho renderHistorico para atualizar UI imediatamente)
 window.motorEstornarFatura = function(fatID) {
     if(!confirm("Deseja reabrir esta fatura e estornar o valor descontado de volta para a sua conta bancária?")) return;
     
@@ -738,14 +819,16 @@ window.motorEstornarFatura = function(fatID) {
 
     if (lancPg) {
         const contaBanco = db.contas.find(c => c.id === lancPg.contaId);
-        if (contaBanco) contaBanco.saldo += parseFloat(lancPg.valor);
+        if (contaBanco && contaBanco.tipo !== 'cartao' && parseFloat(lancPg.valor) > 0) {
+            contaBanco.saldo += parseFloat(lancPg.valor);
+        }
         db.lancamentos = db.lancamentos.filter(l => l.id !== lancPg.id);
     }
 
     save();
     showToast("Fatura reaberta e valor estornado!", "ajuste");
     if(typeof render === 'function') render();
-    if(typeof renderHistorico === 'function') renderHistorico(); // Remove o Lançamento Fantasma
+    if(typeof renderHistorico === 'function') renderHistorico(); 
     verificarNotificacoesMotor();
 };
 
@@ -771,7 +854,7 @@ window.amortizarFatura = function(fatID) {
     const meses = {'01':'Jan', '02':'Fev', '03':'Mar', '04':'Abr', '05':'Mai', '06':'Jun', '07':'Jul', '08':'Ago', '09':'Set', '10':'Out', '11':'Nov', '12':'Dez'};
     
     document.getElementById('txt-fatura-id-parcial').innerText = `${meses[mesRefStr]} / ${anoRef}`;
-    document.getElementById('txt-valor-fatura-original').innerText = `R$ ${(totalFat - jaAmortizado).toFixed(2)}`;
+    document.getElementById('txt-valor-fatura-original').innerText = `R$ ${(totalFat - jaAmortizado).toFixed(2).replace('.', ',')}`;
 
     let selectAmortizar = document.getElementById('select-conta-amortizar');
     if(selectAmortizar && db.contas) {
@@ -812,13 +895,12 @@ window.confirmarAmortizacaoFatura = function() {
     if(typeof renderHistorico === 'function') renderHistorico();
 }
 
-// PONTO 2 (Gatilho renderHistorico para atualizar UI imediatamente)
 window.estornarAmortizacaoFatura = function(fatID) {
     if(confirm("Deseja estornar as amortizações desta fatura e devolver o valor à sua conta de origem?")) {
         const amortizacoes = (db.lancamentos || []).filter(l => String(l.id).startsWith(`am_fat_${fatID}`));
         amortizacoes.forEach(am => {
             const c = (db.contas || []).find(x => x.id === am.contaId);
-            if(c) c.saldo += parseFloat(am.valor);
+            if(c && c.tipo !== 'cartao') c.saldo += parseFloat(am.valor);
         });
         
         db.lancamentos = db.lancamentos.filter(l => !String(l.id).startsWith(`am_fat_${fatID}`));
@@ -826,7 +908,7 @@ window.estornarAmortizacaoFatura = function(fatID) {
 
         save(); showToast("Amortizações estornadas com sucesso!", "sucesso");
         if(typeof render === 'function') render();
-        if(typeof renderHistorico === 'function') renderHistorico(); // Remove o Lançamento Fantasma
+        if(typeof renderHistorico === 'function') renderHistorico(); 
     }
 };
 
@@ -847,17 +929,20 @@ window.processarRolagensPendentes = function() {
     if (atualizouAlgo) save();
 }
 
+// LÓGICA DE EXCLUSÃO PROFUNDA COM VÍNCULO (ID ORIGEM)
 window.excluirLancamento = function(id) {
     const lanc = (db.lancamentos || []).find(l => String(l.id) === String(id)); 
     if(!lanc) return;
 
     if (lanc.idGrupo) {
         if(confirm("📦 Este item faz parte de um parcelamento.\n\nDeseja apagar TODAS as parcelas pendentes desta compra de uma só vez?")) {
-            db.lancamentos = db.lancamentos.filter(l => {
-                if (String(l.idGrupo) === String(lanc.idGrupo) && !l.efetivado) return false;
-                if (String(l.id) === String(id)) return false; 
-                return true;
+            const idsExcluir = new Set();
+            db.lancamentos.forEach(l => {
+                if (String(l.idGrupo) === String(lanc.idGrupo) && !l.efetivado) idsExcluir.add(String(l.id));
+                if (String(l.id) === String(id)) idsExcluir.add(String(l.id));
             });
+            db.lancamentos = db.lancamentos.filter(l => !idsExcluir.has(String(l.id)) && !idsExcluir.has(String(l.idOrigem)));
+            
             if (db.contratos) db.contratos = db.contratos.filter(c => String(c.id) !== String(lanc.idGrupo));
             save(); showToast("Parcelamento completo apagado!", "exclusao"); 
             if(typeof render === 'function') render(); if(typeof renderListaContratos === 'function') renderListaContratos();
@@ -881,7 +966,10 @@ window.excluirLancamento = function(id) {
             if (window.ecoTiposReceita.includes(lanc.tipo)) contaLanc.saldo -= valLimpo; 
             if (window.ecoTiposDespesa.includes(lanc.tipo)) contaLanc.saldo += valLimpo; 
         }
-        db.lancamentos = db.lancamentos.filter(l => String(l.id) !== String(id)); 
+        
+        // Remove a transação + remove automaticamente as Restituições de Empréstimos atreladas a ela
+        db.lancamentos = db.lancamentos.filter(l => String(l.id) !== String(id) && String(l.idOrigem) !== String(id)); 
+        
         save(); showToast("Lançamento Apagado!", "exclusao"); 
         
         if (recalcFatID) window.recalcularFaturaPaga(recalcFatID.conta, recalcFatID.mes);
@@ -901,12 +989,14 @@ window.excluirContrato = function(idOuGrupo) {
         if (db.recorrencias) db.recorrencias = db.recorrencias.filter(r => String(r.id) !== String(idOuGrupo));
         
         if (db.lancamentos) {
-            db.lancamentos = db.lancamentos.filter(l => {
-                if (String(l.idGrupo) === String(idOuGrupo) && !l.efetivado) return false;
-                if (String(l.idRecorrencia) === String(idOuGrupo) && !l.efetivado) return false;
-                if (String(l.id) === String(idOuGrupo) && !l.efetivado) return false;
-                return true;
+            const idsExcluir = new Set();
+            db.lancamentos.forEach(l => {
+                if (String(l.idGrupo) === String(idOuGrupo) && !l.efetivado) idsExcluir.add(String(l.id));
+                if (String(l.idRecorrencia) === String(idOuGrupo) && !l.efetivado) idsExcluir.add(String(l.id));
+                if (String(l.id) === String(idOuGrupo) && !l.efetivado) idsExcluir.add(String(l.id));
             });
+            // Apaga as transações do contrato + as restituições geradas por essas transações (Emprestimos Card)
+            db.lancamentos = db.lancamentos.filter(l => !idsExcluir.has(String(l.id)) && !idsExcluir.has(String(l.idOrigem)));
         }
         save(); showToast("Excluído com sucesso!", "exclusao");
         if(typeof renderListaContratos === 'function') renderListaContratos();
@@ -1008,6 +1098,13 @@ window.salvarEdicaoLancamento = function(id) {
 
     lanc.desc = novaDesc; lanc.contaId = novaContaId; lanc.cat = novaCat; lanc.data = novaData; lanc.valor = novoValor;
 
+    // Se houver uma restituição de empréstimo atrelada a este lançamento, atualiza ela também.
+    const lancOrigem = db.lancamentos.find(l => String(l.idOrigem) === String(id));
+    if (lancOrigem && !lancOrigem.efetivado) {
+        lancOrigem.desc = `Restituição: ${novaDesc}`;
+        lancOrigem.valor = novoValor;
+    }
+
     const contaNova = db.contas.find(c => c.id === novaContaId);
     let recalcNova = null;
     if (contaNova && contaNova.tipo === 'cartao') {
@@ -1042,7 +1139,6 @@ window.criarConta = function() {
     if(t === 'cartao'){ nc.limite = window.parseMoeda ? window.parseMoeda('nova-conta-limite') : 0; nc.meta = window.parseMoeda ? window.parseMoeda('nova-conta-meta') : 0; nc.fechamento = parseInt(document.getElementById('nova-conta-fecha').value)||1; nc.vencimento = parseInt(document.getElementById('nova-conta-venc').value)||1; }
     db.contas.push(nc); save(); document.getElementById('nova-conta-nome').value = ""; showToast("Conta Criada com Sucesso!", "sucesso"); mudarDirecaoLancamento();
     
-    // Atualiza a lista de contas dos salários
     if(typeof preencherSelectContasSalario === 'function') preencherSelectContasSalario();
     
     if(typeof toggleNovaContaArea === 'function') toggleNovaContaArea(); if(typeof render === 'function') render();
@@ -1064,8 +1160,8 @@ window.excluirConta = function(id) {
 
 window.salvarEdicaoConta = function(id) {
     const c = db.contas.find(x => x.id === id); c.nome = document.getElementById(`edit-nome-${id}`).value; c.cor = document.getElementById(`edit-cor-${id}`).value;
-    if(c.tipo === 'cartao'){ c.limite = window.parseMoeda ? window.parseMoeda(`edit-limite-${id}`) : parseFloat(document.getElementById(`edit-limite-${id}`).value.replace(/\./g, '').replace(',','.'))||0; c.meta = window.parseMoeda ? window.parseMoeda(`edit-meta-${id}`) : parseFloat(document.getElementById(`edit-meta-${id}`).value.replace(/\./g, '').replace(',','.'))||0; c.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1; c.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1; } 
-    else { c.saldo = window.parseMoeda ? window.parseMoeda(`edit-saldo-${id}`) : parseFloat(document.getElementById(`edit-saldo-${id}`).value.replace(/\./g, '').replace(',','.'))||0; }
+    if(c.tipo === 'cartao'){ c.limite = window.parseMoeda ? window.parseMoeda(`edit-limite-${id}`) : parseFloat(document.getElementById(`edit-limite-${id}`).value.replace(/\\./g, '').replace(',','.'))||0; c.meta = window.parseMoeda ? window.parseMoeda(`edit-meta-${id}`) : parseFloat(document.getElementById(`edit-meta-${id}`).value.replace(/\\./g, '').replace(',','.'))||0; c.fechamento = parseInt(document.getElementById(`edit-fecha-${id}`).value) || 1; c.vencimento = parseInt(document.getElementById(`edit-venc-${id}`).value) || 1; } 
+    else { c.saldo = window.parseMoeda ? window.parseMoeda(`edit-saldo-${id}`) : parseFloat(document.getElementById(`edit-saldo-${id}`).value.replace(/\\./g, '').replace(',','.'))||0; }
     save(); showToast("Conta Atualizada!", "ajuste"); mudarDirecaoLancamento(); 
     
     if(typeof preencherSelectContasSalario === 'function') preencherSelectContasSalario();
@@ -1075,10 +1171,7 @@ window.salvarEdicaoConta = function(id) {
 
 window.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('lanc-direcao')) mudarDirecaoLancamento();
-    
-    // PONTO 4: Preenche os selects das contas automaticamente na largada do app
     preencherSelectContasSalario();
-    
     processarRolagensPendentes();
     setTimeout(() => { verificarNotificacoesMotor(); }, 500);
 });
