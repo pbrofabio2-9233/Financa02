@@ -273,3 +273,337 @@ window.confirmarImportacaoCSV = function() {
     alert("Função de leitura e inserção de CSV está em fase de implementação!");
     fecharModalImportarCSV();
 };
+// ==============================================================
+// CORREÇÕES ABSOLUTAS - COLE NO FINAL DO ARQUIVO APP.JS
+// ==============================================================
+
+// 1. CORREÇÃO DA EDIÇÃO DE LANÇAMENTOS EM FATURA FECHADA (MAS NÃO PAGA)
+window.abrirModalEdicaoLancamento = function(id) {
+    const l = (db.lancamentos || []).find(x => String(x.id) === String(id));
+    if (!l) return;
+
+    const c = (db.contas || []).find(acc => String(acc.id) === String(l.contaId));
+
+    // NOVA REGRA DE BLOQUEIO:
+    if (l.efetivado) {
+        let bloqueado = true;
+        
+        // Se for um cartão de crédito...
+        if (c && c.tipo === 'cartao') {
+            const mesFat = window.getMesFaturaLogico ? window.getMesFaturaLogico(l.data, c.fechamento || 1) : "";
+            // ...e a fatura NÃO estiver na lista de pagas, nós LIBERAMOS a edição!
+            if (mesFat && !(db.faturasPagas || []).includes(`${c.id}-${mesFat}`)) {
+                bloqueado = false; 
+            }
+        }
+        
+        if (bloqueado) {
+            if (typeof showToast === 'function') showToast("Bloqueado: Reabra este lançamento antes de editá-lo.", "alerta");
+            else alert("Bloqueado: Para evitar erros de saldo, reabra este lançamento antes de editá-lo.");
+            return;
+        }
+    }
+
+    // Preenche os dados no modal padrão de edição
+    if(document.getElementById('edit-lanc-id')) document.getElementById('edit-lanc-id').value = l.id;
+    if(document.getElementById('edit-lanc-desc')) document.getElementById('edit-lanc-desc').value = l.desc;
+    if(document.getElementById('edit-lanc-valor')) document.getElementById('edit-lanc-valor').value = parseFloat(l.valor || 0).toFixed(2).replace('.', ',');
+    if(document.getElementById('edit-lanc-data')) document.getElementById('edit-lanc-data').value = l.data;
+
+    if(document.getElementById('edit-lanc-cat')) {
+        let catOpts = '<option value="">Outros</option>';
+        (db.categorias || []).forEach(cat => {
+            catOpts += `<option value="${cat.nome}" ${l.cat === cat.nome ? 'selected' : ''}>${cat.icone || ''} ${cat.nome}</option>`;
+        });
+        document.getElementById('edit-lanc-cat').innerHTML = catOpts;
+    }
+
+    if(document.getElementById('edit-lanc-conta')) {
+        let contaOpts = '';
+        (db.contas || []).forEach(acc => {
+            contaOpts += `<option value="${acc.id}" ${String(l.contaId) === String(acc.id) ? 'selected' : ''}>${acc.nome}</option>`;
+        });
+        document.getElementById('edit-lanc-conta').innerHTML = contaOpts;
+    }
+
+    // Abre o modal
+    const m = document.getElementById('modal-edicao-lancamento');
+    if(m) { 
+        m.style.display = 'flex'; 
+        setTimeout(() => m.classList.add('active'), 10); 
+    } else {
+        // Fallback: se não achar o modal principal, tenta abrir inline no extrato
+        const elInline = document.getElementById(`edit-lanc-${id}`);
+        if(elInline) elInline.style.display = 'block';
+    }
+};
+
+
+// 2. CORREÇÃO DO MODAL DE METAS (DESTRÓI O ANTIGO E CRIA UM BLINDADO)
+window.abrirModalMetasForcado = function() {
+    // Remove qualquer modal fantasma que esteja escondido no HTML
+    document.querySelectorAll('#modal-metas-individuais, #modal-metas-individuais-super').forEach(el => el.remove());
+    
+    // Cria um contêiner novo, com ID diferente para evitar conflito com código velho
+    let modal = document.createElement('div');
+    modal.id = 'modal-metas-individuais-super';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'display:flex; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999999; justify-content:center; align-items:center; padding:20px; opacity:0; transition: opacity 0.3s ease;';
+    
+    let html = `
+        <div class="modal-content" style="background:var(--card-bg); width:100%; max-width:400px; border-radius:16px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3); position:relative; transform: translateY(20px); transition: transform 0.3s ease;">
+            <button class="btn-icon" style="position:absolute; top:15px; right:15px; font-size:18px; color:var(--texto-sec); background:none; border:none; cursor:pointer;" onclick="fecharModalMetasForcado()"><i class="fas fa-times"></i></button>
+            <h3 style="margin-bottom:20px; color:var(--texto-main); font-size: 16px;"><i class="fas fa-bullseye" style="color:var(--esmeralda);"></i> Metas por Cartão</h3>
+            <div id="conteudo-metas-blindado" style="max-height:60vh; overflow-y:auto; padding-right:5px;">`;
+
+    try {
+        const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
+        if (cartoes.length === 0) {
+            html += '<p class="texto-vazio" style="font-size:13px; text-align:center;">Nenhum cartão de crédito cadastrado.</p>';
+        } else {
+            const hoje = new Date();
+            cartoes.forEach(c => {
+                let diaFech = parseInt(c.fechamento, 10) || 1;
+                let mesAtivo = hoje.getMonth() + 1; 
+                let anoAtivo = hoje.getFullYear();
+                
+                if (hoje.getDate() >= diaFech) { 
+                    mesAtivo += 1; 
+                    if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; } 
+                }
+                const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
+                
+                let usoMeta = 0;
+                (db.lancamentos || []).forEach(l => {
+                    if (String(l.contaId) === String(c.id)) {
+                        const mesFat = window.getMesFaturaLogico ? window.getMesFaturaLogico(l.data, diaFech) : "";
+                        if (mesFat === strMesAtivo) {
+                            if (['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'].includes(l.tipo)) usoMeta += parseFloat(l.valor) || 0;
+                            else if (['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) usoMeta -= parseFloat(l.valor) || 0;
+                        }
+                    }
+                });
+                
+                if (usoMeta < 0) usoMeta = 0;
+                const metaDefinida = parseFloat(c.meta) || 0;
+                const pMeta = metaDefinida > 0 ? (usoMeta / metaDefinida) * 100 : 0;
+                const corBarra = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981');
+                
+                html += `
+                <div style="margin-bottom:15px; border-bottom:1px solid var(--linha); padding-bottom:15px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <strong style="font-size:14px; color:var(--texto-main);">${c.nome || 'Cartão'}</strong>
+                        <span style="font-size:12px; font-weight:bold; color:${corBarra};">${pMeta.toFixed(1)}%</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--texto-sec); margin-bottom:6px;">
+                        <span>Uso: R$ ${(usoMeta).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+                        <span>Meta: R$ ${(metaDefinida).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
+                    </div>
+                    <div style="background:var(--fundo); height:8px; border-radius:8px; overflow:hidden;">
+                        <div style="background:${corBarra}; width:${Math.min(pMeta, 100)}%; height:100%; border-radius:8px;"></div>
+                    </div>
+                </div>`;
+            });
+        }
+    } catch (err) {
+        html += `<p style="color:red; font-size:12px;">Erro interno: ${err.message}</p>`;
+    }
+
+    html += `</div></div>`;
+    modal.innerHTML = html;
+    document.body.appendChild(modal);
+
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.querySelector('.modal-content').style.transform = 'translateY(0)';
+    }, 10);
+};
+
+window.fecharModalMetasForcado = function() {
+    const modal = document.getElementById('modal-metas-individuais-super');
+    if (modal) {
+        modal.style.opacity = '0';
+        modal.querySelector('.modal-content').style.transform = 'translateY(20px)';
+        setTimeout(() => modal.remove(), 300);
+    }
+};
+
+// ==============================================================
+// CORREÇÕES CIRÚRGICAS BASEADAS NO INDEX.HTML (V28.5)
+// ==============================================================
+
+// 1. RESOLVER O MODAL DE METAS (Preencher a lista corretamente)
+window.renderMetasIndividuais = function() {
+    const container = document.getElementById('lista-metas-detalhadas');
+    if (!container) return;
+
+    const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
+    let htmlLista = '';
+
+    if (cartoes.length === 0) {
+        htmlLista = '<p style="text-align:center; padding:20px; color:var(--texto-sec); font-size: 13px;">Nenhum cartão de crédito cadastrado.</p>';
+    } else {
+        const hoje = new Date();
+        cartoes.forEach(c => {
+            let diaFech = parseInt(c.fechamento, 10) || 1;
+            let mesAtivo = hoje.getMonth() + 1;
+            let anoAtivo = hoje.getFullYear();
+
+            if (hoje.getDate() >= diaFech) {
+                mesAtivo += 1;
+                if (mesAtivo > 12) { mesAtivo = 1; anoAtivo += 1; }
+            }
+            const strMesAtivo = `${anoAtivo}-${mesAtivo.toString().padStart(2, '0')}`;
+
+            let usoMeta = 0;
+            (db.lancamentos || []).forEach(l => {
+                if (String(l.contaId) === String(c.id)) {
+                    let mesFat = "";
+                    if (l.data) {
+                        const partes = l.data.split('T')[0].split('-');
+                        let anoF = parseInt(partes[0], 10); let mesF = parseInt(partes[1], 10); let diaF = parseInt(partes[2], 10);
+                        if (diaF >= diaFech) { mesF += 1; if (mesF > 12) { mesF = 1; anoF += 1; } }
+                        mesFat = `${anoF}-${mesF.toString().padStart(2, '0')}`;
+                    }
+                    if (mesFat === strMesAtivo) {
+                        if (['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'].includes(l.tipo)) usoMeta += parseFloat(l.valor) || 0;
+                        else if (['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'].includes(l.tipo)) usoMeta -= parseFloat(l.valor) || 0;
+                    }
+                }
+            });
+
+            if (usoMeta < 0) usoMeta = 0;
+            const metaDefinida = parseFloat(c.meta) || 0;
+            const pMeta = metaDefinida > 0 ? (usoMeta / metaDefinida) * 100 : 0;
+            const corBarra = pMeta > 100 ? '#ef4444' : (pMeta > 80 ? '#f59e0b' : '#10b981');
+            
+            const valUsoStr = Number(usoMeta).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+            const valMetaStr = Number(metaDefinida).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+            htmlLista += `
+            <div style="margin-bottom:15px; border-bottom:1px solid var(--linha); padding-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <strong style="font-size:14px; color:var(--texto-main);">${c.nome || 'Cartão'}</strong>
+                    <span style="font-size:12px; font-weight:bold; color:${corBarra};">${pMeta.toFixed(1)}%</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--texto-sec); margin-bottom:6px;">
+                    <span>Uso: R$ ${valUsoStr}</span>
+                    <span>Meta: R$ ${valMetaStr}</span>
+                </div>
+                <div style="background:var(--fundo); height:8px; border-radius:8px; overflow:hidden;">
+                    <div style="background:${corBarra}; width:${Math.min(pMeta, 100)}%; height:100%; border-radius:8px;"></div>
+                </div>
+            </div>`;
+        });
+    }
+    container.innerHTML = htmlLista;
+};
+
+
+// 2. RESOLVER A EDIÇÃO DA FATURA FECHADA (Liberando bloqueio e preenchendo IDs certos)
+window.idLancamentoEdicaoAtual = null;
+
+window.abrirModalEdicaoLancamento = function(id) {
+    const l = (db.lancamentos || []).find(x => String(x.id) === String(id));
+    if (!l) return;
+
+    // Regra correta: Bloquear só se a fatura já estiver PAGA (não apenas fechada)
+    if (l.efetivado) {
+        let bloqueado = true;
+        const c = (db.contas || []).find(acc => String(acc.id) === String(l.contaId));
+        
+        if (c && c.tipo === 'cartao') {
+            let mesFat = "";
+            if (l.data) {
+                const [anoStr, mesStr, diaStr] = l.data.split('T')[0].split('-');
+                let anoF = parseInt(anoStr, 10); let mesF = parseInt(mesStr, 10); let diaF = parseInt(diaStr, 10);
+                let diaFech = parseInt(c.fechamento, 10) || 1;
+                if (diaF >= diaFech) { mesF += 1; if (mesF > 12) { mesF = 1; anoF += 1; } }
+                mesFat = `${anoF}-${mesF.toString().padStart(2, '0')}`;
+            }
+            // Verifica se está na lista de pagas
+            if (mesFat && !(db.faturasPagas || []).includes(`${c.id}-${mesFat}`)) {
+                bloqueado = false; 
+            }
+        } else {
+            bloqueado = true; // Se for conta corrente normal efetivada, mantém bloqueio padrão
+        }
+        
+        if (bloqueado && (!c || c.tipo !== 'cartao')) {
+             if(typeof showToast === 'function') showToast("Bloqueado: Reabra o lançamento antes de editar.", "alerta");
+             return;
+        } else if (bloqueado) {
+             if(typeof showToast === 'function') showToast("Fatura Paga: Não é possível editar.", "alerta");
+             return;
+        }
+    }
+
+    window.idLancamentoEdicaoAtual = id;
+
+    // Preenche os dados usando os IDs CORRETOS do seu index.html
+    const descEl = document.getElementById('edit-modal-desc');
+    const valorEl = document.getElementById('edit-modal-valor');
+    const dataEl = document.getElementById('edit-modal-data');
+    const catEl = document.getElementById('edit-modal-cat');
+    const contaEl = document.getElementById('edit-modal-conta');
+
+    if(descEl) descEl.value = l.desc || '';
+    if(valorEl) valorEl.value = parseFloat(l.valor || 0).toFixed(2).replace('.', ',');
+    if(dataEl) dataEl.value = l.data || '';
+
+    if(catEl) {
+        catEl.innerHTML = '<option value="">Outros</option>' + (db.categorias || []).map(cat => 
+            `<option value="${cat.nome}" ${l.cat === cat.nome ? 'selected' : ''}>${cat.icone || ''} ${cat.nome}</option>`
+        ).join('');
+    }
+
+    if(contaEl) {
+        contaEl.innerHTML = (db.contas || []).map(acc => 
+            `<option value="${acc.id}" ${String(l.contaId) === String(acc.id) ? 'selected' : ''}>${acc.nome}</option>`
+        ).join('');
+    }
+
+    // Abre o modal
+    const m = document.getElementById('modal-edicao-lancamento');
+    if(m) {
+        m.style.display = 'flex';
+        setTimeout(() => m.classList.add('active'), 10);
+    }
+};
+
+// 3. SALVAR A EDIÇÃO COM O NOME EXATO DO BOTÃO NO HTML
+window.salvarEdicaoLancamentoModal = function() {
+    if (!window.idLancamentoEdicaoAtual) return;
+    
+    const l = db.lancamentos.find(x => String(x.id) === String(window.idLancamentoEdicaoAtual));
+    if (!l) return;
+
+    const desc = document.getElementById('edit-modal-desc').value;
+    const valStr = document.getElementById('edit-modal-valor').value;
+    const data = document.getElementById('edit-modal-data').value;
+    const cat = document.getElementById('edit-modal-cat').value;
+    const contaId = document.getElementById('edit-modal-conta').value;
+
+    l.desc = desc;
+    l.valor = parseFloat(valStr.replace(/\./g, '').replace(',', '.')) || 0;
+    l.data = data;
+    l.cat = cat;
+    l.contaId = contaId;
+    
+    if(typeof save === 'function') save();
+    
+    // Fecha o modal após salvar
+    const m = document.getElementById('modal-edicao-lancamento');
+    if(m) {
+        m.classList.remove('active');
+        setTimeout(() => m.style.display = 'none', 300);
+    }
+    
+    if (typeof showToast === 'function') showToast("Lançamento atualizado!", "sucesso");
+    
+    // Atualiza a tela
+    if (typeof render === 'function') render();
+    if (typeof renderHistorico === 'function') renderHistorico();
+    
+    window.idLancamentoEdicaoAtual = null; 
+};
