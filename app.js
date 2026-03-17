@@ -607,3 +607,32 @@ window.salvarEdicaoLancamentoModal = function() {
     
     window.idLancamentoEdicaoAtual = null; 
 };
+// ==============================================================
+// CORREÇÃO: CONFIRMAR RECEBIMENTO E ATUALIZAR SALDOS
+// ==============================================================
+
+window.toggleEfetivado = function(id) {
+    const l = (db.lancamentos || []).find(x => String(x.id) === String(id));
+    if (!l) return;
+
+    // 1. Inverte o status (Pendente <-> Recebido/Pago)
+    l.efetivado = !l.efetivado;
+
+    // 2. CORREÇÃO DE SEGURANÇA: Garante que o motor reconheça o valor como entrada
+    // Se o tipo for 'salario', 'renda', etc, garantimos que o sistema o trate como 'receita'
+    if (l.efetivado && ['salario', 'outras_receitas', 'compensacao'].includes(l.tipo)) {
+        l.tipo = 'receita'; // Força o motor principal a somar na conta
+    }
+
+    // 3. Salva no banco de dados local
+    if (typeof save === 'function') save();
+
+    // 4. Feedback Visual
+    if (typeof showToast === 'function') {
+        showToast(l.efetivado ? "✅ Confirmado e somado à conta!" : "⏳ Marcado como pendente.", "sucesso");
+    }
+
+    // 5. O SEGREDO: Força a atualização de todas as telas e painéis de saldo imediatamente
+    if (typeof render === 'function') render(); 
+    if (typeof renderHistorico === 'function') renderHistorico();
+};
