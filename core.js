@@ -1,5 +1,5 @@
 // ==========================================
-// CORE.JS - Banco de Dados, Inicialização e Memória (Otimizado)
+// CORE.JS - Banco de Dados, Inicialização e Memória (Otimizado v28.5)
 // ==========================================
 
 let db = {
