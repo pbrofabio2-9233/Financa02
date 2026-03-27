@@ -1,5 +1,5 @@
 // ==========================================
-// UI.JS - Renderização, Interface e Gráficos
+// UI.JS - Renderização, Interface e Gráficos (Otimizado v28.8 - OVERRIDE ABSOLUTO)
 // ==========================================
 
 var T_RECEITAS = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
@@ -27,28 +27,16 @@ document.addEventListener("DOMContentLoaded", () => {
         
         @media (min-width: 768px) {
             .fab-container, .btn-flutuante { display: none !important; }
-            
             .header-app #btn-add, .header-app .btn-novo-lancamento, .header-app button[onclick*="abrirModalLancamento"] {
-                display: inline-flex !important;
-                height: 34px !important;
-                min-height: 34px !important;
-                padding: 0 16px !important;
-                border-radius: 34px !important;
-                font-size: 13px !important;
-                font-weight: 600 !important;
-                align-items: center !important;
-                justify-content: center !important;
-                gap: 6px !important;
-                box-shadow: none !important;
-                margin: 0 !important;
-                white-space: nowrap !important;
-                width: max-content !important;
-                position: static !important;
+                display: inline-flex !important; height: 34px !important; min-height: 34px !important;
+                padding: 0 16px !important; border-radius: 34px !important; font-size: 13px !important;
+                font-weight: 600 !important; align-items: center !important; justify-content: center !important;
+                gap: 6px !important; box-shadow: none !important; margin: 0 !important;
+                white-space: nowrap !important; width: max-content !important; position: static !important;
                 transform: none !important;
             }
             .header-app #btn-add i, .header-app .btn-novo-lancamento i, .header-app button[onclick*="abrirModalLancamento"] i {
-                font-size: 14px !important;
-                margin: 0 !important;
+                font-size: 14px !important; margin: 0 !important;
             }
             .header-app { align-items: center !important; }
         }
@@ -57,9 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
         body.ocean-mode input[type="date"]::-webkit-calendar-picker-indicator,
         body.dark-mode input[type="month"]::-webkit-calendar-picker-indicator,
         body.ocean-mode input[type="month"]::-webkit-calendar-picker-indicator {
-            filter: invert(1) brightness(2) !important;
-            opacity: 1 !important;
-            cursor: pointer;
+            filter: invert(1) brightness(2) !important; opacity: 1 !important; cursor: pointer;
         }
 
         @keyframes highlightPulse {
@@ -99,55 +85,45 @@ let longPressTimer;
 let currentLancIdCtx = null;
 
 if (!document.getElementById('context-menu-lancamento')) {
-    const menu = document.createElement('div');
-    menu.id = 'context-menu-lancamento';
+    const menu = document.createElement('div'); menu.id = 'context-menu-lancamento';
     menu.style.cssText = 'display:none; position:fixed; z-index:99999; background:var(--card-bg); border:1px solid var(--linha); border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.5); flex-direction:column; padding:5px; min-width:180px; overflow:hidden;';
     document.body.appendChild(menu);
 }
 
 if (!document.getElementById('context-menu-fatura')) {
-    const menuFat = document.createElement('div');
-    menuFat.id = 'context-menu-fatura';
+    const menuFat = document.createElement('div'); menuFat.id = 'context-menu-fatura';
     menuFat.style.cssText = 'display:none; position:fixed; z-index:99999; background:var(--card-bg); border:1px solid var(--linha); border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.5); flex-direction:column; padding:5px; min-width:180px; overflow:hidden;';
     document.body.appendChild(menuFat);
 }
 
 window.fecharMenuCtx = function() { 
-    const menu = document.getElementById('context-menu-lancamento'); 
-    if(menu && menu.style.display !== 'none') menu.style.display = 'none'; 
-    const menuFat = document.getElementById('context-menu-fatura'); 
-    if(menuFat && menuFat.style.display !== 'none') menuFat.style.display = 'none'; 
+    const menu = document.getElementById('context-menu-lancamento'); if(menu) menu.style.display = 'none'; 
+    const menuFat = document.getElementById('context-menu-fatura'); if(menuFat) menuFat.style.display = 'none'; 
     clearTimeout(longPressTimer); 
 };
 
 window.addEventListener('scroll', () => { fecharMenuCtx(); }, true);
 document.addEventListener('click', (e) => { 
-    const m = document.getElementById('context-menu-lancamento'); 
-    const mF = document.getElementById('context-menu-fatura'); 
+    const m = document.getElementById('context-menu-lancamento'); const mF = document.getElementById('context-menu-fatura'); 
     if((m && !m.contains(e.target)) || (mF && !mF.contains(e.target))) fecharMenuCtx(); 
 });
 
 window.iniciarLongPress = function(e, id, isFatura = false) { 
     longPressTimer = setTimeout(() => { 
-        if (isFatura) mostrarContextMenuFatura(e, id); 
-        else { currentLancIdCtx = id; mostrarContextMenu(e, id); }
+        if (isFatura) mostrarContextMenuFatura(e, id); else { currentLancIdCtx = id; mostrarContextMenu(e, id); }
     }, 450); 
 };
 window.cancelarLongPress = function() { clearTimeout(longPressTimer); };
 
 window.mostrarContextMenuRightClick = function(e, id, isFatura = false) { 
     if(e) { e.preventDefault(); e.stopPropagation(); }
-    if (isFatura) mostrarContextMenuFatura(e, id); 
-    else { currentLancIdCtx = id; mostrarContextMenu(e, id); }
+    if (isFatura) mostrarContextMenuFatura(e, id); else { currentLancIdCtx = id; mostrarContextMenu(e, id); }
 };
 
 window.criarBotaoCtx = function(onclick, icone, cor, texto) {
     return `<button onclick="${onclick}" style="padding:12px 15px; text-align:left; background:transparent; border:none; color:var(--texto-main); width:100%; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:10px;"><i class="${icone}" style="color:${cor}; width:20px; text-align:center;"></i> ${texto}</button><div style="height:1px; background:var(--linha); margin:0 5px;"></div>`;
 };
 
-// ==============================================================
-// LÓGICA DO MENU SUSPENSO DE EXTRATOS 
-// ==============================================================
 window.mostrarContextMenu = function(e, id) {
     if ("vibrate" in navigator) navigator.vibrate(50);
     const menu = document.getElementById('context-menu-lancamento'); if(!menu) return;
@@ -155,20 +131,16 @@ window.mostrarContextMenu = function(e, id) {
     const c = (db.contas || []).find(x => String(x.id) === String(lanc.contaId)); const isCartao = c && c.tipo === 'cartao';
     
     let html = '';
-    const isReceita = T_RECEITAS.includes(lanc.tipo);
+    const isReceita = T_RECEITAS.includes(lanc.tipo); 
     const isDespesa = T_DESPESAS.includes(lanc.tipo);
-    const isFixoParcelado = lanc.idGrupo || lanc.idRecorrencia || lanc.rolagem;
+    const isFixoParcelado = (lanc.idGrupo || lanc.idRecorrencia || lanc.rolagem) && lanc.tipo !== 'rec_emprestimo';
     
-    // REGRA DE ESTORNOS
     if (String(lanc.id).startsWith('pg_fat_')) {
         html += window.criarBotaoCtx(`acionarEstornoFaturaCtx(event, '${lanc.id.replace('pg_fat_', '')}')`, 'fas fa-undo', 'var(--alerta)', 'Reabrir Fatura');
-    } 
-    else if (String(lanc.id).startsWith('am_fat_')) {
+    } else if (String(lanc.id).startsWith('am_fat_')) {
         const match = String(lanc.id).match(/am_fat_(.+)_(\d+)/);
         html += window.criarBotaoCtx(`acionarEstornoAmortizacaoCtx(event, '${match ? match[1] : ''}')`, 'fas fa-undo', 'var(--alerta)', 'Estornar Amortização');
-    } 
-    // REGRAS DE LANÇAMENTOS NORMAIS
-    else {
+    } else {
         if (isCartao) {
             const mesFatLogico = window.getMesFaturaLogico(lanc.data, c.fechamento || 1);
             const isFaturaPaga = (db.faturasPagas || []).includes(`${c.id}-${mesFatLogico}`);
@@ -179,41 +151,37 @@ window.mostrarContextMenu = function(e, id) {
                 html += window.criarBotaoCtx(`acionarEdicaoParcelamento('${lanc.idGrupo || lanc.idRecorrencia}')`, 'fas fa-boxes', 'var(--alerta)', 'Ver parcelamento');
             } else {
                 if (!isFaturaPaga) {
+                    if (lanc.tipo === 'rec_emprestimo' && lanc.idOrigem) {
+                        html += window.criarBotaoCtx(`acionarVerOrigem('${lanc.idOrigem}')`, 'fas fa-search-dollar', 'var(--azul)', 'Ver origem');
+                    }
                     html += window.criarBotaoCtx('acionarAjusteCtx(event)', 'fas fa-edit', 'var(--azul)', 'Ajustes');
                     html += window.criarBotaoCtx('acionarExcluirCtx(event)', 'fas fa-trash', 'var(--perigo)', 'Excluir');
                 }
             }
-        } 
-        else {
-            if (isFixoParcelado) {
-                html += window.criarBotaoCtx(`acionarEdicaoParcelamento('${lanc.idGrupo || lanc.idRecorrencia}')`, 'fas fa-boxes', 'var(--alerta)', 'Ver parcelamento');
-                if (lanc.efetivado) {
-                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
-                } else {
-                    html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check', 'var(--sucesso)', 'Pagar');
-                }
+        } else {
+            if (lanc.tipo === 'rec_emprestimo') {
+                if (!lanc.efetivado) html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check-double', 'var(--sucesso)', 'Confirmar recebimento');
+                else html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                if (lanc.idOrigem) html += window.criarBotaoCtx(`acionarVerOrigem('${lanc.idOrigem}')`, 'fas fa-search-dollar', 'var(--azul)', 'Ver origem');
+                html += window.criarBotaoCtx('acionarAjusteCtx(event)', 'fas fa-edit', 'var(--azul)', 'Ajustes');
+                html += window.criarBotaoCtx('acionarExcluirCtx(event)', 'fas fa-trash', 'var(--perigo)', 'Excluir');
             } 
-            else if (lanc.tipo === 'rec_emprestimo') {
-                if (!lanc.efetivado) {
-                    html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check-double', 'var(--sucesso)', 'Confirmar recebimento');
-                } else {
-                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
-                }
-                html += window.criarBotaoCtx(`acionarVerOrigem('${lanc.idOrigem || ''}')`, 'fas fa-search-dollar', 'var(--azul)', 'Ver origem');
+            else if (isFixoParcelado) {
+                html += window.criarBotaoCtx(`acionarEdicaoParcelamento('${lanc.idGrupo || lanc.idRecorrencia}')`, 'fas fa-boxes', 'var(--alerta)', 'Ver parcelamento');
+                if (lanc.efetivado) html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                else html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check', 'var(--sucesso)', 'Pagar');
             } 
             else if (isReceita) {
-                if (lanc.efetivado) {
-                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
-                } else {
+                if (lanc.efetivado) html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                else {
                     html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check-double', 'var(--sucesso)', 'Confirmar recebimento');
                     html += window.criarBotaoCtx('acionarAjusteCtx(event)', 'fas fa-edit', 'var(--azul)', 'Ajustes');
                     html += window.criarBotaoCtx('acionarExcluirCtx(event)', 'fas fa-trash', 'var(--perigo)', 'Excluir');
                 }
             } 
             else if (isDespesa) {
-                if (lanc.efetivado) {
-                    html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
-                } else {
+                if (lanc.efetivado) html += window.criarBotaoCtx('acionarReabrirCtx(event)', 'fas fa-undo', 'var(--alerta)', 'Reabrir');
+                else {
                     html += window.criarBotaoCtx('acionarPagarCtx(event)', 'fas fa-check', 'var(--sucesso)', 'Pagar');
                     html += window.criarBotaoCtx('acionarAjusteCtx(event)', 'fas fa-edit', 'var(--azul)', 'Ajustes');
                     html += window.criarBotaoCtx('acionarExcluirCtx(event)', 'fas fa-trash', 'var(--perigo)', 'Excluir');
@@ -222,8 +190,7 @@ window.mostrarContextMenu = function(e, id) {
         }
     }
 
-    menu.innerHTML = html;
-    menu.style.display = 'flex';
+    menu.innerHTML = html; menu.style.display = 'flex';
     if (menu.lastChild && menu.lastChild.tagName === 'DIV') menu.lastChild.remove();
 
     let x = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX; 
@@ -234,47 +201,30 @@ window.mostrarContextMenu = function(e, id) {
     menu.style.left = `${x}px`; menu.style.top = `${y}px`;
 };
 
-// ==============================================================
-// LÓGICA DO MENU SUSPENSO DE FATURAS
-// ==============================================================
 window.mostrarContextMenuFatura = function(e, fatID) {
     if ("vibrate" in navigator) navigator.vibrate(50);
     const menu = document.getElementById('context-menu-fatura'); if(!menu) return;
     
-    const parts = fatID.split('-');
-    if (parts.length < 3) return;
+    const parts = fatID.split('-'); if (parts.length < 3) return;
     const mesFat = `${parts[parts.length - 2]}-${parts[parts.length - 1]}`;
     const contaId = parts.slice(0, parts.length - 2).join('-');
-    
     const c = (db.contas || []).find(x => String(x.id) === String(contaId)); if (!c) return;
-    
     const isPaga = (db.faturasPagas || []).includes(fatID);
     
-    const hoje = new Date();
-    hoje.setHours(0,0,0,0);
-    
-    let anoFat = parseInt(mesFat.split('-')[0], 10);
-    let mesFatNum = parseInt(mesFat.split('-')[1], 10);
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    let anoFat = parseInt(mesFat.split('-')[0], 10); let mesFatNum = parseInt(mesFat.split('-')[1], 10);
     let diaFech = parseInt(c.fechamento, 10) || 1;
-    
     const dataFechamento = new Date(anoFat, mesFatNum - 1, diaFech, 0, 0, 0);
     const isFechada = hoje.getTime() >= dataFechamento.getTime();
     
     let html = '';
-    
-    if (isPaga) {
-        html += window.criarBotaoCtx(`acionarEstornoFaturaCtx(event, '${fatID}')`, 'fas fa-undo', 'var(--alerta)', 'Reabrir fatura');
-    } 
+    if (isPaga) html += window.criarBotaoCtx(`acionarEstornoFaturaCtx(event, '${fatID}')`, 'fas fa-undo', 'var(--alerta)', 'Reabrir fatura');
     else if (isFechada) {
         html += window.criarBotaoCtx(`acionarAmortizarCtx(event, '${fatID}')`, 'fas fa-hand-holding-usd', 'var(--sucesso)', 'Pagamento parcial');
         html += window.criarBotaoCtx(`acionarQuitarFaturaCtx(event, '${fatID}')`, 'fas fa-check-double', 'var(--esmeralda)', 'Quitar fatura');
-    } 
-    else {
-        html += window.criarBotaoCtx(`acionarAmortizarCtx(event, '${fatID}')`, 'fas fa-forward', 'var(--azul)', 'Adiantamento');
-    }
+    } else html += window.criarBotaoCtx(`acionarAmortizarCtx(event, '${fatID}')`, 'fas fa-forward', 'var(--azul)', 'Adiantamento');
 
-    menu.innerHTML = html;
-    menu.style.display = 'flex';
+    menu.innerHTML = html; menu.style.display = 'flex';
     if (menu.lastChild && menu.lastChild.tagName === 'DIV') menu.lastChild.remove();
 
     let x = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX; 
@@ -286,212 +236,29 @@ window.mostrarContextMenuFatura = function(e, fatID) {
 };
 
 // ==============================================================
-// SOLUÇÃO ABSOLUTA: ESTORNO DE AMORTIZAÇÃO E REABERTURA DE FATURA
-// ==============================================================
-window.estornarAmortizacaoFatura = function(fatID) {
-    if(!confirm("Deseja realmente estornar o pagamento parcial desta fatura? O valor voltará para a conta origem e a fatura será reaberta.")) return;
-
-    const valAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
-    if(valAmortizado <= 0) {
-        alert("Não há valor amortizado para estornar.");
-        return;
-    }
-
-    // 1. Acha o lançamento da amortização, devolve o dinheiro pra conta e exclui o lançamento
-    const lancIndex = db.lancamentos.findIndex(l => String(l.id).startsWith(`am_fat_${fatID}`));
-    if (lancIndex !== -1) {
-        const l = db.lancamentos[lancIndex];
-        const contaOrigem = db.contas.find(c => String(c.id) === String(l.contaId));
-        if (contaOrigem && contaOrigem.tipo !== 'cartao') {
-            contaOrigem.saldo += l.valor; 
-        }
-        db.lancamentos.splice(lancIndex, 1);
-    }
-
-    // 2. Zera a amortização
-    db.amortizacoesFaturas[fatID] = 0;
-
-    // 3. SE a fatura estiver "Paga", nós REABRIMOS ela
-    if (db.faturasPagas && db.faturasPagas.includes(fatID)) {
-        db.faturasPagas = db.faturasPagas.filter(id => id !== fatID); // Reabre
-        
-        // 4. MÁGICA: Transforma a 'Quitação' em uma 'Amortização' para o valor do extrato bater perfeitamente!
-        let lancQuitacao = db.lancamentos.find(l => String(l.id).startsWith('pg_fat_' + fatID));
-        if (lancQuitacao) {
-            lancQuitacao.id = lancQuitacao.id.replace('pg_fat_', 'am_fat_');
-            lancQuitacao.desc = lancQuitacao.desc.replace('Pagamento Fatura', 'Pag. Parcial Fatura');
-            db.amortizacoesFaturas[fatID] = lancQuitacao.valor;
-        }
-    }
-
-    if(typeof save === 'function') save();
-    if(typeof showToast === 'function') showToast("Amortização estornada. Fatura reaberta!", "alerta");
-    
-    if (typeof fecharMenuCtx === 'function') fecharMenuCtx();
-    if(typeof render === 'function') render();
-    if(typeof renderHistorico === 'function') renderHistorico();
-};
-
-window.acionarEstornoAmortizacaoCtx = function(e, fatID) { 
-    if(e) e.stopPropagation(); 
-    fecharMenuCtx(); 
-    window.estornarAmortizacaoFatura(fatID);
-};
-
-window.acionarEstornoFaturaCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof motorEstornarFatura === 'function') motorEstornarFatura(fatID); };
-window.acionarAmortizarCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof amortizarFatura === 'function') amortizarFatura(fatID); };
-window.acionarQuitarFaturaCtx = function(e, fatID) { 
-    if(e) e.stopPropagation(); fecharMenuCtx(); 
-    let totalFat = 0;
-    (db.lancamentos || []).forEach(l => {
-        if(String(l.contaId) === String(fatID.split('-')[0])) {
-            const m = window.getMesFaturaLogico(l.data, db.contas.find(c=>String(c.id) === String(l.contaId)).fechamento||1);
-            const refMes = fatID.split('-');
-            const mesFatFormatado = `${refMes[refMes.length-2]}-${refMes[refMes.length-1]}`;
-            if(m === mesFatFormatado) {
-                totalFat += T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
-            }
-        }
-    });
-    const amortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
-    const restante = totalFat - amortizado;
-    if(typeof motorPagarFatura === 'function') motorPagarFatura(fatID, restante);
-};
-
-window.acionarPagarCtx = function(e) { 
-    if(e) e.stopPropagation(); 
-    fecharMenuCtx(); 
-    if(!currentLancIdCtx) return;
-    
-    const lanc = db.lancamentos.find(x => String(x.id) === String(currentLancIdCtx));
-    if(lanc) {
-        lanc.efetivado = true;
-        if(typeof save === 'function') save();
-        if(typeof showToast === 'function') showToast(T_RECEITAS.includes(lanc.tipo) ? "Recebimento confirmado!" : "Pagamento confirmado!", "sucesso");
-        if(typeof render === 'function') render();
-        if(typeof renderHistorico === 'function') renderHistorico();
-    } else if(typeof confirmarPagamento === 'function') {
-        confirmarPagamento(currentLancIdCtx); 
-    }
-};
-
-window.acionarReabrirCtx = function(e) { 
-    if(e) e.stopPropagation(); 
-    fecharMenuCtx(); 
-    if(!currentLancIdCtx) return;
-    
-    const lanc = db.lancamentos.find(x => String(x.id) === String(currentLancIdCtx));
-    if(lanc) {
-        lanc.efetivado = false;
-        if(typeof save === 'function') save();
-        if(typeof showToast === 'function') showToast("Lançamento reaberto!", "alerta");
-        if(typeof render === 'function') render();
-        if(typeof renderHistorico === 'function') renderHistorico();
-    } else if(typeof confirmarReabertura === 'function') {
-        confirmarReabertura(currentLancIdCtx); 
-    }
-};
-
-window.acionarEdicaoParcelamento = function(id) {
-    fecharMenuCtx();
-    if (typeof abrirModalListaContratos === 'function') abrirModalListaContratos();
-    setTimeout(() => { if (typeof abrirModalEdicaoContrato === 'function') abrirModalEdicaoContrato(id); }, 400);
-};
-
-window.acionarVerOrigem = function(idOrigem) {
-    fecharMenuCtx();
-    const l = (db.lancamentos || []).find(x => String(x.id) === String(idOrigem));
-    if(l) {
-        const c = (db.contas || []).find(x => String(x.id) === String(l.contaId));
-        if(c && c.tipo === 'cartao') {
-            const mesFatLogico = window.getMesFaturaLogico(l.data, c.fechamento || 1);
-            acionarVerFaturaCtx(null, c.id, mesFatLogico);
-        } else alert("A origem desta restituição não está atrelada a uma fatura ativa.");
-    } else alert("O lançamento que originou esta restituição foi excluído ou não foi identificado.");
-};
-
-window.acionarVerFaturaCtx = function(e, contaId, mesLogicoFat) {
-    if(e) e.stopPropagation(); fecharMenuCtx();
-    
-    if (typeof fecharPainelNotificacoes === 'function') fecharPainelNotificacoes();
-    if (typeof fecharNotificacoes === 'function') fecharNotificacoes();
-    const painelNotif = document.getElementById('painel-notificacoes');
-    if (painelNotif) painelNotif.classList.remove('active'); 
-    
-    if (contaId) window.cartaoAtivoFatura = String(contaId);
-    
-    if (typeof window.irParaFaturas === 'function') {
-        window.irParaFaturas();
-    } else if (typeof navegar === 'function') {
-        navegar('faturas');
-        document.querySelectorAll('#menu-lateral .menu-item').forEach(el => el.classList.remove('active'));
-        let itemFaturas = document.querySelectorAll('#menu-lateral .menu-item')[1]; 
-        if(itemFaturas) itemFaturas.classList.add('active');
-    }
-
-    if(typeof renderAbaFaturas === 'function') renderAbaFaturas();
-
-    setTimeout(() => {
-        const fatIDCompleto = `${contaId}-${mesLogicoFat}`;
-        const faturaCard = document.getElementById(`fat-card-${fatIDCompleto}`);
-        if (faturaCard) {
-            faturaCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
-            faturaCard.classList.add('fade-highlight');
-            const detalhe = document.getElementById(`edit-lanc-det-fat-${fatIDCompleto}`); 
-            const icone = document.getElementById(`icon-det-fat-${fatIDCompleto}`);
-            if(detalhe && detalhe.style.display === 'none') { 
-                detalhe.style.display = 'block'; 
-                if(icone) icone.classList.add('open'); 
-            }
-            setTimeout(() => faturaCard.classList.remove('fade-highlight'), 3000);
-        }
-    }, 500);
-};
-
-window.acionarAjusteCtx = function(e) {
-    if(e) e.stopPropagation();
-    if(currentLancIdCtx) {
-        if (typeof window.abrirModalEdicaoLancamento === 'function') window.abrirModalEdicaoLancamento(currentLancIdCtx);
-        else {
-            const el = document.getElementById(`edit-lanc-${currentLancIdCtx}`);
-            if(el) { el.style.display = 'block'; setTimeout(() => { const card = el.closest('.fatura-card'); if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100); }
-        }
-    }
-    fecharMenuCtx();
-};
-window.acionarExcluirCtx = function(e) { if(e) e.stopPropagation(); fecharMenuCtx(); if(currentLancIdCtx && typeof excluirLancamento === 'function') excluirLancamento(currentLancIdCtx); };
-
-// ==============================================================
-// MODAL DE METAS INDIVIDUAIS POR CARTÃO (CORREÇÃO ABSOLUTA COM TRY-CATCH)
+// MODAL DE METAS INDIVIDUAIS POR CARTÃO (BLINDAGEM ABSOLUTA)
 // ==============================================================
 window.abrirModalMetasIndividuais = function() {
-    let modal = document.getElementById('modal-metas-individuais');
+    // 1. Cirurgia de DOM: Encontra e extermina modais vazios ou conflitantes advindos do index.html
+    const fantasmas = ['modal-metas-individuais', 'modal-metas', 'modal-metas-cartoes'];
+    fantasmas.forEach(id => {
+        let fantasma = document.getElementById(id);
+        if (fantasma) fantasma.remove();
+    });
     
-    if (!modal) {
-        // Criamos o HTML apenas uma vez e reaproveitamos o container para evitar bugs de DOM
-        modal = document.createElement('div');
-        modal.id = 'modal-metas-individuais';
-        modal.className = 'modal-overlay';
-        modal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; justify-content:center; align-items:center; padding:20px; opacity:0; transition: opacity 0.3s ease;';
-        modal.innerHTML = `
-            <div class="modal-content" style="background:var(--card-bg); width:100%; max-width:400px; border-radius:16px; padding:20px; box-shadow:var(--shadow-md); position:relative; transform: translateY(20px); transition: transform 0.3s ease;">
-                <button class="btn-icon" style="position:absolute; top:15px; right:15px; font-size:18px; color:var(--texto-sec);" onclick="fecharModalMetasIndividuais()"><i class="fas fa-times"></i></button>
-                <h3 style="margin-bottom:20px; color:var(--texto-main); font-size: 16px;"><i class="fas fa-bullseye" style="color:var(--esmeralda);"></i> Metas por Cartão</h3>
-                <div id="conteudo-lista-metas-cartoes" style="max-height:60vh; overflow-y:auto; padding-right:5px;"></div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    }
+    // 2. Cria o modal original, fresco e garantido de ter a estrutura visual
+    let modal = document.createElement('div');
+    modal.id = 'modal-metas-individuais';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:999999; justify-content:center; align-items:center; opacity:0; transition: opacity 0.3s ease;';
     
-    const lista = document.getElementById('conteudo-lista-metas-cartoes');
-    let html = '';
+    let htmlCartoes = '';
     
-    // TRY-CATCH para garantir que mesmo se houver erro, algo será renderizado
     try {
         const cartoes = (db.contas || []).filter(c => c.tipo === 'cartao');
         
         if (cartoes.length === 0) {
-            html = '<p class="texto-vazio" style="font-size:13px; text-align:center;">Nenhum cartão de crédito cadastrado.</p>';
+            htmlCartoes = '<p class="texto-vazio" style="font-size:13px; text-align:center;">Nenhum cartão de crédito cadastrado.</p>';
         } else {
             const hoje = new Date();
             cartoes.forEach(c => {
@@ -510,7 +277,6 @@ window.abrirModalMetasIndividuais = function() {
                     if (String(l.contaId) === String(c.id)) {
                         const mesFat = window.getMesFaturaLogico(l.data, diaFech);
                         if (mesFat === strMesAtivo) {
-                            // Validando tipos via array blindado
                             const despesasValidas = ['despesas_gerais', 'emprestei_cartao', 'despesa', 'emp_cartao'];
                             const receitasValidas = ['salario', 'tomei_emprestimo', 'rec_emprestimo', 'outras_receitas', 'estorno', 'saque_poupanca', 'receita', 'emp_pessoal', 'compensacao'];
                             
@@ -525,11 +291,10 @@ window.abrirModalMetasIndividuais = function() {
                 const pMeta = metaDefinida > 0 ? (usoMeta / metaDefinida) * 100 : 0;
                 const corBarra = pMeta > 100 ? 'var(--perigo)' : (pMeta > 80 ? 'var(--alerta)' : 'var(--esmeralda)');
                 
-                // Variável de formatação local segura
                 const formatoMeta = window.fmtBR ? window.fmtBR(metaDefinida) : metaDefinida.toFixed(2);
                 const formatoUso = window.fmtBR ? window.fmtBR(usoMeta) : usoMeta.toFixed(2);
                 
-                html += `
+                htmlCartoes += `
                 <div style="margin-bottom:15px; border-bottom:1px solid var(--linha); padding-bottom:15px;">
                     <div class="flex-between" style="margin-bottom:8px;">
                         <strong style="font-size:14px; color:var(--texto-main);">${c.nome || 'Cartão'}</strong>
@@ -547,34 +312,205 @@ window.abrirModalMetasIndividuais = function() {
             });
         }
     } catch (err) {
-        console.error("Erro interno ao montar metas:", err);
-        html = `<div style="text-align:center; padding:10px;"><p style="color:var(--perigo); font-size:12px;">Ops! Ocorreu um erro ao carregar as metas: ${err.message}</p></div>`;
+        htmlCartoes = `<div style="text-align:center; padding:10px;"><p style="color:var(--perigo); font-size:12px;">Erro: ${err.message}</p></div>`;
     }
     
-    lista.innerHTML = html;
+    // 3. Força a recriação da estrutura inteira do modal (Header, Body, Close Button) para garantir que não será branco
+    modal.innerHTML = `
+        <div class="modal-content" style="background:var(--card-bg); width:90%; max-width:400px; border-radius:16px; box-shadow:var(--shadow-md); transform: translateY(20px); transition: transform 0.3s ease; display:flex; flex-direction:column; overflow:hidden;">
+            <div class="modal-header" style="padding: 20px 25px; border-bottom: 1px solid var(--linha); display:flex; justify-content:space-between; align-items:center; background: var(--card-bg);">
+                <h3 style="margin:0; font-size: 16px; color:var(--texto-main); display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-bullseye" style="color:var(--esmeralda);"></i> Metas por Cartão
+                </h3>
+                <button class="btn-icon" style="color:var(--texto-sec); font-size:18px; cursor:pointer; background:transparent; border:none;" onclick="fecharModalMetasIndividuais()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:25px; max-height:60vh; overflow-y:auto; background: var(--card-bg);">
+                ${htmlCartoes}
+            </div>
+        </div>
+    `;
     
-    // Exibe o modal
+    document.body.appendChild(modal);
+    
     modal.style.display = 'flex';
-    setTimeout(() => {
-        modal.style.opacity = '1';
-        modal.querySelector('.modal-content').style.transform = 'translateY(0)';
+    setTimeout(() => { 
+        modal.style.opacity = '1'; 
+        modal.querySelector('.modal-content').style.transform = 'translateY(0)'; 
     }, 10);
 };
 
 window.fecharModalMetasIndividuais = function() {
     const modal = document.getElementById('modal-metas-individuais');
     if (modal) {
-        modal.style.opacity = '0';
-        modal.querySelector('.modal-content').style.transform = 'translateY(20px)';
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 300);
+        modal.style.opacity = '0'; 
+        const content = modal.querySelector('.modal-content');
+        if (content) content.style.transform = 'translateY(20px)';
+        setTimeout(() => { modal.remove(); }, 300);
     }
 };
 
+// ==============================================================
+// MOTOR DE SOBRESCRITA (IGNORA OS ERROS DO INDEX.HTML E APP.JS)
+// Executado somente após tudo terminar de carregar na página
+// ==============================================================
+window.addEventListener('load', function() {
+    // Aponta eventuais chamadas obsoletas para a função nova
+    window.abrirModalMetas = window.abrirModalMetasIndividuais;
+    
+    // Procura cartões ou botões que contenham o comando antigo gravado
+    document.querySelectorAll('[onclick*="abrirModalMetas"]').forEach(elemento => {
+        // Arranca o comando antigo do index.html
+        elemento.removeAttribute('onclick');
+        // Sobrescreve com o evento puro de clique
+        elemento.onclick = function(e) {
+            e.preventDefault();
+            window.abrirModalMetasIndividuais();
+        };
+        elemento.style.cursor = 'pointer';
+    });
+});
+
 // ----------------------------------------------------
-// 4. CARROSSÉIS AUTOMÁTICOS E RENDERIZAÇÃO GERAL
+// DEMAIS FUNÇÕES DO MOTOR UI
 // ----------------------------------------------------
+
+window.estornarAmortizacaoFatura = function(fatID) {
+    if(!confirm("Deseja realmente estornar o pagamento parcial desta fatura? O valor voltará para a conta origem e a fatura será reaberta.")) return;
+
+    const valAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
+    if(valAmortizado <= 0) return alert("Não há valor amortizado para estornar.");
+
+    const lancIndex = db.lancamentos.findIndex(l => String(l.id).startsWith(`am_fat_${fatID}`));
+    if (lancIndex !== -1) {
+        const l = db.lancamentos[lancIndex];
+        const contaOrigem = db.contas.find(c => String(c.id) === String(l.contaId));
+        if (contaOrigem && contaOrigem.tipo !== 'cartao') contaOrigem.saldo += l.valor; 
+        db.lancamentos.splice(lancIndex, 1);
+    }
+
+    db.amortizacoesFaturas[fatID] = 0;
+
+    if (db.faturasPagas && db.faturasPagas.includes(fatID)) {
+        db.faturasPagas = db.faturasPagas.filter(id => id !== fatID);
+        
+        let lancQuitacao = db.lancamentos.find(l => String(l.id).startsWith('pg_fat_' + fatID));
+        if (lancQuitacao) {
+            lancQuitacao.id = lancQuitacao.id.replace('pg_fat_', 'am_fat_');
+            lancQuitacao.desc = lancQuitacao.desc.replace('Pagamento Fatura', 'Pag. Parcial Fatura');
+            db.amortizacoesFaturas[fatID] = lancQuitacao.valor;
+        }
+    }
+
+    if(typeof save === 'function') save();
+    if(typeof showToast === 'function') showToast("Amortização estornada. Fatura reaberta!", "alerta");
+    
+    if (typeof fecharMenuCtx === 'function') fecharMenuCtx();
+    if(typeof render === 'function') render();
+    if(typeof renderHistorico === 'function') renderHistorico();
+};
+
+window.acionarEstornoAmortizacaoCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); window.estornarAmortizacaoFatura(fatID); };
+window.acionarEstornoFaturaCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof motorEstornarFatura === 'function') motorEstornarFatura(fatID); };
+window.acionarAmortizarCtx = function(e, fatID) { if(e) e.stopPropagation(); fecharMenuCtx(); if(typeof amortizarFatura === 'function') amortizarFatura(fatID); };
+window.acionarQuitarFaturaCtx = function(e, fatID) { 
+    if(e) e.stopPropagation(); fecharMenuCtx(); 
+    let totalFat = 0;
+    (db.lancamentos || []).forEach(l => {
+        if(String(l.contaId) === String(fatID.split('-')[0])) {
+            const m = window.getMesFaturaLogico(l.data, db.contas.find(c=>String(c.id) === String(l.contaId)).fechamento||1);
+            const refMes = fatID.split('-'); const mesFatFormatado = `${refMes[refMes.length-2]}-${refMes[refMes.length-1]}`;
+            if(m === mesFatFormatado) totalFat += T_RECEITAS.includes(l.tipo) ? -l.valor : l.valor;
+        }
+    });
+    const amortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0;
+    const restante = totalFat - amortizado;
+    if(typeof motorPagarFatura === 'function') motorPagarFatura(fatID, restante);
+};
+
+window.acionarPagarCtx = function(e) { 
+    if(e) e.stopPropagation(); fecharMenuCtx(); 
+    if(!currentLancIdCtx) return;
+    if(typeof toggleEfetivado === 'function') toggleEfetivado(currentLancIdCtx); 
+};
+
+window.acionarReabrirCtx = function(e) { 
+    if(e) e.stopPropagation(); fecharMenuCtx(); 
+    if(!currentLancIdCtx) return;
+    if(typeof toggleEfetivado === 'function') toggleEfetivado(currentLancIdCtx); 
+};
+
+window.acionarEdicaoParcelamento = function(id) {
+    fecharMenuCtx();
+    if (typeof abrirModalListaContratos === 'function') abrirModalListaContratos();
+    setTimeout(() => { if (typeof abrirModalEdicaoContrato === 'function') abrirModalEdicaoContrato(id); }, 400);
+};
+
+window.acionarVerOrigem = function(idOrigem) {
+    fecharMenuCtx();
+    if (!idOrigem) return alert("Este recebimento não possui uma origem rastreável (criado manualmente).");
+    
+    const l = (db.lancamentos || []).find(x => String(x.id) === String(idOrigem));
+    if(l) {
+        const c = (db.contas || []).find(x => String(x.id) === String(l.contaId));
+        if(c && c.tipo === 'cartao') {
+            const mesFatLogico = window.getMesFaturaLogico(l.data, c.fechamento || 1);
+            acionarVerFaturaCtx(null, c.id, mesFatLogico);
+        } else {
+            if (typeof irParaExtratoEMes === 'function') {
+                irParaExtratoEMes(l.data.substring(0,7), l.id);
+            } else {
+                alert("A origem está no extrato de " + l.data.substring(0,7));
+            }
+        }
+    } else {
+        alert("O lançamento que originou esta restituição foi excluído ou não foi identificado.");
+    }
+};
+
+window.acionarVerFaturaCtx = function(e, contaId, mesLogicoFat) {
+    if(e) e.stopPropagation(); fecharMenuCtx();
+    
+    if (typeof fecharPainelNotificacoes === 'function') fecharPainelNotificacoes();
+    if (typeof fecharNotificacoes === 'function') fecharNotificacoes();
+    const painelNotif = document.getElementById('painel-notificacoes');
+    if (painelNotif) painelNotif.classList.remove('active'); 
+    
+    if (contaId) window.cartaoAtivoFatura = String(contaId);
+    
+    if (typeof window.irParaFaturas === 'function') window.irParaFaturas();
+    else if (typeof navegar === 'function') {
+        navegar('faturas'); document.querySelectorAll('#menu-lateral .menu-item').forEach(el => el.classList.remove('active'));
+        let itemFaturas = document.querySelectorAll('#menu-lateral .menu-item')[1]; if(itemFaturas) itemFaturas.classList.add('active');
+    }
+
+    if(typeof renderAbaFaturas === 'function') renderAbaFaturas();
+
+    setTimeout(() => {
+        const fatIDCompleto = `${contaId}-${mesLogicoFat}`;
+        const faturaCard = document.getElementById(`fat-card-${fatIDCompleto}`);
+        if (faturaCard) {
+            faturaCard.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+            faturaCard.classList.add('fade-highlight');
+            const detalhe = document.getElementById(`edit-lanc-det-fat-${fatIDCompleto}`); 
+            const icone = document.getElementById(`icon-det-fat-${fatIDCompleto}`);
+            if(detalhe && detalhe.style.display === 'none') { detalhe.style.display = 'block'; if(icone) icone.classList.add('open'); }
+            setTimeout(() => faturaCard.classList.remove('fade-highlight'), 3000);
+        }
+    }, 500);
+};
+
+window.acionarAjusteCtx = function(e) {
+    if(e) e.stopPropagation(); fecharMenuCtx();
+    if(currentLancIdCtx) {
+        if (typeof window.abrirModalEdicaoLancamento === 'function') window.abrirModalEdicaoLancamento(currentLancIdCtx);
+        else {
+            const el = document.getElementById(`edit-lanc-${currentLancIdCtx}`);
+            if(el) { el.style.display = 'block'; setTimeout(() => { const card = el.closest('.fatura-card'); if(card) card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100); }
+        }
+    }
+};
+window.acionarExcluirCtx = function(e) { if(e) e.stopPropagation(); fecharMenuCtx(); if(currentLancIdCtx && typeof excluirLancamento === 'function') excluirLancamento(currentLancIdCtx); };
+
 let biInterval, radarInterval;
 window.iniciarCarrosselBI = function() { clearInterval(biInterval); const slides = document.querySelectorAll('#carrossel-bi-container .carrossel-slide'); const dots = document.querySelectorAll('.bi-dot'); if(slides.length <= 1) return; let slideIndex = 0; biInterval = setInterval(() => { slides[slideIndex].classList.remove('active'); if(dots[slideIndex]) dots[slideIndex].style.background = 'var(--linha)'; slideIndex = (slideIndex + 1) % slides.length; slides[slideIndex].classList.add('active'); if(dots[slideIndex]) dots[slideIndex].style.background = 'var(--esmeralda)'; }, 9000); };
 window.iniciarCarrosselRadar = function() { clearInterval(radarInterval); const slides = document.querySelectorAll('#carrossel-radar-container .radar-slide'); if(slides.length <= 1) return; let slideIndex = 0; radarInterval = setInterval(() => { slides[slideIndex].classList.remove('active'); slideIndex = (slideIndex + 1) % slides.length; slides[slideIndex].classList.add('active'); }, 6000); };
@@ -656,10 +592,10 @@ window.render = function() {
     const metaTextoElem = document.getElementById('uso-meta-texto');
     if(metaTextoElem) {
         const cardMetas = metaTextoElem.closest('.card-simples');
-        if (cardMetas) {
-            cardMetas.style.cursor = 'pointer';
-            cardMetas.setAttribute('title', 'Clique para ver as metas por cartão');
-            cardMetas.onclick = function() { window.abrirModalMetasIndividuais(); };
+        if (cardMetas) { 
+            cardMetas.style.cursor = 'pointer'; 
+            cardMetas.setAttribute('title', 'Clique para ver as metas por cartão'); 
+            cardMetas.onclick = function(e) { e.preventDefault(); window.abrirModalMetasIndividuais(); }; 
         }
     }
 
@@ -691,9 +627,6 @@ window.render = function() {
     setTimeout(() => { if (typeof renderGrafico === 'function') renderGrafico(); if (typeof renderGraficoEvolucao === 'function') renderGraficoEvolucao(); }, 100);
 }
 
-// ----------------------------------------------------
-// 5. HISTÓRICO E EXTRATOS (SEM BOTÕES INLINE)
-// ----------------------------------------------------
 window.renderFiltrosExtratoDinamicamente = function() {
     const selectCat = document.getElementById('filtro-cat'); const selectConta = document.getElementById('filtro-conta');
     if (selectCat) {
@@ -810,9 +743,6 @@ window.toggleEditLancamento = function(id) {
     }
 }
 
-// ----------------------------------------------------
-// 6. ABAS SECUNDÁRIAS (Contas, Faturas, Radares)
-// ----------------------------------------------------
 window.renderAbaContas = function() {
     const lista = document.getElementById('lista-contas-saldos'); if(!lista) return; lista.innerHTML = ``;
     (db.contas || []).forEach(c => {
@@ -908,8 +838,7 @@ window.renderAbaFaturas = function() {
         const jaAmortizado = (db.amortizacoesFaturas && db.amortizacoesFaturas[fatID]) || 0; 
         const totalFinal = mesesFatura[mes].total - jaAmortizado;
         
-        let anoFatM = parseInt(mes.split('-')[0]);
-        let mesFatNumM = parseInt(mes.split('-')[1]);
+        let anoFatM = parseInt(mes.split('-')[0]); let mesFatNumM = parseInt(mes.split('-')[1]);
         let diaFechM = parseInt(c.fechamento) || 1;
         const dataFech = new Date(anoFatM, mesFatNumM - 1, diaFechM, 0, 0, 0);
         
@@ -981,10 +910,6 @@ window.renderRadarVencimentos = function() {
     window.iniciarCarrosselRadar();
 }
 
-// ----------------------------------------------------
-// 7. RESTANTE DO CÓDIGO (CONTRATOS, SALÁRIOS, CATEGORIAS, CONTAS)
-// ----------------------------------------------------
-
 window.atualizarDiasSalario = function() {
     const freqEl = document.getElementById('sal-freq');
     const container = document.getElementById('sal-dias-container');
@@ -1029,7 +954,6 @@ window.toggleFormNovoSalario = function() {
     if (btnSalvar) { btnSalvar.innerText = "Salvar Rendimento"; btnSalvar.onclick = function(e) { e.preventDefault(); salvarNovoSalarioAbsoluto(); }; }
     if (document.getElementById('sal-nome')) document.getElementById('sal-nome').value = '';
     if (document.getElementById('sal-valor')) document.getElementById('sal-valor').value = '';
-    
     if (typeof atualizarDiasSalario === 'function') atualizarDiasSalario();
 };
 
@@ -1178,29 +1102,17 @@ window.renderListaContratos = function() {
 };
 
 window.abrirModalEdicaoContrato = function(id) {
-    let item = null;
-    let tipoItem = '';
+    let item = null; let tipoItem = '';
 
     item = (db.contratos || []).find(c => String(c.id) === String(id));
-    if (item) {
-        tipoItem = 'contrato';
-        item.cat = item.categoria; 
-    } else {
+    if (item) { tipoItem = 'contrato'; item.cat = item.categoria; } 
+    else {
         item = (db.recorrencias || []).find(r => String(r.id) === String(id));
-        if (item) {
-            tipoItem = 'recorrencia';
-            item.dia = item.diaVencimento; 
-        } else {
+        if (item) { tipoItem = 'recorrencia'; item.dia = item.diaVencimento; } 
+        else {
             let pendentes = (db.lancamentos || []).filter(l => String(l.idGrupo) === String(id) && !l.efetivado);
             if (pendentes.length > 0) {
-                item = {
-                    id: id,
-                    desc: pendentes[0].desc.split(' (')[0],
-                    valor: pendentes[0].valor,
-                    dia: parseInt(pendentes[0].data.split('-')[2], 10),
-                    cat: pendentes[0].cat || pendentes[0].categoria,
-                    contaId: pendentes[0].contaId
-                };
+                item = { id: id, desc: pendentes[0].desc.split(' (')[0], valor: pendentes[0].valor, dia: parseInt(pendentes[0].data.split('-')[2], 10), cat: pendentes[0].cat || pendentes[0].categoria, contaId: pendentes[0].contaId };
                 tipoItem = 'parcelamento';
             }
         }
@@ -1277,9 +1189,7 @@ window.abrirEdicaoParcelamento = function(idGrupo) {
     
     const parcelas = (db.lancamentos || []).filter(l => String(l.idGrupo) === String(idGrupo) && !l.efetivado).sort((a,b) => new Date(a.data) - new Date(b.data));
     
-    if(parcelas.length === 0) {
-        return alert("Não há parcelas pendentes neste grupo para editar (ou elas já foram pagas).");
-    }
+    if(parcelas.length === 0) return alert("Não há parcelas pendentes neste grupo para editar (ou elas já foram pagas).");
     
     const lancBase = parcelas[0];
     const nomeBase = (lancBase.desc || '').split(' (')[0].trim();
