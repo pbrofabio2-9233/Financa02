@@ -156,6 +156,8 @@
         .filtro-mes-pill button:active { background: rgba(0,0,0,0.05); }
         .filtro-mes-pill input { border: none; background: transparent; color: var(--texto-main); font-weight: 700; font-size: 14px; width: 145px; padding: 0 5px; outline: none; }
 
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
         @media (min-width: 1024px) {
             html, body { overflow-x: clip !important; }
             body { background-color: #0f172a; margin: 0; padding: 0; }
@@ -183,11 +185,51 @@
             .desktop-nav .menu-item.active { background: rgba(37,99,235,0.1); color: var(--azul); }
             .desktop-nav .menu-item i { font-size: 13px; }
             .desktop-nav .menu-item span { font-size: 12px; font-weight: 600; }
+
+            /* =======================================
+               NOVA ESTRUTURA DE COLUNAS (FIM DO ESTICAMENTO)
+               ======================================= */
+               
+            /* Transforma as listas de Faturas e Extratos em Grid de 2 colunas */
+            #lista-faturas-agrupadas {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+                align-items: start;
+            }
+            
+            #lista-historico-filtros {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                align-items: start;
+            }
+
+            /* Força as Faturas e Históricos a não terem margem inferior gigante quando em Grid */
+            #lista-faturas-agrupadas .fatura-mes-container,
+            #lista-historico-filtros .lancamento-item {
+                margin-bottom: 0 !important;
+            }
+
+            /* =======================================
+               AJUSTES NO DASHBOARD PRINCIPAL
+               ======================================= */
+            /* Agrupa Receitas, Despesas, Saldo e Investido em 4 colunas */
+            .desktop-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }
+            
+            /* Agrupa Cartões Maiores (Fatura / Inteligência) lado a lado */
+            .desktop-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; align-items: stretch; }
+            .desktop-grid-2 > .card, .desktop-grid-2 > .card-simples { margin-bottom: 0 !important; height: 100%; display: flex; flex-direction: column; justify-content: space-between;}
         }
     </style>
 </head>
 <body>
-
+    <div id="splash-screen" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--fundo); z-index: 999999999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
+        <i class="fas fa-leaf" style="font-size: 50px; color: var(--esmeralda); margin-bottom: 20px; animation: pulse 1.5s infinite;"></i>
+        <h2 style="color: var(--texto-main); margin: 0; font-size: 24px; letter-spacing: -1px;">EcoFinance Pro</h2>
+        <p style="color: var(--texto-sec); font-size: 14px; margin-top: 5px;">Sincronizando dados...</p>
+    </div>
+    
     <div id="app">
         <header class="header-modern" style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center;">
@@ -254,8 +296,8 @@
 
                     <div id="painel-insights" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
 
-                    <div class="grid-resumo-2" style="margin-bottom: 15px;">
-                        <div class="card-simples" style="border: 1px solid var(--linha); border-left: 4px solid var(--sucesso);">
+                    <div class="grid-resumo-2 desktop-grid-4" style="margin-bottom: 15px;">
+                        <div class="card-simples" style="border: 1px solid var(--linha); border-left: 4px solid var(--sucesso); margin-bottom: 0;">
                             <div style="border-bottom: 1px dashed var(--linha); padding-bottom: 10px; margin-bottom: 10px;">
                                 <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600; text-transform: uppercase;">Receitas Pagas</small>
                                 <h3 id="dash-receitas" class="txt-sucesso" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
@@ -266,7 +308,7 @@
                             </div>
                         </div>
                         
-                        <div class="card-simples" style="border: 1px solid var(--linha); border-left: 4px solid var(--perigo);">
+                        <div class="card-simples" style="border: 1px solid var(--linha); border-left: 4px solid var(--perigo); margin-bottom: 0;">
                             <div style="border-bottom: 1px dashed var(--linha); padding-bottom: 10px; margin-bottom: 10px;">
                                 <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600; text-transform: uppercase;">Despesas Pagas</small>
                                 <h3 id="dash-despesas" class="txt-perigo" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
@@ -276,97 +318,97 @@
                                 <strong id="dash-prev-gastos">R$ 0,00</strong>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="card-simples" style="margin-bottom: 15px; border: 1px solid var(--linha); border-left: 4px solid var(--alerta);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--linha); padding-bottom: 10px; margin-bottom: 10px;">
-                            <div>
-                                <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600; text-transform: uppercase;"><i class="fas fa-credit-card"></i> Fatura Atual</small>
-                                <h3 id="dash-faturas" class="txt-alerta" style="font-size: 22px; margin-top: 5px;">R$ 0,00</h3>
-                            </div>
-                            <div style="text-align: right;">
-                                <small style="font-size: 10px; color: var(--texto-sec);">Próxima Fatura</small>
-                                <h4 id="dash-faturas-futuras" style="font-size: 14px; color: var(--texto-main); margin-top: 2px;">R$ 0,00</h4>
-                            </div>
+                        <div class="card-simples" style="background: var(--card-bg); border: 1px solid var(--linha); margin-bottom: 0;">
+                            <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600;">Saldo Livre (Caixa)</small>
+                            <h3 id="dash-saldo-livre" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
-                            <span style="color: var(--texto-sec);">Saldo Projetado do Mês</span>
-                            <strong id="dash-projecao">R$ 0,00</strong>
+
+                        <div class="card-simples" style="background: var(--card-bg); border: 1px solid var(--linha); margin-bottom: 0;">
+                            <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600;">Total Investido</small>
+                            <h3 id="dash-investido" class="txt-azul" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
                         </div>
                     </div>
-<div class="grid-resumo-2" style="margin-bottom: 15px;">
-    <div class="card-simples" style="background: var(--card-bg); border: 1px solid var(--linha);">
-        <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600;">Saldo Livre (Caixa)</small>
-        <h3 id="dash-saldo-livre" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
-    </div>
-    <div class="card-simples" style="background: var(--card-bg); border: 1px solid var(--linha);">
-        <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600;">Total Investido</small>
-        <h3 id="dash-investido" class="txt-azul" style="font-size: 20px; margin-top: 5px;">R$ 0,00</h3>
-    </div>
-</div>
 
-                    <div class="card">
-                        <strong class="titulo-sessao"><i class="fas fa-brain"></i> Inteligência Financeira</strong>
-                        <div id="carrossel-bi-container" class="carrossel-wrapper mt-10">
-                            
-                            <div class="carrossel-slide active" id="bi-slide-1">
-                                <div class="grid-resumo-2" style="margin-top: 10px; height: 100%;">
-                                    <div class="card-simples" style="background: var(--fundo); justify-content: center;">
-                                        <small style="color:var(--texto-sec); font-weight:600;"><i class="fas fa-gem" style="color:var(--esmeralda);"></i> Patrimônio Líquido</small>
-                                        <strong id="bi-patrimonio" style="font-size:16px; margin-top:5px; display:block;">R$ 0,00</strong>
+                    <div class="desktop-grid-2">
+                        <div class="card-simples" style="border: 1px solid var(--linha); border-left: 4px solid var(--alerta);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--linha); padding-bottom: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <small style="font-size: 11px; color: var(--texto-sec); font-weight: 600; text-transform: uppercase;"><i class="fas fa-credit-card"></i> Fatura Atual</small>
+                                    <h3 id="dash-faturas" class="txt-alerta" style="font-size: 22px; margin-top: 5px;">R$ 0,00</h3>
+                                </div>
+                                <div style="text-align: right;">
+                                    <small style="font-size: 10px; color: var(--texto-sec);">Próxima Fatura</small>
+                                    <h4 id="dash-faturas-futuras" style="font-size: 14px; color: var(--texto-main); margin-top: 2px;">R$ 0,00</h4>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                                <span style="color: var(--texto-sec);">Saldo Projetado do Mês</span>
+                                <strong id="dash-projecao">R$ 0,00</strong>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <strong class="titulo-sessao"><i class="fas fa-brain"></i> Inteligência Financeira</strong>
+                            <div id="carrossel-bi-container" class="carrossel-wrapper mt-10">
+                                <div class="carrossel-slide active" id="bi-slide-1">
+                                    <div class="grid-resumo-2" style="margin-top: 10px; height: 100%;">
+                                        <div class="card-simples" style="background: var(--fundo); justify-content: center;">
+                                            <small style="color:var(--texto-sec); font-weight:600;"><i class="fas fa-gem" style="color:var(--esmeralda);"></i> Patrimônio Líquido</small>
+                                            <strong id="bi-patrimonio" style="font-size:16px; margin-top:5px; display:block;">R$ 0,00</strong>
+                                        </div>
+                                        <div class="card-simples" style="background: var(--fundo); justify-content: center;">
+                                            <small style="color:var(--texto-sec); font-weight:600;"><i class="fas fa-shield-alt" style="color:var(--azul);"></i> Sobrevivência</small>
+                                            <strong id="bi-sobrevivencia" class="txt-azul" style="font-size:16px; margin-top:5px; display:block;">0 Meses</strong>
+                                        </div>
                                     </div>
-                                    <div class="card-simples" style="background: var(--fundo); justify-content: center;">
-                                        <small style="color:var(--texto-sec); font-weight:600;"><i class="fas fa-shield-alt" style="color:var(--azul);"></i> Sobrevivência</small>
-                                        <strong id="bi-sobrevivencia" class="txt-azul" style="font-size:16px; margin-top:5px; display:block;">0 Meses</strong>
+                                </div>
+                                <div class="carrossel-slide" id="bi-slide-2">
+                                    <div class="card-simples mt-10" style="background: var(--fundo); height: 100%; justify-content: center;">
+                                        <div class="flex-between mb-10">
+                                            <small style="color:var(--texto-sec); font-weight:600;">Taxa de Poupança (Mensal)</small>
+                                            <span id="bi-taxa-poupanca" class="badge-neutro" style="font-weight:bold;">0%</span>
+                                        </div>
+                                        <div class="progress-bg"><div id="bar-poupanca" class="progress-fill" style="background:var(--esmeralda);"></div></div>
+                                        <small style="font-size: 10px; color: var(--texto-sec); margin-top: 10px; text-align: center;">O ideal é poupar no mínimo 20% do que ganha.</small>
+                                    </div>
+                                </div>
+                                <div class="carrossel-slide" id="bi-slide-3">
+                                    <div class="card-simples mt-10" style="background: var(--fundo); height: 100%; justify-content: center;">
+                                        <small style="color:var(--texto-sec); font-weight:600; display:block; margin-bottom:10px;">Composição de Gastos (Pago)</small>
+                                        <div class="flex-between" style="font-size:12px; margin-bottom:8px;">
+                                            <span><i class="fas fa-lock" style="color:var(--texto-sec);"></i> Fixos (<span id="bi-perc-fixo">0%</span>)</span>
+                                            <span><i class="fas fa-random" style="color:var(--alerta);"></i> Variáveis (<span id="bi-perc-var">0%</span>)</span>
+                                        </div>
+                                        <div style="display:flex; height:8px; border-radius:10px; overflow:hidden; background:var(--linha);">
+                                            <div id="bar-fixo" style="background:var(--texto-sec); width:0%; transition: 0.5s;"></div>
+                                            <div id="bar-var" style="background:var(--alerta); width:0%; transition: 0.5s;"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="carrossel-slide" id="bi-slide-2">
-                                <div class="card-simples mt-10" style="background: var(--fundo); height: 100%; justify-content: center;">
-                                    <div class="flex-between mb-10">
-                                        <small style="color:var(--texto-sec); font-weight:600;">Taxa de Poupança (Mensal)</small>
-                                        <span id="bi-taxa-poupanca" class="badge-neutro" style="font-weight:bold;">0%</span>
-                                    </div>
-                                    <div class="progress-bg"><div id="bar-poupanca" class="progress-fill" style="background:var(--esmeralda);"></div></div>
-                                    <small style="font-size: 10px; color: var(--texto-sec); margin-top: 10px; text-align: center;">O ideal é poupar no mínimo 20% do que ganha.</small>
-                                </div>
+                            <div style="display: flex; justify-content: center; gap: 6px; margin-top: 10px;">
+                                <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--esmeralda);"></div>
+                                <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--linha);"></div>
+                                <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--linha);"></div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="carrossel-slide" id="bi-slide-3">
-                                <div class="card-simples mt-10" style="background: var(--fundo); height: 100%; justify-content: center;">
-                                    <small style="color:var(--texto-sec); font-weight:600; display:block; margin-bottom:10px;">Composição de Gastos (Pago)</small>
-                                    <div class="flex-between" style="font-size:12px; margin-bottom:8px;">
-                                        <span><i class="fas fa-lock" style="color:var(--texto-sec);"></i> Fixos (<span id="bi-perc-fixo">0%</span>)</span>
-                                        <span><i class="fas fa-random" style="color:var(--alerta);"></i> Variáveis (<span id="bi-perc-var">0%</span>)</span>
-                                    </div>
-                                    <div style="display:flex; height:8px; border-radius:10px; overflow:hidden; background:var(--linha);">
-                                        <div id="bar-fixo" style="background:var(--texto-sec); width:0%; transition: 0.5s;"></div>
-                                        <div id="bar-var" style="background:var(--alerta); width:0%; transition: 0.5s;"></div>
-                                    </div>
+                    <div class="desktop-grid-2">
+                        <div class="card">
+                            <strong class="titulo-sessao txt-alerta"><i class="fas fa-bell"></i> Radar de Vencimentos (7 dias)</strong>
+                            <div id="carrossel-radar-container" class="carrossel-wrapper mt-10" style="min-height: 80px;">
+                                <div id="lista-radar-vencimentos">
+                                    <p class="texto-vazio" style="padding: 10px;">Tudo tranquilo por aqui.</p>
                                 </div>
                             </div>
                         </div>
                         
-                        <div style="display: flex; justify-content: center; gap: 6px; margin-top: 10px;">
-                            <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--esmeralda);"></div>
-                            <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--linha);"></div>
-                            <div class="bi-dot" style="width: 8px; height: 8px; border-radius: 50%; background: var(--linha);"></div>
+                        <div class="card">
+                            <strong class="titulo-sessao">Gastos por Categoria</strong>
+                            <div class="chart-container"><canvas id="graficoCategorias"></canvas></div>
                         </div>
-                    </div>
-
-                    <div class="card mt-15">
-                        <strong class="titulo-sessao txt-alerta"><i class="fas fa-bell"></i> Radar de Vencimentos (7 dias)</strong>
-                        <div id="carrossel-radar-container" class="carrossel-wrapper mt-10" style="min-height: 80px;">
-                            <div id="lista-radar-vencimentos">
-                                <p class="texto-vazio" style="padding: 10px;">Tudo tranquilo por aqui.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <strong class="titulo-sessao">Gastos por Categoria</strong>
-                        <div class="chart-container"><canvas id="graficoCategorias"></canvas></div>
                     </div>
                     
                     <div class="card">
