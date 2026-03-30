@@ -6,8 +6,11 @@
     <title>EcoFinance Pro v28.5</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
     <link rel="stylesheet" href="style.css?v=28.5">
     <style>
         /* ==========================================
@@ -213,9 +216,10 @@
                     <span id="badge-notificacao" style="display:none; position: absolute; top: -4px; right: -4px; background: var(--perigo); color: white; font-size: 9px; font-weight: bold; width: 16px; height: 16px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid var(--card-bg);">0</span>
                 </div>
 
-                <button class="btn-icon" onclick="location.reload()" aria-label="Atualizar Sistema" style="background: var(--input-bg); padding: 10px; border-radius: 10px; border: 1px solid var(--linha);">
-                    <i class="fas fa-sync-alt" style="color: var(--azul);"></i>
-                </button>
+                <div id="btn-perfil-usuario" onclick="abrirModalPerfil()" style="display: flex; align-items: center; gap: 8px; background: var(--input-bg); padding: 5px 12px 5px 5px; border-radius: 30px; border: 1px solid var(--linha); cursor: pointer; margin-left: 10px; transition: 0.2s; box-shadow: var(--shadow-sm);">
+                    <img id="header-user-foto" src="https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff" alt="Usuário" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid var(--card-bg);">
+                    <span id="header-user-nome" style="font-size: 13px; font-weight: 700; color: var(--texto-main); max-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Usuário</span>
+                </div>
             </div>
         </header>
 
@@ -879,7 +883,7 @@
                         </div>
                         <div class="flex-between">
                             <button class="btn-outline" onclick="toggleFormNovoSalario()">Cancelar</button>
-                            <button class="btn-primary" style="background: var(--esmeralda);" onclick="salvarNovoSalario()">Salvar Rendimento</button>
+                            <button class="btn-primary btn-salvar" style="background: var(--esmeralda);" onclick="salvarNovoSalario()">Salvar Rendimento</button>
                         </div>
                     </div>
                     
@@ -1002,6 +1006,59 @@
             </div>
         </div>
 
+        <div id="modal-importar-csv" class="modal-overlay" style="display:none; z-index: 999999;">
+            <div class="modal-content" style="max-width: 400px;">
+                <h3 style="margin-bottom: 5px; color: var(--texto-main);"><i class="fas fa-file-csv" style="color: var(--esmeralda);"></i> Importar Extrato (CSV)</h3>
+                <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px; line-height: 1.4;">
+                    Faça download do extrato no seu banco em formato CSV. O arquivo deve ter as colunas: <strong>Data, Descrição e Valor</strong>.
+                </p>
+                
+                <div class="mb-10">
+                    <label class="label-moderno">Conta de Destino (Onde o dinheiro entrou/saiu)</label>
+                    <select id="csv-conta-destino" class="input-moderno"></select>
+                </div>
+                <div class="mb-15">
+                    <label class="label-moderno">Ficheiro CSV do Banco</label>
+                    <input type="file" id="input-csv-file" accept=".csv" class="input-moderno" style="padding:10px; background: var(--fundo);">
+                </div>
+                
+                <div class="flex-between pt-10" style="border-top: 1px dashed var(--linha);">
+                    <button class="btn-outline" style="width: 48%;" onclick="fecharModalImportarCSV()">Cancelar</button>
+                    <button class="btn-primary" style="width: 48%; background: var(--esmeralda);" onclick="confirmarImportacaoCSV()">Importar Dados</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="modal-perfil-usuario" class="modal-overlay" onclick="fecharModalPerfil()">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 350px; text-align: center;">
+                <div class="modal-header flex-between" style="border-bottom: none; padding-bottom: 0;">
+                    <h3 style="margin: 0 auto;"><i class="fas fa-user-circle" style="color: var(--azul);"></i> Meu Perfil</h3>
+                    <button class="btn-icon" style="position: absolute; right: 15px;" onclick="fecharModalPerfil()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="modal-body" style="padding-top: 10px;">
+                    <div style="margin-bottom: 20px; position: relative; display: inline-block;">
+                        <img id="modal-user-foto" src="https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff" alt="Foto de Perfil" style="width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--azul); object-fit: cover; box-shadow: var(--shadow-sm);">
+                    </div>
+                    
+                    <div style="text-align: left; margin-bottom: 15px;">
+                        <label class="label-moderno">Nome de Exibição</label>
+                        <input type="text" id="input-perfil-nome" class="input-moderno" placeholder="Como quer ser chamado?">
+                    </div>
+                    
+                    <div style="text-align: left; margin-bottom: 25px;">
+                        <label class="label-moderno">E-mail (Login)</label>
+                        <input type="email" id="input-perfil-email" class="input-moderno" disabled style="background: var(--input-bg); color: var(--texto-sec); cursor: not-allowed; opacity: 0.7;" title="O e-mail não pode ser alterado por aqui.">
+                    </div>
+                    
+                    <button class="btn-primary" style="width: 100%; margin-bottom: 15px; background: var(--azul);" onclick="salvarPerfilUsuario()">Salvar Alterações</button>
+                    
+                    <button class="btn-outline" style="width: 100%; border-color: var(--perigo); color: var(--perigo);" onclick="authLogout()">
+                        <i class="fas fa-sign-out-alt"></i> Sair do Aplicativo
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div id="toast-container" class="toast-container"></div>
         
         <button class="fab-mobile" onclick="abrirModalLancamento()"><i class="fas fa-plus"></i></button>
@@ -1032,6 +1089,72 @@
                 <button class="btn-icon" onclick="fecharNotificacoes()"><i class="fas fa-times"></i></button>
             </div>
             <div class="drawer-body" id="lista-notificacoes"></div>
+        </div>
+    </div>
+
+    <div id="auth-container" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--fundo); z-index: 9999999; display: flex; align-items: center; justify-content: center;">
+        <div style="background: var(--card-bg); padding: 40px; border-radius: 16px; box-shadow: var(--shadow-lg); width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--linha);">
+            <div style="margin-bottom: 30px;">
+                <h1 style="color: var(--texto-main); font-size: 24px; margin-bottom: 5px;"><i class="fas fa-leaf" style="color: var(--esmeralda);"></i> EcoFinance Pro</h1>
+                <p id="auth-subtitle" style="color: var(--texto-sec); font-size: 14px;">Entre para acessar suas finanças</p>
+            </div>
+
+            <div id="form-login">
+                <div style="margin-bottom: 15px; text-align: left;">
+                    <label class="label-moderno">E-mail</label>
+                    <input type="email" id="login-email" class="input-moderno" placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <div style="margin-bottom: 25px; text-align: left;">
+                    <label class="label-moderno">Senha</label>
+                    <input type="password" id="login-senha" class="input-moderno" placeholder="Sua senha secreta" autocomplete="current-password">
+                </div>
+                <button type="button" class="btn-primary" style="width: 100%; padding: 14px; font-size: 16px; margin-bottom: 15px;" onclick="authLogin()">Entrar</button>
+                
+                <div style="margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div style="flex: 1; height: 1px; background: var(--linha);"></div>
+                    <span style="color: var(--texto-sec); font-size: 12px; font-weight: 600;">OU</span>
+                    <div style="flex: 1; height: 1px; background: var(--linha);"></div>
+                </div>
+                
+                <button type="button" class="btn-outline" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; border-color: var(--linha); color: var(--texto-main);" onclick="authLoginGoogle()">
+                    <i class="fab fa-google" style="color: #db4437; font-size: 18px;"></i> Continuar com Google
+                </button>
+                
+                <p style="color: var(--texto-sec); font-size: 13px;">Não tem uma conta? <a href="#" style="color: var(--azul); font-weight: bold; text-decoration: none;" onclick="alternarTelaAuth('cadastro')">Criar agora</a></p>
+            </div>
+
+            <div id="form-cadastro" style="display: none;">
+                <div style="margin-bottom: 15px; text-align: left;">
+                    <label class="label-moderno">Nome (Opcional)</label>
+                    <input type="text" id="cad-nome" class="input-moderno" placeholder="Como quer ser chamado?">
+                </div>
+                <div style="margin-bottom: 15px; text-align: left;">
+                    <label class="label-moderno">E-mail</label>
+                    <input type="email" id="cad-email" class="input-moderno" placeholder="seu@email.com" autocomplete="email">
+                </div>
+                <div style="margin-bottom: 25px; text-align: left;">
+                    <label class="label-moderno">Senha (Mín. 6 caracteres)</label>
+                    <input type="password" id="cad-senha" class="input-moderno" placeholder="Crie uma senha forte" autocomplete="new-password">
+                </div>
+                <button type="button" class="btn-primary" style="width: 100%; padding: 14px; font-size: 16px; margin-bottom: 15px; background: var(--esmeralda);" onclick="authRegistrar()">Criar Minha Conta</button>
+                
+                <div style="margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <div style="flex: 1; height: 1px; background: var(--linha);"></div>
+                    <span style="color: var(--texto-sec); font-size: 12px; font-weight: 600;">OU</span>
+                    <div style="flex: 1; height: 1px; background: var(--linha);"></div>
+                </div>
+                
+                <button type="button" class="btn-outline" style="width: 100%; padding: 12px; font-size: 15px; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; border-color: var(--linha); color: var(--texto-main);" onclick="authLoginGoogle()">
+                    <i class="fab fa-google" style="color: #db4437; font-size: 18px;"></i> Criar com Google
+                </button>
+                
+                <p style="color: var(--texto-sec); font-size: 13px;">Já possui conta? <a href="#" style="color: var(--azul); font-weight: bold; text-decoration: none;" onclick="alternarTelaAuth('login')">Fazer Login</a></p>
+            </div>
+            
+            <div id="auth-loading" style="display: none; margin-top: 20px;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: var(--azul);"></i>
+                <p style="color: var(--texto-sec); font-size: 13px; margin-top: 10px;" id="auth-loading-text">Processando...</p>
+            </div>
         </div>
     </div>
 
@@ -1117,35 +1240,32 @@
         
         window.fecharModalFixa = function() { const m = document.getElementById('modal-conta-fixa'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
         window.fecharModalParc = function() { const m = document.getElementById('modal-parcelamento'); m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); };
-
     </script>
 
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBq-aaXTwuEW8RRvbiQwTuEzhRO41JNzrw",
+            authDomain: "ecofinance-pro-e6465.firebaseapp.com",
+            projectId: "ecofinance-pro-e6465",
+            storageBucket: "ecofinance-pro-e6465.firebasestorage.app",
+            messagingSenderId: "514316334962",
+            appId: "1:514316334962:web:63ed9afbc770c5dc5f4feb"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const dbFirestore = firebase.firestore();
+    </script>
+
+    <script src="auth.js"></script>
+    
     <script src="core.js?v=28.5"></script>
     <script src="engine.js?v=28.5"></script>
     <script src="ui.js?v=28.5"></script>
     <script src="app.js?v=28.5"></script>
-    
-    <div id="modal-importar-csv" class="modal-overlay" style="display:none; z-index: 999999;">
-        <div class="modal-content" style="max-width: 400px;">
-            <h3 style="margin-bottom: 5px; color: var(--texto-main);"><i class="fas fa-file-csv" style="color: var(--esmeralda);"></i> Importar Extrato (CSV)</h3>
-            <p style="font-size:12px; color:var(--texto-sec); margin-bottom:15px; line-height: 1.4;">
-                Faça download do extrato no seu banco em formato CSV. O arquivo deve ter as colunas: <strong>Data, Descrição e Valor</strong>.
-            </p>
-            
-            <div class="mb-10">
-                <label class="label-moderno">Conta de Destino (Onde o dinheiro entrou/saiu)</label>
-                <select id="csv-conta-destino" class="input-moderno"></select>
-            </div>
-            <div class="mb-15">
-                <label class="label-moderno">Ficheiro CSV do Banco</label>
-                <input type="file" id="input-csv-file" accept=".csv" class="input-moderno" style="padding:10px; background: var(--fundo);">
-            </div>
-            
-            <div class="flex-between pt-10" style="border-top: 1px dashed var(--linha);">
-                <button class="btn-outline" style="width: 48%;" onclick="fecharModalImportarCSV()">Cancelar</button>
-                <button class="btn-primary" style="width: 48%; background: var(--esmeralda);" onclick="confirmarImportacaoCSV()">Importar Dados</button>
-            </div>
-        </div>
-    </div>
+
 </body>
 </html>
