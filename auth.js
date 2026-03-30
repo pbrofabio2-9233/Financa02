@@ -213,26 +213,46 @@ window.salvarPerfilUsuario = function() {
 };
 
 // ==========================================
-// OBSERVADOR DE ESTADO (O FISCAL DA PORTA)
+// OBSERVADOR DE ESTADO E TELA DE CARREGAMENTO
 // ==========================================
+// COLE AQUI O SEU UID DO FIREBASE (PASSO DA CHAVE MESTRA)
+window.UID_MASTER = "WDDBh7EvgidKGUM8jhl8wxDL6VH2"; 
+
 auth.onAuthStateChanged((user) => {
     const authContainer = document.getElementById('auth-container');
+    const splash = document.getElementById('splash-screen');
     
     if (user) {
         window.usuarioLogado = user;
         authContainer.style.display = 'none';
         
-        // Atualiza a foto e o nome na interface
-        if (typeof atualizarInterfacePerfil === 'function') {
-            atualizarInterfacePerfil(user);
+        if (typeof atualizarInterfacePerfil === 'function') atualizarInterfacePerfil(user);
+
+        // Revela a Coroa (Botões Secretos) se for você (o Master)
+        const botoesAdmin = document.querySelectorAll('.menu-admin-secreto');
+        if (user.uid === window.UID_MASTER) {
+            botoesAdmin.forEach(btn => btn.style.display = 'flex');
+        } else {
+            botoesAdmin.forEach(btn => btn.style.display = 'none');
         }
         
-        // Carrega o banco de dados da nuvem
         if (typeof load === 'function') load();
+        
+        // MÁGICA QUE FALTAVA: Remove a tela de carregamento suavemente
+        if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 500);
+        }
         
     } else {
         window.usuarioLogado = null;
         authContainer.style.display = 'flex';
-        mostrarCarregamentoAuth(false);
+        if (typeof mostrarCarregamentoAuth === 'function') mostrarCarregamentoAuth(false);
+        
+        // Remove a tela de carregamento se for pra mostrar a tela de Login
+        if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(() => splash.style.display = 'none', 500);
+        }
     }
 });
