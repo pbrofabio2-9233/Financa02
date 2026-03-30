@@ -159,22 +159,30 @@
         @media (min-width: 1024px) {
             html, body { overflow-x: clip !important; }
             body { background-color: #0f172a; margin: 0; padding: 0; }
-            #app { width: 60%; max-width: 1200px; min-width: 800px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); overflow: visible !important; }
+            
+            /* AUMENTAMOS A LARGURA: De 60% para 90% e ajustamos o mínimo para caber tudo */
+            #app { width: 90%; max-width: 1200px; min-width: 950px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); overflow: visible !important; }
             #conteudo-principal { flex: 1; padding-bottom: 40px; } 
-            header.header-modern { border-radius: 0 !important; margin-bottom: 0 !important; }
+            
+            /* Melhoramos o espaçamento interno do cabeçalho */
+            header.header-modern { border-radius: 0 !important; margin-bottom: 0 !important; padding: 15px 30px !important; }
+            
             .fab-mobile { display: none !important; } 
             .btn-scroll-top { bottom: 30px; left: auto; right: 30px; width: 50px; height: 50px; font-size: 20px; }
-            .btn-header-desktop { display: flex !important; } 
             
-            /* Ajustes do Layout Desktop - Item 2 e 6 */
+            /* Diminuímos o botão "Novo Lançamento" para não roubar tanto espaço */
+            .btn-header-desktop { display: flex !important; padding: 8px 16px !important; font-size: 13px !important; } 
+            
             .carrossel-chips::-webkit-scrollbar, .chart-scroll-wrapper::-webkit-scrollbar { display: block !important; height: 6px !important; }
-            #menu-lateral { display: none !important; } /* Esconde o menu inferior (pilula) e o antigo lateral no desktop */
-            .desktop-nav { display: flex !important; align-items: center; gap: 8px; margin-left: 30px; }
-            .desktop-nav .menu-item { cursor: pointer; padding: 10px 15px; border-radius: 8px; color: var(--texto-sec); font-weight: 600; font-size: 13px; transition: 0.2s; display: flex; align-items: center; gap: 6px; flex-direction: row; }
+            #menu-lateral { display: none !important; } 
+            
+            /* COMPACTAMOS OS ESPAÇOS DO MENU */
+            .desktop-nav { display: flex !important; align-items: center; gap: 4px; margin-left: 20px; }
+            .desktop-nav .menu-item { cursor: pointer; padding: 8px 12px; border-radius: 8px; color: var(--texto-sec); font-weight: 600; font-size: 12px; transition: 0.2s; display: flex; align-items: center; gap: 5px; flex-direction: row; }
             .desktop-nav .menu-item:hover { background: var(--input-bg); color: var(--texto-main); }
             .desktop-nav .menu-item.active { background: rgba(37,99,235,0.1); color: var(--azul); }
-            .desktop-nav .menu-item i { font-size: 14px; }
-            .desktop-nav .menu-item span { font-size: 13px; font-weight: 600; }
+            .desktop-nav .menu-item i { font-size: 13px; }
+            .desktop-nav .menu-item span { font-size: 12px; font-weight: 600; }
         }
     </style>
 </head>
@@ -202,6 +210,9 @@
                     </div>
                     <div class="menu-item" onclick="navegar('config', this)">
                         <i class="fas fa-sliders-h"></i><span>Ajustes</span>
+                    </div>
+                    <div class="menu-item menu-admin-secreto" style="display: none;" onclick="if(typeof abrirPainelMaster === 'function') abrirPainelMaster(this)">
+                        <i class="fas fa-crown" style="color: #f59e0b;"></i><span style="color: #f59e0b;">Admin</span>
                     </div>
                 </nav>
             </div>
@@ -1079,6 +1090,9 @@
             </div>
             <div class="menu-item" onclick="navegar('config', this)">
                 <i class="fas fa-sliders-h"></i><span>Ajustes</span>
+            </div>
+            <div class="menu-item menu-admin-secreto" style="display: none;" onclick="if(typeof abrirPainelMaster === 'function') abrirPainelMaster(this)">
+                <i class="fas fa-crown" style="color: #f59e0b;"></i><span style="color: #f59e0b;">Admin</span>
             </div>
         </nav>
         
