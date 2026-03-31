@@ -1,6 +1,22 @@
 // ==========================================
-// APP.JS - Navegação, Temas e Sistema (Limpo e Unificado v28.5)
+// APP.JS - Navegação, Temas e Sistema (Limpo e Unificado v28.9)
 // ==========================================
+
+// ----------------------------------------------------
+// FUNÇÃO UTILITÁRIA: CAPTURA DO BANCO DE DADOS
+// ----------------------------------------------------
+// Esta função caça os dados para evitar que falhe (corrige o erro em vermelho)
+const obterDadosSeguros = () => {
+    let dados = null;
+    try { dados = db; } catch(e) {} // Tenta pegar a variável direta do core.js
+    if (!dados && typeof window.db !== 'undefined') dados = window.db; // Tenta pegar da janela
+    
+    // Se ainda estiver vazio, gera a estrutura limpa para não dar erro
+    if (!dados || Object.keys(dados).length === 0) {
+        dados = { contas: [], categorias: [], lancamentos: [], faturas: [], salarios: [], contratos: [] };
+    }
+    return dados;
+};
 
 // ----------------------------------------------------
 // 1. GESTÃO DE MODAIS GERAIS
@@ -21,9 +37,11 @@ window.alternarPagamentoFatura = function(idFatura, valorFatura) {
         document.getElementById('hidden-pagar-fat-val').value = valorFatura;
     }
     let selectConta = document.getElementById('select-conta-pagar-fat');
-    if(selectConta && typeof db !== 'undefined' && db.contas) {
+    const bancoLocal = obterDadosSeguros();
+    
+    if(selectConta && bancoLocal.contas) {
         selectConta.innerHTML = '';
-        let contasValidas = db.contas.filter(c => c.tipo !== 'cartao'); 
+        let contasValidas = bancoLocal.contas.filter(c => c.tipo !== 'cartao'); 
         contasValidas.forEach(c => { selectConta.innerHTML += `<option value="${c.id}">${c.nome} (Saldo: R$ ${typeof fmtBR === 'function' ? fmtBR(c.saldo) : c.saldo})</option>`; });
     }
     const modal = document.getElementById('modal-pagar-fatura');
@@ -47,44 +65,295 @@ window.selecionarTema = function(tema) {
     fecharModalAparencia();
 };
 
-window.abrirModalSistema = function() { const m = document.getElementById('modal-sistema'); if (m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); } };
+window.abrirModalSistema = function() {
+    const m = document.getElementById('modal-sistema');
+    m.style.display = 'flex';
+    setTimeout(() => m.classList.add('active'), 10);
+    if (typeof renderizarListaBackups === 'function') renderizarListaBackups(); 
+};
 window.fecharModalSistema = function() { const m = document.getElementById('modal-sistema'); if (m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } };
 
 // ----------------------------------------------------
-// 2. SISTEMA, BACKUPS E RESET
+// 2. SISTEMA E BACKUPS (ARQUITETURA 100% NUVEM / FIREBASE)
 // ----------------------------------------------------
-window.exportarBackup = function() {
-    const bancoDados = (typeof window.db !== 'undefined' && window.db) ? window.db : null;
-    if (!bancoDados) return alert("Erro: Banco de dados não encontrado.");
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bancoDados));
-    const downloadNode = document.createElement('a');
-    const dataHoje = new Date().toISOString().split('T')[0];
-    downloadNode.setAttribute("href", dataStr);
-    downloadNode.setAttribute("download", `EcoFinance_Backup_${dataHoje}.json`);
-    document.body.appendChild(downloadNode); downloadNode.click(); downloadNode.remove();
-    if (typeof showToast === 'function') showToast("Backup exportado!", "sucesso");
+window.exportarBackup = async function() {
+    if (!window.usuarioLogado) return alert("Erro: Usuário não autenticado.");
+    
+    const bancoDados = obterDadosSeguros();
+    const uid = window.usuarioLogado.uid;
+    const dataAtual = new Date();
+    const idBackup = 'bkp_' + dataAtual.getTime();
+
+    const backupData = {
+        id: idBackup,
+        data: dataAtual.toLocaleString('pt-BR'),
+        timestamp: dataAtual.getTime(),
+        dados: JSON.stringify(bancoDados)
+    };
+
+    try {
+        const btnBkp = event.target;
+        const textoOriginal = btnBkp.innerHTML;
+        btnBkp.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando na nuvem...';
+        btnBkp.disabled = true;
+
+        await dbFirestore.collection('users').doc(uid).collection('backups').doc(idBackup).set(backupData);
+        
+        btnBkp.innerHTML = textoOriginal;
+        btnBkp.disabled = false;
+
+        if (typeof showToast === 'function') showToast("Backup salvo na nuvem!", "sucesso");
+        renderizarListaBackups(); 
+        
+    } catch (error) {
+        console.error("Erro ao salvar backup na nuvem:", error);
+        alert("Falha ao salvar o backup. Verifique sua conexão com a internet.");
+    }
+};
+
+window.renderizarListaBackups = async function() {
+    const container = document.getElementById('lista-backups');
+    if (!container || !window.usuarioLogado) return;
+
+    container.innerHTML = '<p class="texto-vazio" style="font-size: 13px; color: var(--texto-sec); padding: 10px;"><i class="fas fa-spinner fa-spin"></i> Buscando backups na nuvem...</p>';
+
+    try {
+        const uid = window.usuarioLogado.uid;
+        const snapshot = await dbFirestore.collection('users').doc(uid).collection('backups').orderBy('timestamp', 'desc').get();
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p class="texto-vazio" style="font-size: 13px; color: var(--texto-sec); padding: 10px;">Nenhum backup encontrado na nuvem.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        
+        snapshot.forEach(doc => {
+            const bkp = doc.data();
+            const div = document.createElement('div');
+            div.style.cssText = "display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--linha); margin-bottom: 8px;";
+            
+            div.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-cloud" style="color: var(--azul);"></i>
+                    <span style="font-size: 13px; color: var(--texto-main); font-weight: 600;">${bkp.data}</span>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button class="btn-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--azul); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;" onclick="baixarBackupNuvem('${bkp.id}')" title="Baixar Arquivo">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="btn-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--esmeralda); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;" onclick="restaurarBackupNuvem('${bkp.id}')" title="Restaurar Backup">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                    <button class="btn-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--perigo); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;" onclick="excluirBackupNuvem('${bkp.id}')" title="Apagar da Nuvem">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    } catch (error) {
+        container.innerHTML = '<p class="texto-vazio" style="font-size: 13px; color: var(--perigo); padding: 10px;">Erro ao carregar o histórico.</p>';
+    }
+};
+
+window.baixarBackupNuvem = async function(id) {
+    if (!window.usuarioLogado) return;
+    const uid = window.usuarioLogado.uid;
+    try {
+        const doc = await dbFirestore.collection('users').doc(uid).collection('backups').doc(id).get();
+        if (doc.exists) {
+            const bkp = doc.data();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(bkp.dados);
+            const downloadNode = document.createElement('a');
+            downloadNode.setAttribute("href", dataStr);
+            const nomeSeguro = bkp.data.replace(/[\/ :]/g, '-');
+            downloadNode.setAttribute("download", `EcoFinance_Backup_${nomeSeguro}.json`);
+            document.body.appendChild(downloadNode);
+            downloadNode.click();
+            downloadNode.remove();
+        }
+    } catch (error) { alert("Erro ao gerar o download."); }
+};
+
+window.restaurarBackupNuvem = async function(id) {
+    const msg = "Atenção: Os dados do seu painel serão substituídos por este backup da nuvem. Continuar?";
+    if (confirm(msg)) {
+        if (!window.usuarioLogado) return;
+        const uid = window.usuarioLogado.uid;
+        try {
+            const doc = await dbFirestore.collection('users').doc(uid).collection('backups').doc(id).get();
+            if (doc.exists) {
+                const bkp = doc.data();
+                efetivarRestauracaoFirebase(JSON.parse(bkp.dados));
+            } else { alert("Erro: Arquivo não encontrado no servidor."); }
+        } catch (error) { alert("Erro ao buscar o backup."); }
+    }
+};
+
+window.excluirBackupNuvem = async function(id) {
+    if (confirm("Deseja apagar este backup da NUVEM definitivamente?")) {
+        if (!window.usuarioLogado) return;
+        const uid = window.usuarioLogado.uid;
+        try {
+            await dbFirestore.collection('users').doc(uid).collection('backups').doc(id).delete();
+            renderizarListaBackups();
+            if (typeof showToast === 'function') showToast("Backup apagado!", "exclusao");
+        } catch (error) { alert("Erro ao apagar o backup."); }
+    }
 };
 
 window.importarArquivoJSON = function(event) {
-    const file = event.target.files[0]; if (!file) return;
+    const file = event.target.files[0]; 
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const importedDB = JSON.parse(e.target.result);
-            if (importedDB && importedDB.contas) {
-                localStorage.setItem('eco_db', JSON.stringify(importedDB));
-                alert("Backup restaurado! O aplicativo será reiniciado.");
-                location.reload();
-            } else alert("Arquivo inválido.");
-        } catch (err) { alert("Erro ao ler o arquivo."); }
+            let importedDB = JSON.parse(e.target.result);
+            if (typeof importedDB === 'string') importedDB = JSON.parse(importedDB); // Anti-envelope duplo
+
+            if (importedDB && Array.isArray(importedDB.contas)) {
+                efetivarRestauracaoFirebase(importedDB);
+                event.target.value = ''; 
+            } else { 
+                alert("Arquivo inválido. O sistema não encontrou as contas neste arquivo."); 
+            }
+        } catch (err) { 
+            alert("Erro ao ler o arquivo. Certifique-se de que é um backup válido .json"); 
+        }
     };
     reader.readAsText(file);
 };
 
 window.confirmarReset = function() {
-    const msg = "CUIDADO: Isso apagará TODOS os dados. Deseja continuar?";
-    const acaoApagar = () => { localStorage.removeItem('eco_db'); localStorage.removeItem('ecoDB'); location.reload(); };
-    if (typeof abrirConfirmacao === 'function') abrirConfirmacao(msg, acaoApagar); else if (confirm(msg)) acaoApagar();
+    const msg = "PERIGO: Isso apagará TODOS os dados desta conta. Continuar?";
+    const acaoApagar = () => { 
+        efetivarRestauracaoFirebase({ contas: [], categorias: [], lancamentos: [], faturas: [], salarios: [], contratos: [] });
+    };
+    if (typeof abrirConfirmacao === 'function') abrirConfirmacao(msg, acaoApagar); 
+    else if (confirm(msg)) acaoApagar();
+};
+
+async function efetivarRestauracaoFirebase(dadosImportados) {
+    try {
+        // Injeta os dados forçadamente na memória
+        try { db = dadosImportados; } catch(e) { window.db = dadosImportados; }
+        
+        // Empurra pra nuvem via core.js
+        if (typeof save === 'function') await save(); 
+
+        if (typeof render === 'function') render();
+        if (typeof renderHistorico === 'function') renderHistorico();
+        if (typeof fecharModalSistema === 'function') fecharModalSistema();
+        
+        if (typeof showToast === 'function') showToast("Painel atualizado e sincronizado!", "sucesso");
+        else alert("Painel restaurado com sucesso!");
+
+    } catch (error) {
+        console.error("Erro ao sincronizar restauração:", error);
+        alert("Falha na sincronização. Verifique sua conexão.");
+    }
+}
+
+// ----------------------------------------------------
+// TRANSFERÊNCIA EXPRESSA (ECOSHARE)
+// ----------------------------------------------------
+window.gerarCodigoTransferencia = async function() {
+    if (!window.usuarioLogado) return alert("Precisa estar logado para gerar um código.");
+    
+    const bancoDados = obterDadosSeguros();
+
+    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let codigo = '';
+    for (let i = 0; i < 6; i++) {
+        codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+    }
+
+    const transferData = {
+        codigo: codigo,
+        dados: JSON.stringify(bancoDados),
+        criadoEm: new Date().getTime(),
+        dono: window.usuarioLogado.uid
+    };
+
+    const btn = event.target;
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+    btn.disabled = true;
+
+    try {
+        await dbFirestore.collection('transfers').doc(codigo).set(transferData);
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Código Gerado!',
+                html: `Vá na outra conta, clique em <b>Usar Código</b> e digite:<br><br><b style="font-size: 32px; letter-spacing: 6px; color: var(--azul); background: var(--input-bg); padding: 10px 20px; border-radius: 12px; border: 1px dashed var(--linha); display: inline-block;">${codigo}</b><br><br><small style="color: var(--texto-sec);">Este código é de uso único e expira em breve.</small>`,
+                icon: 'success',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#3b82f6'
+            });
+        } else {
+            prompt("Seu código de transferência foi gerado! Copie o código abaixo:", codigo);
+        }
+    } catch(error) {
+        console.error("Erro ao gerar código:", error);
+        alert("Falha na conexão. Tente novamente.");
+    } finally {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+    }
+};
+
+window.importarPorCodigo = async function() {
+    if (!window.usuarioLogado) return alert("Precisa estar logado para usar um código.");
+
+    let codigoDigitado;
+    
+    if (typeof Swal !== 'undefined') {
+        const result = await Swal.fire({
+            title: 'Resgatar Backup',
+            text: 'Digite o código de 6 dígitos gerado no outro dispositivo:',
+            input: 'text',
+            inputAttributes: { maxlength: 6, style: 'text-transform: uppercase; text-align: center; font-size: 24px; letter-spacing: 4px;' },
+            showCancelButton: true,
+            confirmButtonText: 'Resgatar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#10b981'
+        });
+        if (!result.isConfirmed || !result.value) return;
+        codigoDigitado = result.value;
+    } else {
+        codigoDigitado = prompt("Digite o código de 6 dígitos:");
+        if (!codigoDigitado) return;
+    }
+
+    const codigoTratado = codigoDigitado.trim().toUpperCase();
+    if (codigoTratado.length !== 6) return alert("O código deve ter exatamente 6 caracteres.");
+
+    try {
+        if (typeof showToast === 'function') showToast("Buscando dados na nuvem...", "ajuste");
+
+        const doc = await dbFirestore.collection('transfers').doc(codigoTratado).get();
+        
+        if (doc.exists) {
+            const data = doc.data();
+            const bancoImportado = JSON.parse(data.dados);
+
+            const confirmar = confirm("Encontramos os dados! Deseja substituir seu painel atual por este backup?");
+            if (confirmar) {
+                await efetivarRestauracaoFirebase(bancoImportado);
+                await dbFirestore.collection('transfers').doc(codigoTratado).delete(); // Apaga o código após uso
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ title: 'Transferência Concluída!', text: 'Seus dados foram sincronizados com sucesso.', icon: 'success', confirmButtonColor: '#10b981' });
+                }
+            }
+        } else {
+            alert("Código inválido, expirado ou já utilizado.");
+        }
+    } catch(error) {
+        alert("Ocorreu um erro ao verificar o código.");
+    }
 };
 
 // ----------------------------------------------------
@@ -148,12 +417,13 @@ window.fecharModalEdicaoLancamento = function() {
 };
 
 window.abrirModalEdicaoLancamento = function(id) {
-    const l = (db.lancamentos || []).find(x => String(x.id) === String(id));
+    const bancoLocal = obterDadosSeguros();
+    const l = (bancoLocal.lancamentos || []).find(x => String(x.id) === String(id));
     if (!l) return;
 
     if (l.efetivado) {
         let bloqueado = true;
-        const c = (db.contas || []).find(acc => String(acc.id) === String(l.contaId));
+        const c = (bancoLocal.contas || []).find(acc => String(acc.id) === String(l.contaId));
         if (c && c.tipo === 'cartao') {
             let mesFat = "";
             if (l.data) {
@@ -163,7 +433,7 @@ window.abrirModalEdicaoLancamento = function(id) {
                 if (diaF >= diaFech) { mesF += 1; if (mesF > 12) { mesF = 1; anoF += 1; } }
                 mesFat = `${anoF}-${mesF.toString().padStart(2, '0')}`;
             }
-            if (mesFat && !(db.faturasPagas || []).includes(`${c.id}-${mesFat}`)) bloqueado = false; 
+            if (mesFat && !(bancoLocal.faturasPagas || []).includes(`${c.id}-${mesFat}`)) bloqueado = false; 
         }
         
         if (bloqueado) {
@@ -182,8 +452,8 @@ window.abrirModalEdicaoLancamento = function(id) {
     if(valorEl) valorEl.value = parseFloat(l.valor || 0).toFixed(2).replace('.', ',');
     if(dataEl) dataEl.value = l.data || '';
 
-    if(catEl) catEl.innerHTML = '<option value="">Outros</option>' + (db.categorias || []).map(cat => `<option value="${cat.nome}" ${l.cat === cat.nome ? 'selected' : ''}>${cat.icone || ''} ${cat.nome}</option>`).join('');
-    if(contaEl) contaEl.innerHTML = (db.contas || []).map(acc => `<option value="${acc.id}" ${String(l.contaId) === String(acc.id) ? 'selected' : ''}>${acc.nome}</option>`).join('');
+    if(catEl) catEl.innerHTML = '<option value="">Outros</option>' + (bancoLocal.categorias || []).map(cat => `<option value="${cat.nome}" ${l.cat === cat.nome ? 'selected' : ''}>${cat.icone || ''} ${cat.nome}</option>`).join('');
+    if(contaEl) contaEl.innerHTML = (bancoLocal.contas || []).map(acc => `<option value="${acc.id}" ${String(l.contaId) === String(acc.id) ? 'selected' : ''}>${acc.nome}</option>`).join('');
 
     const m = document.getElementById('modal-edicao-lancamento');
     if(m) { m.style.display = 'flex'; setTimeout(() => m.classList.add('active'), 10); }
@@ -191,7 +461,8 @@ window.abrirModalEdicaoLancamento = function(id) {
 
 window.salvarEdicaoLancamentoModal = function() {
     if (!window.idLancamentoEdicaoAtual) return;
-    const l = db.lancamentos.find(x => String(x.id) === String(window.idLancamentoEdicaoAtual));
+    const bancoLocal = obterDadosSeguros();
+    const l = bancoLocal.lancamentos.find(x => String(x.id) === String(window.idLancamentoEdicaoAtual));
     if (!l) return;
 
     l.desc = document.getElementById('edit-modal-desc').value;
@@ -212,16 +483,16 @@ window.salvarEdicaoLancamentoModal = function() {
 // 5. EFETIVAÇÃO E CÁLCULO DE SALDO (UNIFICADO)
 // ----------------------------------------------------
 window.toggleEfetivado = function(id) {
-    const l = (db.lancamentos || []).find(x => String(x.id) === String(id));
+    const bancoLocal = obterDadosSeguros();
+    const l = (bancoLocal.lancamentos || []).find(x => String(x.id) === String(id));
     if (!l) return;
 
     const isReceita = (window.ecoTiposReceita && window.ecoTiposReceita.includes(l.tipo)) || (typeof T_RECEITAS !== 'undefined' && T_RECEITAS.includes(l.tipo)) || l.tipo === 'salario';
     const isDespesa = (window.ecoTiposDespesa && window.ecoTiposDespesa.includes(l.tipo)) || (typeof T_DESPESAS !== 'undefined' && T_DESPESAS.includes(l.tipo)) || (!isReceita && (l.fixo || l.parcelas || l.tipo === 'conta_fixa'));
 
-    const conta = (db.contas || []).find(c => String(c.id) === String(l.contaId));
+    const conta = (bancoLocal.contas || []).find(c => String(c.id) === String(l.contaId));
     l.efetivado = !l.efetivado;
 
-    // Se confirmou pagamento de salário, força pra receita
     if (l.efetivado && ['salario', 'outras_receitas', 'compensacao'].includes(l.tipo)) l.tipo = 'receita'; 
 
     if (conta && conta.tipo !== 'cartao') {
@@ -245,7 +516,6 @@ window.toggleEfetivado = function(id) {
 // 6. INICIALIZAÇÃO VISUAL (POP-UPS E OBSERVERS)
 // ----------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
-    // Humanização de Notificações
     const obsNotificacoes = new MutationObserver(() => {
         const notifTexts = document.querySelectorAll('#lista-notificacoes, .notificacao-card, .drawer-body');
         notifTexts.forEach(el => {
@@ -257,11 +527,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const gavetaNotificacoes = document.getElementById('gaveta-notificacoes');
     if (gavetaNotificacoes) obsNotificacoes.observe(gavetaNotificacoes, { childList: true, subtree: true });
 
-    // Popup de Contas do Dia
     setTimeout(() => {
+        const bancoLocal = obterDadosSeguros();
         const hojeObj = new Date();
         const strHoje = `${hojeObj.getFullYear()}-${(hojeObj.getMonth()+1).toString().padStart(2,'0')}-${hojeObj.getDate().toString().padStart(2,'0')}`;
-        const vencendoHoje = (db.lancamentos || []).filter(l => l.data === strHoje && !l.efetivado && (l.tipo === 'despesa' || l.tipo === 'despesas_gerais' || l.fixa || l.parcelas));
+        const vencendoHoje = (bancoLocal.lancamentos || []).filter(l => l.data === strHoje && !l.efetivado && (l.tipo === 'despesa' || l.tipo === 'despesas_gerais' || l.fixa || l.parcelas));
 
         if (vencendoHoje.length > 0) {
             const popupAviso = document.createElement('div');
@@ -273,7 +543,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }, 1500);
 
-    // Touch em Carrosséis
     document.querySelectorAll('.carrossel-wrapper').forEach(wrapper => {
         let startX = 0; let finalX = 0;
         wrapper.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive: true});
@@ -291,7 +560,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Ligações Físicas dos Modais
     setTimeout(() => {
         const modalEdicao = document.getElementById('modal-edicao-lancamento');
         if (modalEdicao) {
