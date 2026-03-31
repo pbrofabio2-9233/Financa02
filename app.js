@@ -69,8 +69,12 @@ window.abrirModalSistema = function() {
     const m = document.getElementById('modal-sistema');
     m.style.display = 'flex';
     setTimeout(() => m.classList.add('active'), 10);
+    
+    // As duas linhas essenciais que estavam faltando para preencher a tela!
     if (typeof renderizarListaBackups === 'function') renderizarListaBackups(); 
+    if (typeof renderizarHistoricoTransferencias === 'function') renderizarHistoricoTransferencias(); 
 };
+
 window.fecharModalSistema = function() { const m = document.getElementById('modal-sistema'); if (m) { m.classList.remove('active'); setTimeout(() => m.style.display = 'none', 300); } };
 
 // ----------------------------------------------------
@@ -139,9 +143,6 @@ window.renderizarListaBackups = async function() {
                     <span style="font-size: 13px; color: var(--texto-main); font-weight: 600;">${bkp.data}</span>
                 </div>
                 <div style="display: flex; gap: 6px;">
-                    <button class="btn-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--azul); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;" onclick="baixarBackupNuvem('${bkp.id}')" title="Baixar Arquivo">
-                        <i class="fas fa-download"></i>
-                    </button>
                     <button class="btn-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--esmeralda); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;" onclick="restaurarBackupNuvem('${bkp.id}')" title="Restaurar Backup">
                         <i class="fas fa-upload"></i>
                     </button>
@@ -255,9 +256,10 @@ async function efetivarRestauracaoFirebase(dadosImportados) {
     }
 }
 
-// ----------------------------------------------------
-// TRANSFERÊNCIA EXPRESSA (ECOSHARE)
-// ----------------------------------------------------
+// ==========================================
+// TRANSFERÊNCIA EXPRESSA (ECOSHARE) - AVANÇADO
+// ==========================================
+
 window.gerarCodigoTransferencia = async function() {
     if (!window.usuarioLogado) return alert("Precisa estar logado para gerar um código.");
     
@@ -269,11 +271,19 @@ window.gerarCodigoTransferencia = async function() {
         codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
     }
 
+    const agora = new Date().getTime();
+    const validade = agora + (24 * 60 * 60 * 1000); // 24 horas
+
     const transferData = {
         codigo: codigo,
         dados: JSON.stringify(bancoDados),
-        criadoEm: new Date().getTime(),
-        dono: window.usuarioLogado.uid
+        criadoEm: agora,
+        validade: validade,
+        dono: window.usuarioLogado.uid,
+        status: 'valido', // 'valido', 'utilizado', 'expirado', 'cancelado'
+        dataUtilizacao: null,
+        usuarioUtilizou: null,
+        usuarioUtilizouUid: null // Para o recebedor ver no histórico
     };
 
     const btn = event.target;
@@ -287,16 +297,17 @@ window.gerarCodigoTransferencia = async function() {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: 'Código Gerado!',
-                html: `Vá na outra conta, clique em <b>Usar Código</b> e digite:<br><br><b style="font-size: 32px; letter-spacing: 6px; color: var(--azul); background: var(--input-bg); padding: 10px 20px; border-radius: 12px; border: 1px dashed var(--linha); display: inline-block;">${codigo}</b><br><br><small style="color: var(--texto-sec);">Este código é de uso único e expira em breve.</small>`,
+                html: `Vá na outra conta, clique em <b>Usar Código</b> e digite:<br><br>
+                       <b style="font-size: 32px; letter-spacing: 6px; color: var(--azul); background: var(--input-bg); padding: 10px 20px; border-radius: 12px; border: 1px dashed var(--linha); display: inline-block;">${codigo}</b><br>
+                       <button onclick="navigator.clipboard.writeText('${codigo}'); this.innerHTML='<i class=\\'fas fa-check\\'></i> Copiado!'; this.style.background='var(--esmeralda)';" class="btn-primary" style="margin-top:15px; background: var(--azul); padding: 10px 20px; font-size: 13px;"><i class="fas fa-copy"></i> Copiar Código</button><br><br>
+                       <small style="color: var(--texto-sec);">Válido por 24h. Apenas 1 uso permitido.</small>`,
                 icon: 'success',
                 confirmButtonText: 'Entendido',
                 confirmButtonColor: '#3b82f6'
             });
-        } else {
-            prompt("Seu código de transferência foi gerado! Copie o código abaixo:", codigo);
         }
+        renderizarHistoricoTransferencias();
     } catch(error) {
-        console.error("Erro ao gerar código:", error);
         alert("Falha na conexão. Tente novamente.");
     } finally {
         btn.innerHTML = textoOriginal;
@@ -312,7 +323,7 @@ window.importarPorCodigo = async function() {
     if (typeof Swal !== 'undefined') {
         const result = await Swal.fire({
             title: 'Resgatar Backup',
-            text: 'Digite o código de 6 dígitos gerado no outro dispositivo:',
+            text: 'Digite o código de 6 dígitos:',
             input: 'text',
             inputAttributes: { maxlength: 6, style: 'text-transform: uppercase; text-align: center; font-size: 24px; letter-spacing: 4px;' },
             showCancelButton: true,
@@ -331,28 +342,158 @@ window.importarPorCodigo = async function() {
     if (codigoTratado.length !== 6) return alert("O código deve ter exatamente 6 caracteres.");
 
     try {
-        if (typeof showToast === 'function') showToast("Buscando dados na nuvem...", "ajuste");
+        if (typeof showToast === 'function') showToast("Verificando código...", "ajuste");
 
-        const doc = await dbFirestore.collection('transfers').doc(codigoTratado).get();
+        const docRef = dbFirestore.collection('transfers').doc(codigoTratado);
+        const doc = await docRef.get();
         
         if (doc.exists) {
             const data = doc.data();
-            const bancoImportado = JSON.parse(data.dados);
+            const agora = new Date().getTime();
+            let statusLocal = data.status || 'valido'; // Evita o "undefined" antigo
 
-            const confirmar = confirm("Encontramos os dados! Deseja substituir seu painel atual por este backup?");
+            // Bloqueios
+            if (statusLocal === 'cancelado') return alert("❌ Este código foi cancelado pelo criador.");
+            if (statusLocal === 'utilizado') return alert("❌ Este código já foi utilizado por outra pessoa.");
+            if (statusLocal === 'expirado' || (data.validade && data.validade < agora)) {
+                if (statusLocal !== 'expirado') await docRef.update({ status: 'expirado', dados: "{}" });
+                return alert("⏳ Este código expirou (passou de 24 horas).");
+            }
+
+            const bancoImportado = JSON.parse(data.dados);
+            const confirmar = confirm("Código validado! Deseja substituir seu painel atual por estes dados?");
+            
             if (confirmar) {
                 await efetivarRestauracaoFirebase(bancoImportado);
-                await dbFirestore.collection('transfers').doc(codigoTratado).delete(); // Apaga o código após uso
+                
+                const nomeUsuario = window.usuarioLogado.displayName || window.usuarioLogado.email || 'Usuário Desconhecido';
+                await docRef.update({ 
+                    status: 'utilizado',
+                    dataUtilizacao: agora,
+                    usuarioUtilizou: nomeUsuario,
+                    usuarioUtilizouUid: window.usuarioLogado.uid, // Registra o UID de quem recebeu
+                    dados: "{}" // Limpa os dados de transição
+                });
                 
                 if (typeof Swal !== 'undefined') {
-                    Swal.fire({ title: 'Transferência Concluída!', text: 'Seus dados foram sincronizados com sucesso.', icon: 'success', confirmButtonColor: '#10b981' });
+                    Swal.fire({ title: 'Transferência Concluída!', text: 'Dados sincronizados com sucesso.', icon: 'success', confirmButtonColor: '#10b981' });
                 }
+                renderizarHistoricoTransferencias();
             }
         } else {
-            alert("Código inválido, expirado ou já utilizado.");
+            alert("Código inválido ou inexistente.");
         }
     } catch(error) {
         alert("Ocorreu um erro ao verificar o código.");
+    }
+};
+
+window.cancelarCodigoTransferencia = async function(codigo) {
+    if (confirm(`Deseja realmente CANCELAR o código ${codigo}?\nEle será inativado imediatamente.`)) {
+        try {
+            await dbFirestore.collection('transfers').doc(codigo).update({
+                status: 'cancelado',
+                dados: "{}" // Destrói os dados por segurança
+            });
+            if (typeof showToast === 'function') showToast("Código cancelado com sucesso!", "ajuste");
+            renderizarHistoricoTransferencias();
+        } catch(error) {
+            alert("Erro ao cancelar o código.");
+        }
+    }
+};
+
+window.renderizarHistoricoTransferencias = async function() {
+    const container = document.getElementById('lista-transferencias');
+    if (!container || !window.usuarioLogado) return;
+
+    container.innerHTML = '<p class="texto-vazio" style="font-size: 12px;"><i class="fas fa-spinner fa-spin"></i> Carregando histórico...</p>';
+
+    try {
+        const uid = window.usuarioLogado.uid;
+        
+        // Puxa os que EU enviei E os que EU recebi
+        const snapEnviados = await dbFirestore.collection('transfers').where('dono', '==', uid).get();
+        const snapRecebidos = await dbFirestore.collection('transfers').where('usuarioUtilizouUid', '==', uid).get();
+        
+        let mapaHistorico = new Map();
+        snapEnviados.forEach(doc => mapaHistorico.set(doc.id, doc.data()));
+        snapRecebidos.forEach(doc => mapaHistorico.set(doc.id, doc.data()));
+        
+        let historico = Array.from(mapaHistorico.values());
+        historico.sort((a, b) => b.criadoEm - a.criadoEm); // Mais recentes primeiro
+
+        if (historico.length === 0) {
+            container.innerHTML = '<p class="texto-vazio" style="font-size: 12px; color: var(--texto-sec);">Nenhuma transferência registrada.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        const agora = new Date().getTime();
+
+        historico.forEach(item => {
+            let status = item.status || 'valido'; 
+            let corStatus = 'var(--esmeralda)'; 
+            let btnAcoes = '';
+            
+            // É enviado ou recebido?
+            const isRecebedor = (item.usuarioUtilizouUid === uid && item.dono !== uid);
+            const labelDirecao = isRecebedor ? '<span style="color: var(--esmeralda);"><i class="fas fa-arrow-down"></i> Recebido</span>' : '<span style="color: var(--azul);"><i class="fas fa-arrow-up"></i> Enviado</span>';
+            
+            if (status === 'valido' && item.validade && item.validade < agora) { status = 'expirado'; }
+            
+            if (status === 'expirado') corStatus = 'var(--perigo)';
+            else if (status === 'utilizado') corStatus = 'var(--azul)';
+            else if (status === 'cancelado') corStatus = 'var(--texto-sec)';
+            else if (status === 'valido' && !isRecebedor) {
+                // Se for válido e EU criei, adiciona botões Copiar e Cancelar
+                btnAcoes = `
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <button onclick="navigator.clipboard.writeText('${item.codigo}'); this.innerHTML='<i class=\\'fas fa-check\\'></i> Copiado'; this.style.color='var(--esmeralda)';" style="background: none; border: none; color: var(--azul); font-size: 11px; cursor: pointer; padding: 0; display: flex; align-items: center; gap: 4px; transition: 0.3s;"><i class="fas fa-copy"></i> Copiar</button>
+                        <button onclick="cancelarCodigoTransferencia('${item.codigo}')" style="background: none; border: none; color: var(--perigo); font-size: 11px; text-decoration: underline; cursor: pointer; padding: 0;">Cancelar</button>
+                    </div>`;
+            }
+
+            const dataC = new Date(item.criadoEm).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'});
+            
+            let htmlDetalhes = '';
+            if (status === 'utilizado') {
+                const dataU = item.dataUtilizacao ? new Date(item.dataUtilizacao).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'}) : '--';
+                if (isRecebedor) {
+                    htmlDetalhes = `<div style="font-size: 11px; color: var(--texto-sec); margin-top: 4px;">Você resgatou em: ${dataU}</div>`;
+                } else {
+                    htmlDetalhes = `<div style="font-size: 11px; color: var(--texto-sec); margin-top: 4px;">Usado por <b>${item.usuarioUtilizou}</b> em ${dataU}</div>`;
+                }
+            } else if (status === 'valido') {
+                const dataV = item.validade ? new Date(item.validade).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'}) : '--';
+                htmlDetalhes = `<div style="font-size: 11px; color: var(--texto-sec); margin-top: 4px;">Expira em: ${dataV}</div>`;
+            } else if (status === 'cancelado') {
+                htmlDetalhes = `<div style="font-size: 11px; color: var(--texto-sec); margin-top: 4px;">Cancelado manualmente.</div>`;
+            }
+
+            const div = document.createElement('div');
+            div.style.cssText = `background: var(--card-bg); border: 1px solid var(--linha); border-left: 4px solid ${corStatus}; border-radius: 6px; padding: 10px; margin-bottom: 8px; text-align: left;`;
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <strong style="font-size: 14px; color: var(--texto-main); letter-spacing: 2px;">${item.codigo}</strong>
+                        <div style="font-size: 10px; font-weight: bold;">${labelDirecao}</div>
+                    </div>
+                    <span style="font-size: 10px; font-weight: bold; color: ${corStatus}; text-transform: uppercase; border: 1px solid ${corStatus}; padding: 2px 6px; border-radius: 4px;">${status}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <div style="font-size: 11px; color: var(--texto-sec); margin-top: 2px;">Gerado em: ${dataC}</div>
+                        ${htmlDetalhes}
+                    </div>
+                    ${btnAcoes}
+                </div>
+            `;
+            container.appendChild(div);
+        });
+
+    } catch (error) {
+        container.innerHTML = '<p class="texto-vazio" style="font-size: 12px; color: var(--perigo);">Erro ao carregar histórico.</p>';
     }
 };
 
