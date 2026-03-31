@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EcoFinance Pro v28.5</title>
+    <title>EcoFinance Pro v28.6</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     
-    <link rel="stylesheet" href="style.css?v=28.5">
+    <link rel="stylesheet" href="style.css?v=28.6">
     <style>
         /* ==========================================
            ESTILOS ESPECÍFICOS DO INDEX E NOVOS LAYOUTS
@@ -162,23 +162,19 @@
             html, body { overflow-x: clip !important; }
             body { background-color: #0f172a; margin: 0; padding: 0; }
             
-            /* AUMENTAMOS A LARGURA: De 60% para 90% e ajustamos o mínimo para caber tudo */
             #app { width: 90%; max-width: 1200px; min-width: 950px; margin: 0 auto; position: relative; min-height: 100vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,0,0,0.6); background: var(--fundo); border-left: 1px solid var(--linha); border-right: 1px solid var(--linha); overflow: visible !important; }
             #conteudo-principal { flex: 1; padding-bottom: 40px; } 
             
-            /* Melhoramos o espaçamento interno do cabeçalho */
             header.header-modern { border-radius: 0 !important; margin-bottom: 0 !important; padding: 15px 30px !important; }
             
             .fab-mobile { display: none !important; } 
             .btn-scroll-top { bottom: 30px; left: auto; right: 30px; width: 50px; height: 50px; font-size: 20px; }
             
-            /* Diminuímos o botão "Novo Lançamento" para não roubar tanto espaço */
             .btn-header-desktop { display: flex !important; padding: 8px 16px !important; font-size: 13px !important; } 
             
             .carrossel-chips::-webkit-scrollbar, .chart-scroll-wrapper::-webkit-scrollbar { display: block !important; height: 6px !important; }
             #menu-lateral { display: none !important; } 
             
-            /* COMPACTAMOS OS ESPAÇOS DO MENU */
             .desktop-nav { display: flex !important; align-items: center; gap: 4px; margin-left: 20px; }
             .desktop-nav .menu-item { cursor: pointer; padding: 8px 12px; border-radius: 8px; color: var(--texto-sec); font-weight: 600; font-size: 12px; transition: 0.2s; display: flex; align-items: center; gap: 5px; flex-direction: row; }
             .desktop-nav .menu-item:hover { background: var(--input-bg); color: var(--texto-main); }
@@ -186,11 +182,6 @@
             .desktop-nav .menu-item i { font-size: 13px; }
             .desktop-nav .menu-item span { font-size: 12px; font-weight: 600; }
 
-            /* =======================================
-               NOVA ESTRUTURA DE COLUNAS (FIM DO ESTICAMENTO)
-               ======================================= */
-               
-            /* Transforma as listas de Faturas e Extratos em Grid de 2 colunas */
             #lista-faturas-agrupadas {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
@@ -205,19 +196,13 @@
                 align-items: start;
             }
 
-            /* Força as Faturas e Históricos a não terem margem inferior gigante quando em Grid */
             #lista-faturas-agrupadas .fatura-mes-container,
             #lista-historico-filtros .lancamento-item {
                 margin-bottom: 0 !important;
             }
 
-            /* =======================================
-               AJUSTES NO DASHBOARD PRINCIPAL
-               ======================================= */
-            /* Agrupa Receitas, Despesas, Saldo e Investido em 4 colunas */
             .desktop-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 15px; }
             
-            /* Agrupa Cartões Maiores (Fatura / Inteligência) lado a lado */
             .desktop-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px; align-items: stretch; }
             .desktop-grid-2 > .card, .desktop-grid-2 > .card-simples { margin-bottom: 0 !important; height: 100%; display: flex; flex-direction: column; justify-content: space-between;}
         }
@@ -572,10 +557,7 @@
                     <h3><i class="fas fa-list-ul" style="color:var(--azul);"></i> Extrato da Conta</h3>
                     <button class="btn-icon" onclick="fecharModalExtratoConta()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body">
-                    <div id="aviso-saldo-divergente"></div>
-                    <div id="conteudo-extrato-conta"></div>
-                </div>
+                <div class="modal-body" id="conteudo-extrato-conta"></div>
             </div>
         </div>
 
@@ -660,7 +642,7 @@
                             <option value="despesa">Saída (Despesa)</option>
                             <option value="receita">Entrada (Receita)</option>
                         </select>
-                        <input type="date" id="lanc-data" class="input-moderno" onchange="if(typeof verificarDataFutura === 'function') verificarDataFutura(); if(typeof atualizarParcelasCartao === 'function') atualizarParcelasCartao();">
+                        <input type="date" id="lanc-data" class="input-moderno" onchange="if(typeof verificarDataFutura === 'function') verificarDataFutura(); if(typeof atualizarParcelasCartao === 'function') atualizarParcelasCartao()">
                     </div>
                     
                     <div class="grid-inputs mb-10">
@@ -885,26 +867,44 @@
                     <h3><i class="fas fa-shield-alt" style="color:var(--perigo);"></i> Sistema e Dados</h3>
                     <button class="btn-icon" onclick="fecharModalSistema()"><i class="fas fa-times"></i></button>
                 </div>
-                <div class="modal-body">
-                    <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1)); border: 1px dashed var(--azul); padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align: center;">
-                        <strong style="display: block; font-size: 14px; color: var(--texto-main); margin-bottom: 5px;"><i class="fas fa-exchange-alt" style="color: var(--azul);"></i> Transferência Expressa</strong>
-                        <p style="font-size: 12px; color: var(--texto-sec); margin-bottom: 15px;">Migre seus dados para outra conta instantaneamente usando um código seguro.</p>
-                        
-                        <div class="grid-inputs">
-                            <button class="btn-primary" style="background: var(--azul); font-size: 13px; padding: 10px;" onclick="gerarCodigoTransferencia()"><i class="fas fa-share-square"></i> Gerar Código</button>
-                            <button class="btn-primary" style="background: var(--esmeralda); font-size: 13px; padding: 10px;" onclick="importarPorCodigo()"><i class="fas fa-download"></i> Usar Código</button>
+                <div class="modal-body" style="padding: 20px;">
+                    <style>
+                        @media (min-width: 768px) {
+                            #modal-sistema .modal-content { max-width: 800px !important; width: 95% !important; }
+                            .grid-sistema-duplo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+                        }
+                        @media (max-width: 767px) {
+                            .grid-sistema-duplo { display: flex; flex-direction: column; gap: 20px; }
+                        }
+                    </style>
+
+                    <div class="grid-sistema-duplo">
+                        <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(16, 185, 129, 0.05)); border: 1px dashed var(--azul); padding: 15px; border-radius: 12px; display: flex; flex-direction: column;">
+                            <strong style="display: block; font-size: 14px; color: var(--texto-main); margin-bottom: 5px; text-align: center;"><i class="fas fa-exchange-alt" style="color: var(--azul);"></i> Transferência Expressa</strong>
+                            <p style="font-size: 12px; color: var(--texto-sec); margin-bottom: 15px; text-align: center;">Migre seus dados instantaneamente usando um código seguro.</p>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <button class="btn-primary" style="background: var(--azul); font-size: 12px; padding: 10px;" onclick="gerarCodigoTransferencia()"><i class="fas fa-share-square"></i> Gerar Código</button>
+                                <button class="btn-primary" style="background: var(--esmeralda); font-size: 12px; padding: 10px;" onclick="importarPorCodigo()"><i class="fas fa-download"></i> Usar Código</button>
+                            </div>
+                            
+                            <div id="lista-transferencias" style="margin-top: 15px; max-height: 250px; overflow-y: auto; border-top: 1px solid var(--linha); padding-top: 15px; flex-grow: 1;"></div>
+                        </div>
+
+                        <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+                                    <button class="btn-outline" style="font-size: 12px; padding: 10px;" onclick="exportarBackup()"><i class="fas fa-cloud-upload-alt"></i> Salvar na Nuvem</button>
+                                    <button class="btn-outline" style="border-color: var(--esmeralda); color: var(--esmeralda); font-size: 12px; padding: 10px;" onclick="exportarExtratoCSV()"><i class="fas fa-file-csv"></i> Relatório (CSV)</button>
+                                </div>
+
+                                <strong class="label-moderno" style="display: block; margin-bottom: 10px;">Meus Backups na Nuvem</strong>
+                                <div id="lista-backups" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px;"></div>
+                            </div>
+                            
+                            <button class="btn-danger mt-20" style="width: 100%; padding: 12px; font-size: 13px;" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica do App</button>
                         </div>
                     </div>
-
-                    <div class="grid-inputs mb-20">
-                        <button class="btn-outline" onclick="exportarBackup()"><i class="fas fa-cloud-upload-alt"></i> Salvar na Nuvem</button>
-                        <button class="btn-outline" style="border-color: var(--esmeralda); color: var(--esmeralda);" onclick="exportarExtratoCSV()"><i class="fas fa-file-csv"></i> Relatório (Excel)</button>
-                    </div>
-
-                    <strong class="label-moderno mb-10">Meus Backups na Nuvem</strong>
-                    <div id="lista-backups" style="margin-bottom: 20px;"></div>
-                    
-                    <button class="btn-danger mt-20" onclick="confirmarReset()"><i class="fas fa-skull"></i> Reset de Fábrica do App</button>
                 </div>
             </div>
         </div>
@@ -1325,10 +1325,10 @@
 
     <script src="auth.js"></script>
     
-    <script src="core.js?v=28.5"></script>
-    <script src="engine.js?v=28.5"></script>
-    <script src="ui.js?v=28.5"></script>
-    <script src="app.js?v=28.5"></script>
+    <script src="core.js?v=28.6"></script>
+    <script src="engine.js?v=28.6"></script>
+    <script src="ui.js?v=28.6"></script>
+    <script src="app.js?v=28.6"></script>
 
 </body>
 </html>
